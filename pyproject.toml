@@ -1,0 +1,69 @@
+# pyproject.toml
+
+[build-system]
+requires = [
+    "setuptools>=60",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "0.1.0"
+name = "mcce_bench"
+description = "MCCE benchmarking against Dr. Emil Axelov's pKa Database v1 (http://compbio.clemson.edu/lab/software/5/)"
+readme = "README.md"
+authors = [
+    {name = "Cat Chenal @ GunnerLab"},
+    {name = "Junjun Mao @ GunnerLab"},
+]
+maintainers = [
+    {name = "Cat Chenal @ GunnerLab"},
+]
+license = {file = "LICENSE"}
+keywords = [
+    "biophysics",
+    "proteomics",
+    "cheminformatics",
+    "drug design",
+    "Monte Carlo simulation",
+    "pKa benchmark"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Biophysicists, Developpers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "seaborn",
+]
+
+[project.urls]
+Source = "https://github.com/GunnerLab/MCCE_Benchmarking"
+
+[tool.setuptools.packages.find]
+where = ["benchmark"]
+
+#[tool.setuptools.packages]
+#find = {}
+
+[tool.setuptools.package-data]
+"benchmark.data" = ["*.txt", "*.csv", "*.pdb"]
+
+[project.scripts]
+#TODO
+#bench = "mcce_bench.cli:launch_benchmark"
+#mypkg.mymodule:some_func"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
