@@ -46,10 +46,9 @@ The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'p
 'Use' column -> pdbid_use.pdb is the new name, with 'use' being the string from the 'Use' column minus the period.
 
 # TODO:
-Logging -> job.log.
-Initial local folder setup.
-Test bench cli with small number of processes.
-Implement versioning scheme -> pyproject.
-Test access to dist data after local install.
-
-
+* Logging -> job.log.
+* Initial local folder setup.
+* Test bench cli with small number of processes.
+* Implement versioning scheme -> pyproject.
+* Test access to dist data after local install.
+* Test change of MCCE_HOME with cli (currently requires a manual setup)
