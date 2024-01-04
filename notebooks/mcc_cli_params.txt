@@ -1,0 +1,122 @@
+# MCCE cli parameters in each step
+
+# Step1:
+1. Run step 1
+    step1.py prot.pdb
+
+2. Write run.prm for step 1, do not actually run step 1. (No run)
+    step1.py prot.pdb --norun
+
+3. Run step 1 with specified mcce
+    step1.py prot.pdb -e /path/to/mcce
+
+4. Run step 1 with other customized parameters
+    step1.py prot.pdb -u HOME_MCCE=/path/to/mcce_home,H2O_SASCUTOFF=0.05
+
+``` helpmsg = "Run mcce step 1, premcce to format PDB file to MCCE PDB format."
+    parser = argparse.ArgumentParser(description=helpmsg)
+    parser.add_argument("prot", metavar="pdb", nargs=1)
+
+    parser.add_argument("-e", metavar="/path/to/mcce", default="mcce", help="mcce executable location, default to 'mcce'")
+    parser.add_argument("-d", metavar="epsilon", default="4.0", help="protein dielectric constant for delphi, default to 4.0")
+    parser.add_argument("-u", metavar="Key=Value", default="", help="Any comma-separated KEY=var from run.prm")
+
+    parser.add_argument("--norun", default=False, help="Create run.prm but do not run step 1", action="store_true")
+    parser.add_argument("--noter", default=False, help="Do not label terminal residues (for making ftpl).", action="store_true")
+    parser.add_argument("--dry", default=False, help="Delete all water molecules.", action="store_true")
+```
+
+# Step2:
+1. Run step 2 with default (quick conformers)
+    step2.py
+
+2. Write run.prm for step 2, do not actually run step 2.
+    step2.py --norun
+
+3. Run step 2 with quick (default), medium, and comprehensive conformer making
+    step2.py -l 1   # quick
+    step2.py -l 2   # medium
+    step2.py -l 3   # comprehensive
+
+4. Run step 2 using specific mcce executable
+    step2.py -e /path/to/mcce
+
+5. Run step 2 using specific mcce executable
+    step2.py -d 4.0
+
+6. Run step 2 with other customized parameters
+    step1.py -u HOME_MCCE=/path/to/mcce_home,H2O_SASCUTOFF=0.05
+```
+    # Get the command arguments
+    helpmsg = "Run mcce step 2, make side chain conformers from step1_out.pdb."
+    parser = argparse.ArgumentParser(description=helpmsg)
+    parser.add_argument("--norun", default=False, help="Create run.prm but do not run step 2", action="store_true")
+    parser.add_argument("-d", metavar="epsilon", default="4.0", help="dielectric constant for optimizing conformers")
+    parser.add_argument("-e", metavar="/path/to/mcce", default="mcce", help="mcce executable location, default to \"mcce\"")
+    parser.add_argument("-u", metavar="Key=Value", default="", help="User customized variables")
+    parser.add_argument("-l", metavar="level", default=1, help="conformer level 1: quick, 2: medium, 3: comnrehensive", type=int)
+```
+
+# Step3
+1. Run step 3 with 6 threads
+    step3.py -p 6 [-e mcce] [-d delphi]
+
+2. Run step 3 to recreate head3.lst
+    step3.py -r [-e mcce] [-d delphi]
+
+3. Run partial conformers. conformer 1 to 100
+    step3.py -c 1, 100 [-e mcce] [-d delphi]
+
+-p number: run with number of processes
+-r: refresh opp files vdw and ele, and head3.lst
+-c start, end: run conformer from start to end
+-x: the optional path to delphi program
+
+```
+    helpmsg = "Run mcce step 3, energy calculations, with multiple threads."
+    parser = argparse.ArgumentParser(description=helpmsg)
+    parser.add_argument("-c", metavar=('start', 'end'), default=[1, 99999], nargs=2,
+                         help="starting and ending conformer, default to 1 and 9999", type=int)
+    parser.add_argument("-d", metavar="epsilon", default="4.0", help="protein dielectric constant for delphi, default to 4.0")
+    parser.add_argument("-e", metavar="/path/to/mcce", default="mcce", help="mcce executable location, default to \"mcce\"")
+    parser.add_argument("-f", metavar="tmp folder", default="/tmp", help="delphi temporary folder, default to /tmp")
+    parser.add_argument("-p", metavar="processes", default=1, help="run mcce with number of processes, default to 1", type=int)
+    parser.add_argument("-r", default=False, help="refresh opp files and head3.lst without running delphi", action="store_true")
+    parser.add_argument("-u", metavar="Key=Value", default="", help="User customized variables")
+    parser.add_argument("--norun", default=False, help="Create run.prm but do not run step 3", action="store_true")
+```
+
+# Step4:
+1. Run step 4 with default (pH titration from 0.0 to 14.0 at 15 points, without entropy correction)
+    step4.py
+
+2. Write run.prm for step 4, do not actually run step 4. (Dry run)
+    step4.py --norun
+
+3. Run step 4 at defined points
+    step4.py -i 0.0 -d 1 -n 15
+
+4. Run step 4 with entropy correction
+    step4.py --xts
+
+5. Run step 4 using specific mcce executable
+    step4.py -e /path/to/mcce
+
+6. Run step 4 using Eh titration
+    step4.py -t eh
+
+7. Run step 4 with other customized parameters
+    step4.py -u EXTRA=./extra.tpl
+```
+    helpmsg = "Run mcce step 4, Monte Carlo sampling to simulate a titration."
+    parser = argparse.ArgumentParser(description=helpmsg)
+    parser.add_argument("--norun", default=False, help="Create run.prm but do not run step 4", action="store_true")
+    parser.add_argument("-i", metavar="initial ph/eh", default="0.0", help="Initial pH/Eh of titration")
+    parser.add_argument("-d", metavar="interval", default="1.0", help="titration interval in pJ or mV")
+    parser.add_argument("-n", metavar="steps", default="15", help="number of steps of titration")
+    parser.add_argument("--xts", default=False, help="Enable entropy correction, default is false", action="store_true")
+    parser.add_argument("--ms", default=False, help="Enable microstate output", action="store_true")
+    parser.add_argument("-e", metavar="/path/to/mcce", default="mcce", help="mcce executable location, default to \"mcce\"")
+    parser.add_argument("-t", metavar="ph or eh", default="ph", help="titration type, pH or Eh")
+    parser.add_argument("-u", metavar="Key=Value", default="", help="User customized variables")
+```

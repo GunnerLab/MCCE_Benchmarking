@@ -1,6 +1,6 @@
 # local stuff
 benchmark/data/  # temporary until multi-model pdbs are prepped
-_legacy
+#_legacy
 _tmp*
 _scratch*
 _nbkpy
