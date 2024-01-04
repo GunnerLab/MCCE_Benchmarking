@@ -36,8 +36,6 @@ Holds the prepared pdb files which reside inside a folder with the same id in up
 	...
 	├── 9RAT
 	└── 9RNT
-
-	139 directories, 2 files
 ```
 
 #### Multi-model structures:
