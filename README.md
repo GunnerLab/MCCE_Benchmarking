@@ -8,7 +8,7 @@ _alpha version_
 	├── WT_pkas.csv
 	├── metadata.md
 	├── protein.txt
-	└── clean_pdbs
+	└── clean_pdbs/
 ```
 
 ## Experimental pKas data source
@@ -20,8 +20,8 @@ yield pKa _ranges_ rather than values.
 #### pKa file header:
 **'PDB ID', 'Res Name', 'Chain', 'Res ID', 'Expt. pKa', 'Expt. Uncertainty', '%SASA', 'Expt. method', 'Expt. salt conc','Expt. pH', 'Expt. temp', 'Reference'**
 
-### File 'proteins.txt':
-Comments out the excluded pdbs and gives the reason.
+### File 'proteins.tsv':
+Comments out the excluded pdbs and gives the reason. Column 'Model' identifies single- or multi- model structures.
 
 ### File 'metadata.md':
 Experimental data source details; to be kept in data folder.
@@ -39,4 +39,17 @@ Holds the prepared pdb files which reside inside a folder with the same id in up
 
 	139 directories, 2 files
 ```
+
+#### Multi-model structures:
+The original file was renamed with an appended `.full` extension, in case we need to redo the spliting.  
+The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'prot.pdb' matches the 'proteins.tsv'
+'Use' column -> pdbid_use.pdb is the new name, with 'use' being the string from the 'Use' column minus the period.
+
+# TODO:
+Logging -> job.log.
+Initial local folder setup.
+Test bench cli with small number of processes.
+Implement versioning scheme -> pyproject.
+Test access to dist data after local install.
+
 
