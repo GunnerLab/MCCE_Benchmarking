@@ -2,8 +2,6 @@
 Module: cleanup.py
 
 Contains functions to clear a folder, delete a folder, etc.
- - delete_mcce_outputs
- - clean_job_folder
 """
 
 from benchmark import MCCE_OUTPUTS
@@ -91,5 +89,21 @@ def delete_folder(dir_path: str) -> None:
     if not p.is_dir():
         return
     shutil.rmtree(str(p))
+
+    return
+
+
+def save_dict_to_txt(dict_data: dict, text_filepath: str) -> None:
+    """
+    Save a dict to a text file.
+    Extracted from unused /structure.DynamicStructure and modified.
+    """
+    text_filepath = Path(text_filepath)
+    if not text_filepath.suffixes:
+        text_filepath = text_filepath + ".txt"
+
+    with open(text_filepath, "w") as out:
+        for k, v in dict_data.items():
+            out.write(f"{k} : {v}\n")
 
     return
