@@ -1,26 +1,9 @@
 """Module: audit.py
-
-The numbers do not match (12/28/2023):
-```
-pdbs_proteins, pdbs_skipped = audit.pdb_list_from_proteins(PROTS)
-print(f"Validated proteins from {PROTS.name!r}: {len(pdbs_proteins)}; skipped: {len(pdbs_skipped)}")
-
-expl_pdbs = audit.pdb_list_from_experimental_pkas(WT)
-print(f"Proteins from {WT.name!r}: {len(expl_pdbs)}")
-
-book_pdbs = audit.pdb_list_from_book(Q_BOOK)
-print(f"Proteins from {Q_BOOK.name!r}: {len(book_pdbs)}")
-
-clean_pdbs = audit.pdb_list_from_clean_pdbs_folder(PDBS, use_old=True)
-print(f"Proteins from {PDBS.name!r} folder: {len(clean_pdbs)}")
-
->>Validated proteins from 'proteins': 124; skipped: 35
->>Proteins from 'WT_pkas.csv': 150
->>Proteins from 'book': 126
->>Proteins from 'clean_pdbs' folder: 139
-```
+Contains functions to query and manage data.
 """
 
+# import class of files resources and constants:
+from benchmark import BENCH, MCCE_OUTPUTS
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -29,14 +12,16 @@ import subprocess
 from typing import Union
 
 
-DATA = Path(__file__).parent.joinpath("data")
-WT = DATA.joinpath("WT_pkas.csv")
-PROTS = DATA.joinpath("proteins.tsv")
-PDBS = DATA.joinpath("clean_pdbs")
-Q_BOOK = PDBS.joinpath("book.txt")
+MULTI_ACTIVE_MSG = \
+"""Multi-model folder {!r} contains multiple 'active' pdbs with
+{!r} being the second one.
+The only 'active' pdb (to be selected as 'prot.pdb'), must be the one
+listed in the 'Use' colummn in the 'proteins.tsv' file.
+The function audit.reset_multi_models() must be re-run to fix the problem.
+"""
 
 
-def proteins_df(prot_tsv_file:Path = PROTS, return_excluded:bool = False) -> pd.DataFrame:
+def proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = False) -> pd.DataFrame:
     """
     Load data/proteins.tsv into a pandas.DataFrame.
     """
@@ -47,7 +32,97 @@ def proteins_df(prot_tsv_file:Path = PROTS, return_excluded:bool = False) -> pd.
     return df
 
 
-def multi_model_pdbs(clean_pdbs_dir:Path = PDBS) -> Union[np.ndarray, None]:
+def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
+    """Return a list ["PDB/pdb[_*].pdb", ] of valid pdb.
+    """
+    if not clean_pdbs_dir.is_dir():
+        raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
+
+    valid = []
+    invalid = []
+    for fp in clean_pdbs_dir.glob("*"):
+        if fp.is_dir() and not fp.name.startswith("."):
+            p = valid_pdb(fp, return_name=True)
+            if p is None:
+                invalid.append(fp.name)
+            else:
+                valid.append(f"{fp.name}/{p.name}")
+    valid.sort()
+    invalid.sort()
+    print(f"Valid pdbs: {len(valid)}; Invalid pdbs (parent folder): {len(invalid)}")
+
+    return valid, invalid
+
+
+def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
+    """Return whether 'pdb_dir' contains a valid pdb or its name if
+    'return_name'=True if valid, else None.
+    """
+
+    # single model pdb
+    if return_name:
+        pdb = pdb_dir.joinpath(f"{pdb_dir.name.lower()}.pdb")
+        if pdb.exists():
+            return pdb
+    else:
+        if pdb_dir.joinpath(f"{pdb_dir.name.lower()}.pdb").exists():
+            return True
+
+    # multi-model protein: main pdb was renamed with .full extension
+    files = [fp for fp in pdb_dir.glob("*.[pdb full]*") if not fp.name.startswith("model")]
+    found_full = False
+    found_active = False
+    active = []
+    for f in files:
+        if f.suffix == ".full":
+            found_full = True
+        if f.name.startswith(f"{pdb_dir.name.lower()}_"):
+            found_active = True
+            if return_name:
+                pdb = f
+            # to check if several are 'valid'
+            active.append(True)
+            if len(active) > 1:
+                #-> log
+                print(MULTI_ACTIVE_MSG.format(pdb_dir.name, f.name))
+                found_active = False
+                break
+
+    valid = found_full and found_active
+    if return_name:
+        if not valid:
+            return None
+        return pdb
+    else:
+        return valid
+
+
+def check_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+    """Check that all subfolders of 'clean_pdbs_dir' contain a pdb file with
+    the same name.
+    Return a 2-tuple: (valid_folders, invalid_folders).
+    """
+
+    if not clean_pdbs_dir.is_dir():
+        raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
+
+    valid = []
+    invalid = []
+    for fp in clean_pdbs_dir.glob("*"):
+        if fp.is_dir() and not fp.name.startswith("."):
+            v = valid_pdb(fp)
+            if v:
+                valid.append(fp.name)
+            else:
+                invalid.append(fp.name)
+    valid.sort()
+    invalid.sort()
+    print(f"Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
+
+    return valid, invalid
+
+
+def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
     """
     Query `clean_pdbs_dir` for pdb with multiple models.
     Return dir/pdb name in a numpy array or None.
@@ -72,7 +147,7 @@ def multi_model_pdbs(clean_pdbs_dir:Path = PDBS) -> Union[np.ndarray, None]:
     return multi_models
 
 
-def reset_multi_models(pdbs_dir:Path = PDBS, debug:bool = False) -> list:
+def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> list:
     """Use multi model entries in 'data/proteins.tsv' to select the
     model<x>.pdbs corresponding to the proteins 'Use' column, if found.
 
@@ -84,7 +159,7 @@ def reset_multi_models(pdbs_dir:Path = PDBS, debug:bool = False) -> list:
     Should be re-run every time the 'Use' column in 'data/proteins.tsv' is
     changed for one or more multi-model proteins.
     """
-    prots_df = proteins_df(PROTS)
+    prots_df = proteins_df()
     multi = prots_df[prots_df.Model == 'multi']
 
     missing_data = []
@@ -112,7 +187,7 @@ def reset_multi_models(pdbs_dir:Path = PDBS, debug:bool = False) -> list:
                 continue
 
             # rename previously used prots:
-            pdb_glob = f"{mdir.name.lower()}*.pdb"
+            pdb_glob = f"{mdir.name.lower()}_*.pdb"
             used_prots = list(mdir.glob(pdb_glob))
             if used_prots:
                 for p in used_prots:
@@ -144,7 +219,7 @@ def reset_multi_models(pdbs_dir:Path = PDBS, debug:bool = False) -> list:
     return missing_data
 
 
-def update_proteins_multi(proteins_file:Path = PROTS):
+def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
     """Update 'data/proteins.tsv' Model column from
     list of multi-model proteins."""
 
@@ -160,74 +235,21 @@ def update_proteins_multi(proteins_file:Path = PROTS):
         except:
             continue
 
-    prots_df.to_csv(PROTS, index=False, sep="\t")
+    prots_df.to_csv(BENCH.BENCH_PROTS, index=False, sep="\t")
 
     return
 
 
-MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "fort.38",
-                "head1.lst", "head2.lst", "head3.lst", "mc_out",
-                "pK.out", "prot.pdb", "respair.lst", "rot_stat", "run.log", "run.prm", "run.prm.record",
-                "step0_out.pdb", "step1_out.pdb", "step2_out.pdb", "step3_out.pdb",
-                "sum_crg.out", "vdw0.lst", "null", "new.tpl"]
-
-
-def delete_mcce_outputs(mcce_dir:str) -> None:
-    """Delete all MCCE output files or folders from a MCCE run folder.
-    Note: All subfolders within `mcce_dir` are automatically deleted.
-    """
-
-    folder = Path(mcce_dir)
-    if not folder.is_dir():
-        print(f"{folder = } does not exist.")
-        return
-
-    for fp in folder.iterdir():
-        if fp.is_dir():
-            shutil.rmtree(fp)
-        else:
-            if fp.name in MCCE_OUTPUTS:
-                fp.unlink()
-
-    return
-
-
-def clean_job_folder(job_dir:str) -> None:
-    """Delete all MCCE output files and folders from a directory `job_dir`,
-    which is a folder of folder named after the pdb id they contain.
-    """
-    pdbs_dir = Path(job_dir)
-    for fp in pdbs_dir.iterdir():
-        if fp.is_dir():
-            delete_mcce_outputs(fp)
-        else:
-            print(f"{fp = }: remaining")
-
-    return
-
-
-def to_float(value):
-    """Conversion function to be used in pd.read_csv.
-    Return NA on conversion failure.
-    """
-    try:
-        new = float(value)
-    except:
-        new = np.nan
-
-    return new
-
-
-def reset_book_file(book_file:Path = Q_BOOK) -> None:
+def reset_book_file(book_file:Path = BENCH.Q_BOOK) -> None:
     """Re-write clean_pdbs/book file with valid entries."""
 
-    valid, invalid = audit_clean_pdbs_folder(book_file.parent)
+    valid, invalid = check_clean_pdbs_folder(book_file.parent)
     with open(book_file, "w") as book:
         book.writelines([f"{v}\n" for v in valid])
     return
 
 
-def pdb_list_from_book(book_file:Path = Q_BOOK) -> list:
+def pdb_list_from_book(book_file:Path = BENCH.Q_BOOK) -> list:
 
     pdbs = []
     with open(book_file) as book:
@@ -238,7 +260,7 @@ def pdb_list_from_book(book_file:Path = Q_BOOK) -> list:
     return pdbs
 
 
-def pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = PDBS) -> list:
+def pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
     """clean_dir: folder with one PDBID folder for each pdbid.pdb file"""
 
     clean_pdbs_dirs = [fp.name for fp in clean_pdbs_dir.glob('*')
@@ -271,28 +293,16 @@ def same_pdbs_book_v_clean() -> bool:
     return same
 
 
-def audit_clean_pdbs_folder(clean_pdbs_dir:Path = PDBS) -> tuple:
-    """Check that all subfolders contain a pdb file with the same name.
-    Return a 2-tuple: (valid_folders, invalid_folders).
+def to_float(value):
+    """Conversion function to be used in pd.read_csv.
+    Return NA on conversion failure.
     """
+    try:
+        new = float(value)
+    except:
+        new = np.nan
 
-    if not clean_pdbs_dir.is_dir():
-        raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
-
-    valid = []
-    invalid = []
-    for fp in clean_pdbs_dir.glob('*'):
-        if fp.is_dir() and not fp.name.startswith("."):
-            if (fp.joinpath(f"{fp.name.lower()}.pdb").exists()
-                or fp.joinpath(f"{fp.name.lower()}.pdb.full").exists()):
-                valid.append(fp.name)
-            else:
-                invalid.append(fp.name)
-    valid.sort()
-    invalid.sort()
-    print(f"Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
-
-    return valid, invalid
+    return new
 
 
 def pdb_list_from_experimental_pkas(pkas_file:str) -> list:

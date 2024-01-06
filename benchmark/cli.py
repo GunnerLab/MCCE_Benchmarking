@@ -1,10 +1,20 @@
 # WIP - copied from other project
+"""
+Module: cli.py
+
+
+"""
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+# import class of files resources and constants:
+from benchmark import BENCH, MCCE_OUTPUTS
+from benchmark import cleanup
 import numpy as np
+import os
 import pandas as pd
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import time
 from typing import Union, TextIO
@@ -19,49 +29,7 @@ from typing import Union, TextIO
 #    launch_batch
 
 
-
 ###############################################################
-
-
-def clear_folder(dir_path: str, file_type:str = None,
-                 del_subdir:bool=False,
-                subdir_startswith = "CDC_") -> None:
-    """Delete all files in folder."""
-
-    p = Path(dir_path)
-    if not p.is_dir():
-        # no folder, nothing to clear
-        return
-
-    if file_type is None:
-        for f in p.iterdir():
-            if not f.is_dir():
-                f.unlink()
-            else:
-                if (del_subdir
-                    and f.name.startswith(subdir_startswith)):
-                    delete_folder(f)
-    else:
-        if file_type.startswith("."):
-            fname = f"*{file_type}"
-        else:
-            fname = f"*.{file_type}"
-
-        for f in p.glob(fname):
-            f.unlink()
-    return
-
-
-def delete_folder(dir_path: str) -> None:
-    """Delete folder and all files there in."""
-
-    p = Path(dir_path)
-    if not p.is_dir():
-        return
-    shutil.rmtree(str(p))
-
-    return
-
 
 def save_dict_to_txt(dict_data: dict, text_filepath: str) -> None:
     """
