@@ -48,5 +48,3 @@ The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'p
 * Initial local folder setup.
 * Test bench cli with small number of processes.
 * Implement versioning scheme -> pyproject.
-* Test access to dist data after local install.
-* Test change of MCCE_HOME with cli (currently requires a manual setup)
