@@ -59,7 +59,7 @@ def get_jobs(job_name:str) -> list:
                           )
     if data.returncode:
         # -> in log
-        raise CalledProcessError(f"Error in subprocess cmd: {data.args}; {data.stderr}; code: {data.returncode}")
+        raise subprocess.CalledProcessError(f"Error in subprocess cmd: {data.args}; {data.stderr}; code: {data.returncode}")
 
     dirs = []
     for uid in data.stdout.splitlines():
@@ -69,7 +69,7 @@ def get_jobs(job_name:str) -> list:
                              shell=True
                              )
         if out.returncode:
-            #raise CalledProcessError(f"Error in subprocess cmd: {out.args}; {out.stderr}; code: {out.returncode}")
+            #raise subprocess.CalledProcessError(f"Error in subprocess cmd: {out.args}; {out.stderr}; code: {out.returncode}")
             # -> in log
             print(f"Error in subprocess cmd: {out.args}; {out.stderr}; code: {out.returncode}")
             continue

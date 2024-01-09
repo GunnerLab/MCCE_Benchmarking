@@ -49,24 +49,24 @@ def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
                 valid.append(f"{fp.name}/{p.name}")
     valid.sort()
     invalid.sort()
-    print(f"Valid pdbs: {len(valid)}; Invalid pdbs (parent folder): {len(invalid)}")
+    #print(f"Valid pdbs: {len(valid)}; Invalid pdbs (parent folder): {len(invalid)}")
 
     return valid, invalid
 
 
 def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
-    """Return whether 'pdb_dir' contains a valid pdb or its name if
+    """Return whether 'pdb_dir' contains a valid pdb (default), or its name if
     'return_name'=True if valid, else None.
     """
 
     # single model pdb
-    if return_name:
-        pdb = pdb_dir.joinpath(f"{pdb_dir.name.lower()}.pdb")
-        if pdb.exists():
+    pdb = pdb_dir.joinpath(f"{pdb_dir.name.lower()}.pdb")
+    ok = pdb.exists()
+    if ok: # found
+        if return_name:
             return pdb
-    else:
-        if pdb_dir.joinpath(f"{pdb_dir.name.lower()}.pdb").exists():
-            return True
+        else:
+            return ok
 
     # multi-model protein: main pdb was renamed with .full extension
     files = [fp for fp in pdb_dir.glob("*.[pdb full]*") if not fp.name.startswith("model")]
@@ -76,6 +76,7 @@ def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]
     for f in files:
         if f.suffix == ".full":
             found_full = True
+            continue
         if f.name.startswith(f"{pdb_dir.name.lower()}_"):
             found_active = True
             if return_name:

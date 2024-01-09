@@ -43,6 +43,7 @@ dependencies = [
     "matplotlib",
     "numpy",
     "pandas",
+    "pytest",
     "seaborn",
 ]
 
@@ -63,7 +64,3 @@ where = ["benchmark"]
 #bench = "mcce_bench.cli:launch_benchmark"
 #mypkg.mymodule:some_func"
 
-[project.optional-dependencies]
-test = [
-    "pytest",
-]

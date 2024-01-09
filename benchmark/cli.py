@@ -120,20 +120,20 @@ def bench_parser():
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_1)
     sub1.add_argument(
-        "benchmark_dir",
+        "-benchmark_dir",
+        default = Path("mcce_benchmarks"),
         type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking job(s); required.
+        help = """The user's choice of directory for setting up the benchmarking job(s); default: %(default)s.
         If the directory does not exists in the location where this cli is called, then it is
-        created. Recommended name: "mcce_benchmarks"; this is where all subsequent jobs will
-        reside as subfolders.
+        created. Recommended name: "mcce_benchmarks"; this is where the "clean_pdbs" folder will reside.
         """
     )
     sub1.add_argument(
         "job_name",
         type = str,
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
-        This job_name is used to name the job folder in 'benchmark_dir' and the script that launches the
-        MCCE simulation in ./clean_pdbs folder.
+        This job_name is used to identify the 'run.sh' script in 'benchmark_dir' that launches the MCCE simulation
+        in 'benchmark_dir/clean_pdbs' subfolders.
         """
     )
     # always 'prot.pdb' as per soft-link setup: ln -s DIR/dir.pdb prot.pdb
