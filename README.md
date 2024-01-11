@@ -1,13 +1,13 @@
 # MCCE_Benchmarking
 _alpha version_
 
-## Data folder contents
+## `benchmark/data` folder contents
 ```
 	data
 	├── MT_pkas.csv
 	├── WT_pkas.csv
 	├── metadata.md
-	├── protein.txt
+	├── proteins.tsv
 	└── clean_pdbs/
 ```
 
@@ -27,11 +27,11 @@ Comments out the excluded pdbs and gives the reason. Column 'Model' identifies s
 Experimental data source details; to be kept in data folder.
 
 ### Folder clean_pdbs:
-Holds the prepared pdb files which reside inside a folder with the same id in upper case.
+Holds the prepared pdb files which reside inside a folder with the same pdbid in upper case.
 ```
 	data/clean_pdbs/
 	├── book.txt		# Q_BOOK in the code
-	├── run.sh
+	├── default_run.sh
 	├── 135L
 	...
 	├── 9RAT
@@ -45,6 +45,5 @@ The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'p
 
 # TODO:
 * Logging -> job.log.
-* Initial local folder setup.
 * Test bench cli with small number of processes.
 * Implement versioning scheme -> pyproject.

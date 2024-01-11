@@ -60,7 +60,6 @@ where = ["benchmark"]
 "benchmark.data" = ["*.txt", "*.csv", "*.pdb"]
 
 [project.scripts]
-#TODO
-#bench = "mcce_bench.cli:launch_benchmark"
+mccebench = "mcce_bench.cli:bench_cli"
 #mypkg.mymodule:some_func"
 

@@ -2,13 +2,13 @@
 """
 Module: cli.py
 
-
+Command line interface for MCCE benchmarking.
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 # import class of files resources and constants:
-from benchmark import BENCH, MCCE_OUTPUTS
-from benchmark import cleanup
+from benchmark import BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
+from benchmark import job_setup, batch_submit
 import numpy as np
 import os
 import pandas as pd
@@ -17,79 +17,61 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import Union, TextIO
+from typing import Union
 
 
 # TODO:
 # Implement logging
 
-# 1. ID cli parameters
-# 2. main fns:
-#    setup_bench_dir
-#    launch_batch
-
 #.......................................................................
-mcce_step_options = {
-    "S1":{"msg":"Run mcce step 1, premcce to format PDB file to MCCE PDB format.",
-          "--noter": {"default":False, "help":"Do not label terminal residues (for making ftpl).", "action":"store_true"},
-          "--dry":   {"default":False, "help":"Delete all water molecules.", "action":"store_true"},
-          },
-    "S2":{"msg":"Run mcce step 2, make side chain conformers from step1_out.pdb.",
-          "-l":      {"metavar":"level",
-                      "type":int, "default":1,
-                      "help":"Conformer level 1=quick (default), 2=medium, 3=full"},
-          },
-    "S3":{"msg":"Run mcce step 3, energy calculations, with multiple threads.",
-          # should have been --r:
-          "-r":      {"default":False, "help":"refresh opp files and head3.lst without running delphi", "action":"store_true"},
-          "-c":      {"metavar":"('conf start', 'conf end')",
-                      "type":int,
-                      "default":[1, 99999], "nargs":2,
-                       "help":"starting and ending conformer, default to 1 and 9999"},
-          "-f":      {"metavar":"tmp folder", "default":"/tmp", "hel":"delphi temporary folder, default to /tmp"},
-          "-p":      {"metavar":"processes", "type":int, "default":1,
-                      "help":"run mcce with p number of processes; default: %(default)s."},
-          },
-    "S4":{"msg":"Run mcce step 4, Monte Carlo sampling to simulate a titration.",
-          "--xts":   {"default":False, "help":"Enable entropy correction, default is false", "action":"store_true"},
-          "--ms":    {"default":False, "help":"Enable microstate output", "action":"store_true"},
-          "-t":      {"metavar":"ph or eh", "default":"ph", "help":"titration type: pH or Eh."},
-          "-i":      {"metavar":"initial ph/eh", "default":"0.0", "help":"Initial pH/Eh of titration; default: %(default)s."},
-          "-d":      {"metavar":"interval", "default":"1.0", "help":"titration interval in pJ or mV; default: %(default)s."},
-          "-n":      {"metavar":"steps", "default":"15", "help":"number of steps of titration; default: %(default)s."},
-          }
-}
-
-
 CLI_NAME = "mcce_bench"  # as per pyproject.toml
-SUB_CMD1, SUB_CMD2 = "from_step1", "from_step3"
+SUB_CMD0 = "data_setup"
+SUB_CMD1 = "from_step1"
+SUB_CMD2 = "from_step3"
+
 USAGE = f"{CLI_NAME} <sub-command for simulation start> <related args>\n"
 DESC = f"""
     Launch a MCCE benchmarking job using curated structures from the pKa Database v1.
 
-    The main command is {CLI_NAME!r} along with one of two sub-commands,
+    The main command is {CLI_NAME!r} along with one of 3 sub-commands,
     which distinguishes the starting point for the MCCE simulation.
+    - Sub-command {SUB_CMD0!r}: setup data folders;
     - Sub-command {SUB_CMD1!r}: starts from step1 -> step4;
     - Sub-command {SUB_CMD2!r}: starts from step3 -> step4 :: NOT YET IMPLEMENTED!
 
 """
+HELP_0 = f"Sub-command {SUB_CMD0!r} for preparing `benchmarks_dir/clean_pdbs folder."
 HELP_1 = f"Sub-command {SUB_CMD1!r} for starting the MCCE simulation from step1."
 HELP_2 = f"Sub-command {SUB_CMD2!r} for starting the MCCE simulation from step3."
 
 
+def bench_data_setup(args):
+    """Benchmark data setup 'data_setup' sub-command."""
+
+    job_setup.setup_pdbs_folder(args.benchmarks_dir)
+
+    return
+
+
 def bench_from_step1(args):
-    """Benchmark setup and launch for 'from_step1' sub-command."""
-    # TODO
-    # setup folders
+    """Benchmark script wrting and launch for 'from_step1' sub-command."""
     # write <job_name>.sh
     # launch
-    pass
 
+    if not args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).exists():
+        #-> log.exceptions
+        raise FileNotFoundError(f"Missing {BENCH.CLEAN_PDBS!r}: Re-run subcommand {SUB_CMD0!r}, perhaps.")
 
-def bench_from_step3(args):
-    """Benchmark setup and launch for 'from_step3' sub-command."""
-    # TODO later
-    pass
+    sh_path = job_setup.write_run_script(args.benchmarks_dir,
+                                         args.job_name,
+                                         #steps_options_dict,
+                                         #sh_template
+                                         )
+    batch_submit.launch_job(args.benchmarks_dir,
+                            args.job_name,
+                            args.n_active,
+                            args.sentinel_file)
+    return
 
 
 def bench_parser():
@@ -116,32 +98,41 @@ def bench_parser():
                                   dest = "subparser_name"
                                  )
 
+    sub0 = subparsers.add_parser(SUB_CMD0,
+                                 formatter_class = RawDescriptionHelpFormatter,
+                                 help=HELP_0)
+    sub0.add_argument(
+        "-benchmarks_dir",
+        default = Path("mcce_benchmarks"),
+        type = arg_valid_dirpath,
+        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
+        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
+        called within that directory; default: %(default)s.
+        """
+    )
+    # bind sub0 parser with its related function:
+    sub0.set_defaults(func=bench_data_setup)
+
     sub1 = subparsers.add_parser(SUB_CMD1,
+                                 parents = [sub0],
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_1)
     sub1.add_argument(
-        "-benchmark_dir",
-        default = Path("mcce_benchmarks"),
-        type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking job(s); default: %(default)s.
-        If the directory does not exists in the location where this cli is called, then it is
-        created. Recommended name: "mcce_benchmarks"; this is where the "clean_pdbs" folder will reside.
+        "-job_name",
+        type = str,
+        default = BENCH.DEFAULT_JOB,
+        help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
+        This job_name is used to identify the 'run.sh' script in 'benchmarks_dir' that launches the MCCE simulation
+        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
         """
     )
     sub1.add_argument(
-        "job_name",
+        "-sentinel_file",
         type = str,
-        help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
-        This job_name is used to identify the 'run.sh' script in 'benchmark_dir' that launches the MCCE simulation
-        in 'benchmark_dir/clean_pdbs' subfolders.
+        default = "pK.out",
+        help = """File whose existence signals a completed step; When running all 4 MCCE steps (default),
+        this file is 'pK.out', while when running only the first 2, this file is 'step2_out.pdb'; default: %(default)s.
         """
-    )
-    # always 'prot.pdb' as per soft-link setup: ln -s DIR/dir.pdb prot.pdb
-    #sub1.add_argument(
-    #    "-prot",
-    #    metavar = "pdb",
-    #    default = "prot.pdb",
-    #    help = "The name of the pdb; default: %(default)s.",
     )
     sub1.add_argument(
         "--dry",
@@ -164,7 +155,7 @@ def bench_parser():
     sub1.add_argument(
         "-eps",
         metavar = "epsilon",
-        default = "4.0",
+        default = MCCE_EPS,
         help = "Protein dielectric constant; default: %(default)s.",
     )
     sub1.add_argument(
@@ -175,37 +166,16 @@ def bench_parser():
         -u HOME_MCCE=/path/to/mcce_home,H2O_SASCUTOFF=0.05,EXTRA=./extra.tpl; default: %(default)s.
         Note: No space after a comma!"""
     )
-
-    #sub1.add_argument(
-    #    "-msout_file",
-    #    type = str,
-    #    default = "pH7eH0ms.txt",
-    #    help = "Name of the mcce_dir/ms_out/ microstates file, `pHXeHYms.txt'; default: %(default)s.""",
-    #)
-
-    ################################################################################
-    #TODO:
-    # Add specific step options from mcce_step_options
-
-
-
     # bind sub1 parser with its related function:
     sub1.set_defaults(func=bench_from_step1)
 
-    # later:
-    #sub2 = subparsers.add_parser(SUB_CMD2,
-    #                              formatter_class = RawDescriptionHelpFormatter,
-    #                              help=HELP_2)
 
     return p
 
 
-
-
 def bench_cli(argv=None):
     """
-    Command line interface to:
-
+    Command line interface for MCCE benchmarking.
     """
 
     cli_parser = bench_parser()

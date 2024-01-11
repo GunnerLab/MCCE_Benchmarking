@@ -3,15 +3,15 @@
 Contains functions to prepare a user's benchmarking folder using user-provided options
 (from cli args if cli is used).
 
-* setup_pdbs_folder(benchmark_dir:Path) -> Path:
+* setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     ```
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (pakaged data) in user_pdbs_folder = `benchmark_dir/clean_pdbs`,
-      or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmark_dir`;
+    - Create a copy of BENCH_PDBS (pakaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
+      or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmarks_dir`;
     - Soft-link the relevant pdb as "prot.pdb";
     - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
       in `user_pdbs_folder`;
-    - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmark_dir`.
+    - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmarks_dir`.
     Return the last known path (temporaryly for error checking).
     ```
 
@@ -90,27 +90,27 @@ sleep {N_SLEEP}
 """
 
 
-def setup_pdbs_folder(benchmark_dir:Path) -> Path:
+def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     """
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (pakaged data) in user_pdbs_folder = `benchmark_dir/clean_pdbs`,
-      or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmark_dir`;
+    - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
+      or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmarks_dir`;
     - Soft-link the relevant pdb as "prot.pdb";
     - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
       in `user_pdbs_folder`;
-    - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmark_dir`.
-    Return the last known path (temporaryly for error checking).
+    - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmarks_dir`.
+    Return the last known path (temporarily for error checking).
     """
 
     curr = Path.cwd()
-    if curr.name == benchmark_dir.name:
-        #print("fn called from within benchmark_dir, not re-reated.")
-        benchmark_dir = curr
+    if curr.name == benchmarks_dir.name:
+        #print("fn called from within benchmarks_dir, not re-reated.")
+        benchmarks_dir = curr
     else:
-        if not benchmark_dir.exists():
-            benchmark_dir.mkdir()
+        if not benchmarks_dir.exists():
+            benchmarks_dir.mkdir()
 
-    user_pdbs_folder = benchmark_dir.joinpath(BENCH.CLEAN_PDBS)
+    user_pdbs_folder = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs_folder.exists():
         user_pdbs_folder.mkdir()
 
@@ -155,18 +155,17 @@ def setup_pdbs_folder(benchmark_dir:Path) -> Path:
         if i < 2:
             dest = user_pdbs_folder.joinpath(fp.name)
         else:
-            dest = benchmark_dir.joinpath(fp.name)
+            dest = benchmarks_dir.joinpath(fp.name)
         if not dest.exists():
             shutil.copy(fp, dest)
             print(f"Ancillary file: {fp.name} copied to {dest.parent}")
 
-    # include validity check in user's folder:
+    # include validity check in user's folder: -> log
     valid, invalid = audit.list_all_valid_pdbs(user_pdbs_folder)
     if len(invalid):
-        # -> log
         print(f"Setup not right for {len(invalid)} folder(s):\n{invalid}")
     else:
-        print(f"The data setup in {benchmark_dir} went beautifully!")
+        print(f"The data setup in {benchmarks_dir} went beautifully!")
 
     return Path.cwd()
 
@@ -177,20 +176,21 @@ def reset_curr_dir(from_dir:Path, target_dir:Path) -> None:
     return
 
 
-def write_run_script(benchmark_dir:Path,
+def write_run_script(benchmarks_dir:Path,
                      job_name:str = "default_run",
                      steps_options_dict:dict = None,
                      sh_template:str = None) -> Path:
-    """Phase 1: job_name = "default_run" (or reset to that) => script = "default_run.sh".
+    """Phase 1: job_name = "default_run" (or reset to that if different) => script = "default_run.sh".
+
     Write a shell script in user_job_folder similar to RUN_SH_DEFAULTS.
     Return the script filepath.
     """
-    if job_name != "default_run":
-        job_name = "default_run"
+    #
+    if job_name != "default_run": job_name = "default_run"
 
-    user_pdbs = benchmark_dir.joinpath(BENCH.CLEAN_PDBS)
+    user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs.exists():
-        raise FileNotFoundError(f"{benchmark_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?")
+        raise FileNotFoundError(f"{benchmarks_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?")
 
     sh_path = user_pdbs.joinpath(BENCH.DEFAULT_JOB_SH.name)
     if not sh_path.exists():
