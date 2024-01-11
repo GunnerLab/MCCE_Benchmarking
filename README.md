@@ -20,13 +20,13 @@ yield pKa _ranges_ rather than values.
 #### pKa file header:
 **'PDB ID', 'Res Name', 'Chain', 'Res ID', 'Expt. pKa', 'Expt. Uncertainty', '%SASA', 'Expt. method', 'Expt. salt conc','Expt. pH', 'Expt. temp', 'Reference'**
 
-### File 'proteins.tsv':
+### File `proteins.tsv`:
 Comments out the excluded pdbs and gives the reason. Column 'Model' identifies single- or multi- model structures.
 
-### File 'metadata.md':
+### File `metadata.md`:
 Experimental data source details; to be kept in data folder.
 
-### Folder clean_pdbs:
+### Folder `clean_pdbs`:
 Holds the prepared pdb files which reside inside a folder with the same pdbid in upper case.
 ```
 	data/clean_pdbs/
