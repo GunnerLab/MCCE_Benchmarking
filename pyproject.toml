@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 version = "0.1.0b1"
-name = "mcce_bench"
+name = "benchmark"
 description = "MCCE benchmarking against Dr. Emil Axelov's pKa Database v1 (http://compbio.clemson.edu/lab/software/5/)"
 readme = "README.md"
 authors = [
@@ -50,16 +50,13 @@ dependencies = [
 [project.urls]
 Source = "https://github.com/GunnerLab/MCCE_Benchmarking"
 
-[tool.setuptools.packages.find]
-where = ["benchmark"]
-
-#[tool.setuptools.packages]
-#find = {}
+[tool.setuptools.packages]
+find = {}
 
 [tool.setuptools.package-data]
-"benchmark.data" = ["*.txt","*.tsv", "*.csv", "*.pdb"]
+"benchmark.data" = ["*.txt","*.tsv", "*.csv", "*.pdb", "*.sh"]
 
 [project.scripts]
-mccebench = "mcce_bench.cli:bench_cli"
+mccebench = "benchmark.cli:bench_cli"
 #mypkg.mymodule:some_func"
 

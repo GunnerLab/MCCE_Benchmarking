@@ -51,6 +51,8 @@ Contains functions to prepare a user's benchmarking folder using user-provided o
 ```
 """
 
+
+#...............................................................................
 from benchmark import audit
 # import class of files resources and constants:
 from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
@@ -59,7 +61,6 @@ import logging
 import os
 from pathlib import Path
 import shutil
-import stat
 import subprocess
 from typing import Union
 
@@ -68,7 +69,6 @@ mdl_logger = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 
 #...............................................................................
-
 # This may be used as a template;
 # as is, this script is part of the 'clean_pdbs' folder setup: "default_run.sh"
 RUN_SH_DEFAULTS = f"""
@@ -80,8 +80,9 @@ step4.py
 
 sleep {N_SLEEP}
 """
-
 #.................................................................
+
+
 # To use for testing submit_script without running anything:
 
 # To check script is run inside a PDB folder:
@@ -159,7 +160,10 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     os.chdir(curr)
 
     # copy ancillary files:
-    for i, fp in enumerate([BENCH.DEFAULT_JOB_SH, BENCH.BENCH_Q_BOOK, BENCH.BENCH_WT, BENCH.BENCH_PROTS]):
+    for i, fp in enumerate([BENCH.DEFAULT_JOB_SH,
+                            BENCH.BENCH_Q_BOOK,
+                            BENCH.BENCH_WT,
+                            BENCH.BENCH_PROTS]):
         if i < 2:
             dest = user_pdbs_folder.joinpath(fp.name)
         else:
@@ -168,10 +172,10 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
             shutil.copy(fp, dest)
             mdl_logger.info(f"Ancillary file: {fp.name} copied to {dest.parent}")
 
-    # include validity check in user's folder: -> log
+    # include validity check in user's folder:
     valid, invalid = audit.list_all_valid_pdbs(user_pdbs_folder)
     if len(invalid):
-        mdl_logger.error(f"Setup not right for {len(invalid)} folder(s):\n{invalid}")
+        mdl_logger.error(f"Found {len(invalid)} invalid folder(s):\n{invalid}")
     else:
         mdl_logger.info(f"The data setup in {benchmarks_dir} went beautifully!")
 
@@ -185,7 +189,7 @@ def change_dir(from_dir:Path, target_dir:Path) -> None:
 
 
 def delete_pkout(benchmarks_dir:Path) -> None:
-    """New job preparation: remove pk.out from 'benchmarks_dir/clen_pdbs' subfolders."""
+    """New job preparation: delete pk.out from 'benchmarks_dir/clen_pdbs' subfolders."""
 
     for f in benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).glob("./*/pK.out"):
         f.unlink()
@@ -201,8 +205,8 @@ def write_run_script(benchmarks_dir:Path,
     """
 
     curr = Path.cwd()
-    in_benchamarks = curr.name == benchmarks_dir.name
-    if in_benchamarks:
+    in_benchmarks = curr.name == benchmarks_dir.name
+    if in_benchmarks:
         benchmarks_dir = curr
 
     user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
@@ -216,8 +220,9 @@ def write_run_script(benchmarks_dir:Path,
         if not sh_path.exists():
             shutil.copy(BENCH.DEFAULT_JOB_SH, sh_path)
     else:
-        if not in_benchamarks:
+        if not in_benchmarks:
             os.chdir(benchmarks_dir)
+
         os.chdir(user_pdbs)
         sh_name = f"{job_name}.sh"
         sh_path = Path(sh_name)
@@ -248,11 +253,13 @@ def write_run_script_from_template(benchmarks_dir:Path,
                                    job_name:str = "default_run",
                                    script_template:ScriptChoices = None) -> Path:
     """
-    For testing: job_name = "default_run" or script created from template.
-    Note: job_name is checked first, if "default_run" (default), the file
-    "default_run.sh" will be copied from the packaged data if it does not exist.
     Write a shell script in user_job_folder similar to RUN_SH_DEFAULTS.
     Return the script filepath.
+
+    For testing: job_name = "default_run" or script created from template.
+    Note: job_name has precedence over script_template: if "default_run" (default), the
+    file "default_run.sh" will be copied from the packaged data if it does not exist. Thus,
+    the job_name cannot be 'default_run' if script_template is provided.
     """
 
     user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
@@ -271,11 +278,22 @@ def write_run_script_from_template(benchmarks_dir:Path,
             shutil.copy(BENCH.DEFAULT_JOB_SH, sh_path)
     else:
         if job_name and script_template is not None:
-            sh_path = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS, f"{job_name}.sh")
+            sh_path = user_pdbs.joinpath(f"{job_name}.sh")
             if not sh_path.exists():
                 with open(sh_path , "w") as fh:
                     fh.write(script_template.value)
-                os.chmod(sh_path, stat.S_IXGRP)  #stat.S_IXUSR) permission denied
+
+                # make script executable:
+                #permission denied with os.chmod(sh_path, stat.S_IXUSR)
+                try:
+                    p = subprocess.run(f"chmod +x {sh_path}",
+                                       capture_output=False,
+                                       check=True,
+                                       shell=True,
+                                       )
+                except subprocess.CalledProcessError as e:
+                    mdl_logger.exception(f"Error in subprocess cmd 'chmod +x':\nException: {e}")
+                    raise
         else:
             msg = "Missing 'job_name' or no 'script_template' was provided."
             mdl_logger.exception(msg)

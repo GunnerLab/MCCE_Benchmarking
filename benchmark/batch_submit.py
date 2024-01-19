@@ -9,7 +9,7 @@ State:
  "e": error - was running, dissapeared from job queue and no pK.out
 """
 
-from benchmark import APP_NAME, BENCH
+from benchmark import APP_NAME, BENCH, N_ACTIVE
 import getpass
 import logging
 import os
@@ -18,9 +18,8 @@ import shutil
 import subprocess
 from typing import Union
 
-print(__name__)
 
-mdl_logger = logging.getLogger(f"{APP_NAME}.batch_submit")
+logger = logging.getLogger(f"{APP_NAME}.{__name__}")
 
 class ENTRY:
     def __init__(self):
@@ -64,20 +63,20 @@ def get_jobs(job_name:str) -> list:
                               shell=True,
                              )
     except subprocess.CalledProcessError as e:
-        mdl_logger.exception(f"Error in subprocess cmd in 'get_jobs:\nException: {e}")
+        logger.exception(f"Error in subprocess cmd 'pgrep -u' in 'get_jobs:\nException: {e}")
         raise
 
     dirs = []
     for uid in data.stdout.splitlines():
-        out = subprocess.run(f"pwdx {uid}",
-                             capture_output=True,
-                             text=True,
-                             shell=True
-                             )
-        if out.returncode:
-            #raise subprocess.CalledProcessError(f"Error in subprocess cmd: {out.args}; {out.stderr}; code: {out.returncode}")
-            # -> in log.Exceptions
-            print(f"Error in subprocess cmd: {out.args}; {out.stderr}; code: {out.returncode}")
+        try:
+            out = subprocess.run(f"pwdx {uid}",
+                                 capture_output=True,
+                                 check=True,
+                                 text=True,
+                                 shell=True
+                                )
+        except subprocess.CalledProcessError as e:
+            logger.exception(f"Error in subprocess cmd 'pwdx' in 'get_jobs:\nException: {e}")
             continue
 
         d = Path(out.stdout.split(":")[1].strip())
@@ -86,7 +85,7 @@ def get_jobs(job_name:str) -> list:
     return dirs
 
 
-def batch_run(job_name:str, n_active:int = BENCH.N_ACTIVE, sentinel_file:str = "pK.out") -> None:
+def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
     """
     Update Q_BOOK according to user's running jobs' statuses.
     Launch new jobs inside clean_pdbs subfolders until the number of
@@ -107,6 +106,7 @@ def batch_run(job_name:str, n_active:int = BENCH.N_ACTIVE, sentinel_file:str = "
     job_script = f"{job_name}.sh"
     if not Path(job_script).exists():
         # -> log
+        logger.exception(f"The job script ({job_script}) is missing.")
         raise FileNotFoundError(f"The job script ({job_script}) is missing.")
 
     new_entries = []

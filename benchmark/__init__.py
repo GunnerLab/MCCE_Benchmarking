@@ -1,14 +1,22 @@
 import getpass
 from importlib import resources
 import logging
+import sys
+
+APP_NAME = "benchmark"
 
 
-APP_NAME = "mcce_bench"
-logger = logging.getLogger(APP_NAME)
+class UserLogger(logging.Logger):
+    # override the makeRecord method to include user name
+    def makeRecord(self, *args, **kwargs):
+        rv = super(UserLogger, self).makeRecord(*args, **kwargs)
+        rv.__dict__["user"] = rv.__dict__.get("user", getpass.getuser())
+        return rv
+
+
+logger = UserLogger(APP_NAME)
 logger.setLevel(logging.DEBUG)
-
-user = getpass.getuser()
-formatter = logging.Formatter(fmt="%(asctime)s - %(name)s - %(user)-8s - %(levelname)s - %(message)s",
+formatter = logging.Formatter(fmt="%(asctime)s @%(user)s [%(name)s,%(levelname)s]: %(message)s",
                               datefmt="%Y-%m-%d %H:%M:%S")
 
 fh = logging.FileHandler('benchmark.log')
@@ -16,7 +24,7 @@ fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
-ch = logging.StreamHandler()
+ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG) #.ERROR)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
@@ -114,6 +122,3 @@ class Bench_Resources():
 
 
 BENCH = Bench_Resources()
-
-app_start_msg = f"User: {user} - Folder of benchmark runs: {BENCH.CLEAN_PDBS = }; {BENCH.Q_BOOK = }"""
-logger.info(app_start_msg)
