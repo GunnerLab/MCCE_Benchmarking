@@ -9,14 +9,18 @@ State:
  "e": error - was running, dissapeared from job queue and no pK.out
 """
 
-from benchmark import BENCH
+from benchmark import APP_NAME, BENCH
 import getpass
+import logging
 import os
 from pathlib import Path
 import shutil
 import subprocess
 from typing import Union
 
+print(__name__)
+
+mdl_logger = logging.getLogger(f"{APP_NAME}.batch_submit")
 
 class ENTRY:
     def __init__(self):
@@ -51,15 +55,17 @@ def get_jobs(job_name:str) -> list:
     Query shell for user's processes with job_name.
     Return a list of directories where the jobs are running.
     """
-
-    data = subprocess.run(f"pgrep -u {getpass.getuser()} {job_name}",
-                          capture_output=True,
-                          text=True,
-                          shell=True,
-                          )
-    if data.returncode:
-        # -> in log.Exceptions
-        raise subprocess.CalledProcessError(f"Error in subprocess cmd: {data.args}; {data.stderr}; code: {data.returncode}")
+    print(__name__)
+    try:
+        data = subprocess.run(f"pgrep -u {getpass.getuser()} {job_name}",
+                              capture_output=True,
+                              check=True,
+                              text=True,
+                              shell=True,
+                             )
+    except subprocess.CalledProcessError as e:
+        mdl_logger.exception(f"Error in subprocess cmd in 'get_jobs:\nException: {e}")
+        raise
 
     dirs = []
     for uid in data.stdout.splitlines():

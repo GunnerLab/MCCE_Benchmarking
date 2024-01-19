@@ -1,4 +1,25 @@
+import getpass
 from importlib import resources
+import logging
+
+
+APP_NAME = "mcce_bench"
+logger = logging.getLogger(APP_NAME)
+logger.setLevel(logging.DEBUG)
+
+user = getpass.getuser()
+formatter = logging.Formatter(fmt="%(asctime)s - %(name)s - %(user)-8s - %(levelname)s - %(message)s",
+                              datefmt="%Y-%m-%d %H:%M:%S")
+
+fh = logging.FileHandler('benchmark.log')
+fh.setLevel(logging.DEBUG)
+fh.setFormatter(formatter)
+logger.addHandler(fh)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG) #.ERROR)
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
@@ -93,3 +114,6 @@ class Bench_Resources():
 
 
 BENCH = Bench_Resources()
+
+app_start_msg = f"User: {user} - Folder of benchmark runs: {BENCH.CLEAN_PDBS = }; {BENCH.Q_BOOK = }"""
+logger.info(app_start_msg)

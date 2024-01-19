@@ -1,5 +1,5 @@
 # MCCE_Benchmarking
-_alpha version_
+_beta version_
 
 ## `benchmark/data` folder contents
 ```

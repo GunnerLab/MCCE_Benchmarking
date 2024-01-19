@@ -3,7 +3,8 @@ Contains functions to query and manage data.
 """
 
 # import class of files resources and constants:
-from benchmark import BENCH, MCCE_OUTPUTS
+from benchmark import APP_NAME, BENCH, MCCE_OUTPUTS
+import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -20,6 +21,8 @@ listed in the 'Use' colummn in the 'proteins.tsv' file.
 The function audit.reset_multi_models() must be re-run to fix the problem.
 """
 
+mdl_logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+
 
 def proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = False) -> pd.DataFrame:
     """
@@ -34,6 +37,7 @@ def proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = F
 
 def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
     """Return a list ["PDB/pdb[_*].pdb", ] of valid pdb.
+    For managing packaged data.
     """
     if not clean_pdbs_dir.is_dir():
         raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
@@ -102,6 +106,7 @@ def check_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Check that all subfolders of 'clean_pdbs_dir' contain a pdb file with
     the same name.
     Return a 2-tuple: (valid_folders, invalid_folders).
+    For managing packaged data.
     """
 
     if not clean_pdbs_dir.is_dir():
@@ -118,7 +123,7 @@ def check_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
                 invalid.append(fp.name)
     valid.sort()
     invalid.sort()
-    print(f"Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
+    mdl_logger.info(f"check_clean_pdbs_folder :: Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
 
     return valid, invalid
 
@@ -159,6 +164,7 @@ def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> 
 
     Should be re-run every time the 'Use' column in 'data/proteins.tsv' is
     changed for one or more multi-model proteins.
+    For managing packaged data.
     """
     prots_df = proteins_df()
     multi = prots_df[prots_df.Model == 'multi']
@@ -222,7 +228,9 @@ def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> 
 
 def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
     """Update 'data/proteins.tsv' Model column from
-    list of multi-model proteins."""
+    list of multi-model proteins.
+    For managing packaged data.
+    """
 
     multi_models = multi_model_pdbs()
     if multi_models is None:
@@ -241,7 +249,7 @@ def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
     return
 
 
-def reset_book_file(book_file:Path = BENCH.Q_BOOK) -> None:
+def rewrite_book_file(book_file:Path) -> None:
     """Re-write clean_pdbs/book file with valid entries."""
 
     valid, invalid = check_clean_pdbs_folder(book_file.parent)
@@ -250,7 +258,7 @@ def reset_book_file(book_file:Path = BENCH.Q_BOOK) -> None:
     return
 
 
-def pdb_list_from_book(book_file:Path = BENCH.Q_BOOK) -> list:
+def pdb_list_from_book(book_file:Path = Path(BENCH.Q_BOOK)) -> list:
 
     pdbs = []
     with open(book_file) as book:
@@ -276,6 +284,7 @@ def same_pdbs_book_v_clean() -> bool:
     """
     Compares the list of pdbs in the Q_BOOK with the list
     obtained from the PDBS folder.
+    For managing packaged data.
     """
     book_pbs =  pdb_list_from_book()
     clean_pdbs = pdb_list_from_clean_pdbs_folder()

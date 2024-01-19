@@ -7,7 +7,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.1.0"
+version = "0.1.0b1"
 name = "mcce_bench"
 description = "MCCE benchmarking against Dr. Emil Axelov's pKa Database v1 (http://compbio.clemson.edu/lab/software/5/)"
 readme = "README.md"
@@ -28,7 +28,7 @@ keywords = [
     "pKa benchmark"
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Betaa",
     "Intended Audience :: Biophysicists, Developpers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -57,7 +57,7 @@ where = ["benchmark"]
 #find = {}
 
 [tool.setuptools.package-data]
-"benchmark.data" = ["*.txt", "*.csv", "*.pdb"]
+"benchmark.data" = ["*.txt","*.tsv", "*.csv", "*.pdb"]
 
 [project.scripts]
 mccebench = "mcce_bench.cli:bench_cli"

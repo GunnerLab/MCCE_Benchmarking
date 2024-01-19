@@ -1,4 +1,3 @@
-# WIP - copied from other project
 """
 Module: cli.py
 
@@ -7,8 +6,9 @@ Command line interface for MCCE benchmarking.
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 # import class of files resources and constants:
-from benchmark import BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
+from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
 from benchmark import job_setup, batch_submit
+import logging
 import numpy as np
 import os
 import pandas as pd
@@ -20,14 +20,14 @@ import time
 from typing import Union
 
 
-# TODO:
-# Implement logging
+mdl_logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+
 
 #.......................................................................
-CLI_NAME = "mcce_bench"  # as per pyproject.toml
+CLI_NAME = "mcce_bench"  # as per pyproject.toml, same as APP_NAME
+
 SUB_CMD0 = "data_setup"
 SUB_CMD1 = "from_step1"
-SUB_CMD2 = "from_step3"
 
 USAGE = f"{CLI_NAME} <sub-command for simulation start> <related args>\n"
 DESC = f"""
@@ -37,17 +37,16 @@ DESC = f"""
     which distinguishes the starting point for the MCCE simulation.
     - Sub-command {SUB_CMD0!r}: setup data folders;
     - Sub-command {SUB_CMD1!r}: starts from step1 -> step4;
-    - Sub-command {SUB_CMD2!r}: starts from step3 -> step4 :: NOT YET IMPLEMENTED!
 
 """
 HELP_0 = f"Sub-command {SUB_CMD0!r} for preparing `benchmarks_dir/clean_pdbs folder."
 HELP_1 = f"Sub-command {SUB_CMD1!r} for starting the MCCE simulation from step1."
-HELP_2 = f"Sub-command {SUB_CMD2!r} for starting the MCCE simulation from step3."
 
 
 def bench_data_setup(args):
     """Benchmark data setup 'data_setup' sub-command."""
 
+    mdl_logger.info("Preparing pdbs folder.")
     job_setup.setup_pdbs_folder(args.benchmarks_dir)
 
     return
@@ -59,14 +58,23 @@ def bench_from_step1(args):
     # launch
 
     if not args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).exists():
-        #-> log.exceptions
-        raise FileNotFoundError(f"Missing {BENCH.CLEAN_PDBS!r}: Re-run subcommand {SUB_CMD0!r}, perhaps.")
+        msg = f"Missing {BENCH.CLEAN_PDBS!r}: Re-run subcommand {SUB_CMD0!r}, perhaps."
+        mdl_logger.exception(msg)
+        raise FileNotFoundError(msg)
 
+    mdl_logger.info("Deleting pK.out files, if any.")
+    delete_pkout(args.benchmarks_dir)
+
+    mdl_logger.info("Write fresh book file.")
+    audit.rewrite_book_file(book)
+
+    mdl_logger.info("Writing script for job_name.")
     sh_path = job_setup.write_run_script(args.benchmarks_dir,
                                          args.job_name,
-                                         #steps_options_dict,
                                          #sh_template
                                          )
+
+    mdl_logger.info("Submiting batch of jobs.")
     batch_submit.launch_job(args.benchmarks_dir,
                             args.job_name,
                             args.n_active,

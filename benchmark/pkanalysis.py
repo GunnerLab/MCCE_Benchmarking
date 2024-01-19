@@ -132,11 +132,12 @@ def match_pkas(expr_pkas:dict, calc_pkas:dict) -> list:
 def matched_pkas_to_csv(matched_pkas:list, file_path:str="matched_pkas.csv") -> None:
     """Write a list of 3-tuples (as in a matched pkas list) to a comma separated file."""
 
-    fp = Path(file_path):
+    fp = Path(file_path)
     if fp.exists():
         raise FileExistsError(f"File {fp.name!r} already exists: either delete or rename it before saving.")
 
-    if fp.suffix !=".csv": fp = fp.parent.joinpath(f"{fp.stem}.csv")
+    if fp.suffix !=".csv":
+        fp = fp.parent.joinpath(f"{fp.stem}.csv")
 
     with open(fp, "w") as fh:
         fh.writelines("{}, {}, {}\n".format(*pka) for pka in matched_pkas)
@@ -145,8 +146,69 @@ def matched_pkas_to_csv(matched_pkas:list, file_path:str="matched_pkas.csv") -> 
 
 
 def main():
+    calc_pkas = read_calculated_pkas()
+    expr_pkas = read_experiment_pkas()
+    matched_pKas = match_pka(expr_pkas, calc_pkas)
 
-    # new one in notebook
+    # Overall fitting
+    x = np.array([p[1] for p in matched_pKas])
+    y = np.array([p[2] for p in matched_pKas])
+    delta = np.abs(x-y)
+    m, b = np.polyfit(x, y, 1)
+    rmsd = np.sqrt(np.mean((x-y)**2))
+    within_2 = 0
+    within_1 = 0
+    n = len(matched_pKas)
+    for d in delta:
+        if d <= 2.0:
+            within_2 += 1
+            if d <= 1.0:
+                within_1 += 1
+
+    print("y=%.3fx + %.3f" %(m, b))
+    print("RMSD between expr and calc = %.3f" % rmsd)
+    print("%.1f%% within 2 pH unit" % (within_2/n*100))
+    print("%.1f%% within 1 pH unit" % (within_1/n*100))
+
+    save_pka(matched_pKas, fname="matched_pka.txt")
+
+    #
+    # plt.plot(x, y, 'o')
+    # plt.plot(x, b + m * x, '-', color="k")
+    # plt.plot(x, b+1 + m * x, '--', color="y")
+    # plt.plot(x, b-1 + m * x, '--', color="y")
+    # plt.plot(x, b+2 + m * x, ':', color="r")
+    # plt.plot(x, b-2 + m * x, ':', color="r")
+    # plt.show()
+    #
+    # # Individual residue analysis
+    # residues_stat = {}
+    # for pka in matched_pKas:
+    #     resname = pka[0][5:8]
+    #     expr_pka = pka[1]
+    #     calc_pka = pka[2]
+    #     if resname in residues_stat:
+    #         residues_stat[resname].append(pka)
+    #     else:
+    #         residues_stat[resname] = [pka]
+    #
+    # #print(list(residues_stat.keys()))
+    # for key in residues_stat:
+    #     x = np.array([p[1] for p in residues_stat[key]])
+    #     y = np.array([p[2] for p in residues_stat[key]])
+    #     m, b = np.polyfit(x, y, 1)
+    #     plt.plot(x, y, "o")
+    #     plt.plot(x, m * x + b, '-', color="k")
+    #     plt.title(key)
+    #     plt.show()
+    #
+    # # Outlier case analysis
+    # for pka in matched_pKas:
+    #     id = pka[0]
+    #     if abs(pka[2]) < 0.01 or abs(pka[2] - 14.0) < 0.01:
+    #         print(id, "%.3f %.3f" % (pka[1], pka[2]))
+    #     elif abs(pka[1] - pka[2]) > 2.0:
+    #         print(id, "%.3f %.3f" % (pka[1], pka[2]))
 
 
 if __name__ == "__main__":
