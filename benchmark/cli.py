@@ -9,6 +9,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as a
 from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
 from benchmark import job_setup, batch_submit, UserLogger
 import getpass
+from IPython.core.formatters import format_display_data
 import logging
 import numpy as np
 import os
@@ -21,7 +22,9 @@ import time
 from typing import Union
 
 
-logger = UserLogger(f"{APP_NAME}.{__name__}")
+#logger = UserLogger(f"{APP_NAME}.{__name__}")
+logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger.setLevel(logging.DEBUG)
 #.......................................................................
 
 
@@ -45,19 +48,19 @@ HELP_0 = f"Sub-command {SUB_CMD0!r} for preparing `<benchmarks_dir>/clean_pdbs f
 HELP_1 = f"Sub-command {SUB_CMD1!r} for starting the MCCE simulation from step1."
 
 
-def cli_args_to_string(args:argNamespace) -> str:
+def args_to_str(args:argNamespace) -> str:
     """For logging purposes, return cli args to string."""
 
-    out = ",\n".join(f"{k}: {v}" for k, v in vars(args))
-    return out
+    return f"{CLI_NAME} args:\n{format_display_data(vars(args))[0]['text/plain']}"
 
 
 def bench_data_setup(args:argNamespace):
     """Benchmark data setup 'data_setup' sub-command."""
 
-    print(f"Preparing pdbs folder in {args.benchmarks_dir}.")
-    logger.debug(f"Preparing pdbs folder in {args.benchmarks_dir}.")
-    #job_setup.setup_pdbs_folder(args.benchmarks_dir)
+    logger.info(f"Preparing pdbs folder in {args.benchmarks_dir}.")
+    logger.info(args_to_str(args))
+    job_setup.setup_pdbs_folder(args.benchmarks_dir)
+    logger.info("Setup over.")
 
     return
 
@@ -70,7 +73,7 @@ def bench_from_step1(args:argNamespace) -> None:
         logger.exception(msg)
         raise FileNotFoundError(msg)
 
-    logger.info("Deleting prevoius pK.out files, if any.")
+    logger.info("Deleting previous pK.out files, if any.")
     delete_pkout(args.benchmarks_dir)
 
     logger.info("Write fresh book file.")
@@ -78,17 +81,18 @@ def bench_from_step1(args:argNamespace) -> None:
 
     logger.info(f"Writing script for {args.job_name}.")
     sh_path = job_setup.write_run_script(args.benchmarks_dir,
-                                         args.job_name,
-                                         #sh_template
+                                         args.job_name
                                          )
-    #TODO:
-    #logger.info(f"User parameters for {args.job_name}.")
+    logger.info(args_to_str(args))
 
     logger.info("Submiting batch of jobs.")
     batch_submit.launch_job(args.benchmarks_dir,
                             args.job_name,
                             args.n_active,
                             args.sentinel_file)
+
+    #batch_submit.launch_job(**args)
+
     return
 
 

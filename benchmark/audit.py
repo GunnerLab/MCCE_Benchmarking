@@ -21,7 +21,8 @@ listed in the 'Use' colummn in the 'proteins.tsv' file.
 The function audit.reset_multi_models() must be re-run to fix the problem.
 """
 
-mdl_logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger.setLevel(logging.DEBUG)
 
 
 def proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = False) -> pd.DataFrame:
@@ -35,32 +36,10 @@ def proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = F
     return df
 
 
-def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
-    """Return a list ["PDB/pdb[_*].pdb", ] of valid pdb.
-    For managing packaged data.
-    """
-    if not clean_pdbs_dir.is_dir():
-        raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
-
-    valid = []
-    invalid = []
-    for fp in clean_pdbs_dir.glob("*"):
-        if fp.is_dir() and not fp.name.startswith("."):
-            p = valid_pdb(fp, return_name=True)
-            if p is None:
-                invalid.append(fp.name)
-            else:
-                valid.append(f"{fp.name}/{p.name}")
-    valid.sort()
-    invalid.sort()
-    #print(f"Valid pdbs: {len(valid)}; Invalid pdbs (parent folder): {len(invalid)}")
-
-    return valid, invalid
-
-
 def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
     """Return whether 'pdb_dir' contains a valid pdb (default), or its name if
     'return_name'=True if valid, else None.
+    Used by list_all_valid_pdbs.
     """
 
     # single model pdb
@@ -102,6 +81,29 @@ def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]
         return valid
 
 
+def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
+    """Return a list ["PDB/pdb[_*].pdb", ] of valid pdb.
+    For managing packaged data.
+    """
+    if not clean_pdbs_dir.is_dir():
+        raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
+
+    valid = []
+    invalid = []
+    for fp in clean_pdbs_dir.glob("*"):
+        if fp.is_dir() and not fp.name.startswith("."):
+            p = valid_pdb(fp, return_name=True)
+            if p is None:
+                invalid.append(fp.name)
+            else:
+                valid.append(f"{fp.name}/{p.name}")
+    valid.sort()
+    invalid.sort()
+    #print(f"Valid pdbs: {len(valid)}; Invalid pdbs (parent folder): {len(invalid)}")
+
+    return valid, invalid
+
+
 def check_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Check that all subfolders of 'clean_pdbs_dir' contain a pdb file with
     the same name.
@@ -123,7 +125,7 @@ def check_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
                 invalid.append(fp.name)
     valid.sort()
     invalid.sort()
-    mdl_logger.info(f"check_clean_pdbs_folder :: Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
+    logger.info(f"check_clean_pdbs_folder :: Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
 
     return valid, invalid
 
@@ -280,7 +282,7 @@ def pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> l
     return clean_pdbs_dirs
 
 
-def same_pdbs_book_v_clean() -> bool:
+def same_pdbs_book_vs_clean() -> bool:
     """
     Compares the list of pdbs in the Q_BOOK with the list
     obtained from the PDBS folder.

@@ -1,7 +1,9 @@
 import getpass
 from importlib import resources
 import logging
+from pathlib import Path
 import sys
+
 
 APP_NAME = "benchmark"
 
@@ -16,10 +18,14 @@ class UserLogger(logging.Logger):
 
 logger = UserLogger(APP_NAME)
 logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter(fmt="%(asctime)s @%(user)s [%(name)s,%(levelname)s]: %(message)s",
+formatter = logging.Formatter(fmt="%(asctime)s @%(user)s [%(name)s,%(levelname)s]:\n%(message)s",
                               datefmt="%Y-%m-%d %H:%M:%S")
 
-fh = logging.FileHandler('benchmark.log')
+log = Path.cwd().joinpath("benchmark.log")
+if not log.exists():
+    log.touch()
+
+fh = logging.FileHandler("benchmark.log", mode="a")
 fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
@@ -28,6 +34,10 @@ ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG) #.ERROR)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
+
+
+# test
+logger.info("Benchmark starts.")
 
 
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE

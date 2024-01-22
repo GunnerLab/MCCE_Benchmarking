@@ -20,6 +20,8 @@ from typing import Union
 
 
 logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger.setLevel(logging.DEBUG)
+
 
 class ENTRY:
     def __init__(self):
@@ -105,9 +107,8 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
 
     job_script = f"{job_name}.sh"
     if not Path(job_script).exists():
-        # -> log
         logger.exception(f"The job script ({job_script}) is missing.")
-        raise FileNotFoundError(f"The job script ({job_script}) is missing.")
+        raise FileNotFoundError(f"The job script ({job_script!r}) is missing.")
 
     new_entries = []
     for entry in entries:
@@ -126,25 +127,32 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
 
         new_entries.append(entry)
 
-    newlines = [f"{e}\n" for e in new_entries]
     with open(BENCH.Q_BOOK, "w") as bk:
-        bk.writelines(newlines)
+        bk.writelines([f"{e}\n" for e in new_entries])
 
     return
 
 
-def launch_job(benchmarks_dir:Path, job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
+def launch_job(benchmarks_dir:Path = None, job_name:str = None, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
     """
     Go to benchmarks_dir/clean_pdbs directory & call batch_run.
 
     Args:
-    benchmarks_dir (Path): Path of the folder containing the 'clean_pdbs' folder.
-    job_name (str): Name of the job and script to use in 'clean_pdbs' folder.
+    benchmarks_dir (Path, None): Path of the folder containing the 'clean_pdbs' folder.
+    job_name (str, None): Name of the job and script to use in 'clean_pdbs' folder.
     n_active (int, BENCH.N_ACTIVE=10): Number of jobs/processes to maintain.
     sentinel_file (str, "pK.out"): File whose existence signals a completed step;
         When running all 4 MCCE steps (default), this file is 'pK.out', while
         when running only the first 2, this file is 'step2_out.pdb'.
     """
+
+    if benchmarks_dir is None:
+        logger.exception(f"Argument not set: benchmarks_dir is None.")
+        raise ValueError(f"Argument not set: benchmarks_dir is None.")
+
+    if job_name is None:
+        logger.exception(f"Argument not set: job_name is None.")
+        raise ValueError(f"Argument not set: job_name is None.")
 
     if Path.cwd().name != benchmarks_dir.name:
         os.chdir(benchmarks_dir)

@@ -65,8 +65,8 @@ import subprocess
 from typing import Union
 
 
-mdl_logger = logging.getLogger(f"{APP_NAME}.{__name__}")
-
+logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger.setLevel(logging.DEBUG)
 
 #...............................................................................
 # This may be used as a template;
@@ -114,7 +114,7 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
 
     curr = Path.cwd()
     if curr.name == benchmarks_dir.name:
-        mdl_logger.info("Function 'setup_pdbs_folder' called from within benchmarks_dir, not re-reated.")
+        logger.info("Function 'setup_pdbs_folder' called from within benchmarks_dir, not re-reated.")
         benchmarks_dir = curr
     else:
         if not benchmarks_dir.exists():
@@ -137,14 +137,16 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
             shutil.copy(src, p)
 
         # also copy full if prot is multi:
-        if p.name.startswith(f"{p.parent.name.lower()}_"):
-            try:
-                shutil.copy(BENCH.BENCH_PDBS.joinpath(f"{p.parent.name}",
-                                                      f"{p.parent.name.lower()}.pdb.full"),
-                            d)
-            except Exception as e:
-                mdl_logger.exception(f".pdb.full not found for {d.name}?", e)
-                raise
+        if p.name.startswith(f"{d.name.lower()}_"):
+            if not d.joinpath(f"{d.name.lower()}.pdb.full").exists():
+                try:
+                    shutil.copy(BENCH.BENCH_PDBS.joinpath(f"{d.name}",
+                                                          f"{d.name.lower()}.pdb.full"),
+                                d)
+                    logger.info(f"Copied .pdb.full for {d.name}")
+                except Exception as e:
+                    logger.exception(f".pdb.full not found for {d.name}?", e)
+                    raise
 
         # cd to avoid links with long names:
         os.chdir(d)
@@ -155,6 +157,7 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
             if not prot.is_symlink() or (prot.resolve().name != p.name):
                 prot.unlink()
                 prot.symlink_to(p.name)
+                logger.info(f"Reset soft-linked pdb to prot.pdb for {d.name}")
         os.chdir(d.parent)
 
     os.chdir(curr)
@@ -170,14 +173,14 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
             dest = benchmarks_dir.joinpath(fp.name)
         if not dest.exists():
             shutil.copy(fp, dest)
-            mdl_logger.info(f"Ancillary file: {fp.name} copied to {dest.parent}")
+            logger.info(f"Ancillary file: {fp.name} copied to {dest.parent}")
 
     # include validity check in user's folder:
     valid, invalid = audit.list_all_valid_pdbs(user_pdbs_folder)
     if len(invalid):
-        mdl_logger.error(f"Found {len(invalid)} invalid folder(s):\n{invalid}")
+        logger.error(f"Found {len(invalid)} invalid folder(s):\n{invalid}")
     else:
-        mdl_logger.info(f"The data setup in {benchmarks_dir} went beautifully!")
+        logger.info(f"The data setup in {benchmarks_dir} went beautifully!")
 
     return Path.cwd()
 
@@ -212,7 +215,7 @@ def write_run_script(benchmarks_dir:Path,
     user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs.exists():
         msg = f"{benchmarks_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?"
-        mdl_logger.exception(msg)
+        logger.exception(msg)
         raise FileNotFoundError(msg)
 
     if job_name == "default_run":
@@ -265,7 +268,7 @@ def write_run_script_from_template(benchmarks_dir:Path,
     user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs.exists():
         msg = f"{benchmarks_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?"
-        mdl_logger.exception(msg)
+        logger.exception(msg)
         raise FileNotFoundError(msg)
 
     if job_name == "default_run" and script_template is not None:
@@ -292,11 +295,11 @@ def write_run_script_from_template(benchmarks_dir:Path,
                                        shell=True,
                                        )
                 except subprocess.CalledProcessError as e:
-                    mdl_logger.exception(f"Error in subprocess cmd 'chmod +x':\nException: {e}")
+                    logger.exception(f"Error in subprocess cmd 'chmod +x':\nException: {e}")
                     raise
         else:
             msg = "Missing 'job_name' or no 'script_template' was provided."
-            mdl_logger.exception(msg)
+            logger.exception(msg)
             raise ValueError(msg)
 
     return sh_path
