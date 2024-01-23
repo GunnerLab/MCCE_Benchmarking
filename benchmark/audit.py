@@ -4,6 +4,7 @@ Contains functions to query and manage data.
 
 # import class of files resources and constants:
 from benchmark import APP_NAME, BENCH, MCCE_OUTPUTS
+from functools import cache
 import logging
 import numpy as np
 import pandas as pd
@@ -72,6 +73,7 @@ def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]
                 found_active = False
                 break
 
+    # FIX: 'and' => will fail if all multi prots are removed:
     valid = found_full and found_active
     if return_name:
         if not valid:
@@ -81,8 +83,10 @@ def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]
         return valid
 
 
-def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
+@cache
+def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Return a list ["PDB/pdb[_*].pdb", ] of valid pdb.
+    Return a 2-tuple: (valid_folders, invalid_folders).
     For managing packaged data.
     """
     if not clean_pdbs_dir.is_dir():
@@ -99,12 +103,15 @@ def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
                 valid.append(f"{fp.name}/{p.name}")
     valid.sort()
     invalid.sort()
-    #print(f"Valid pdbs: {len(valid)}; Invalid pdbs (parent folder): {len(invalid)}")
+    print(f"\tValid pdbs: {len(valid)}; Invalid pdbs: {len(invalid)}")
+    if len(invalid):
+        print(f"\tInvalid pdbs: {invalid}")
 
     return valid, invalid
 
 
-def check_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+@cache
+def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Check that all subfolders of 'clean_pdbs_dir' contain a pdb file with
     the same name.
     Return a 2-tuple: (valid_folders, invalid_folders).
@@ -125,7 +132,7 @@ def check_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
                 invalid.append(fp.name)
     valid.sort()
     invalid.sort()
-    logger.info(f"check_clean_pdbs_folder :: Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
+    logger.info(f"list_all_valid_pdbs_dirs :: Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
 
     return valid, invalid
 
@@ -254,7 +261,7 @@ def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
 def rewrite_book_file(book_file:Path) -> None:
     """Re-write clean_pdbs/book file with valid entries."""
 
-    valid, invalid = check_clean_pdbs_folder(book_file.parent)
+    valid, invalid = list_all_valid_pdbs_dirs(book_file.parent)
     with open(book_file, "w") as book:
         book.writelines([f"{v}\n" for v in valid])
     return

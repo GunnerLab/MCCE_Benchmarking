@@ -7,20 +7,16 @@ Command line interface for MCCE benchmarking.
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 # import class of files resources and constants:
 from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
-from benchmark import job_setup, batch_submit, UserLogger
-import getpass
+from benchmark import audit, job_setup, batch_submit, UserLogger
 from IPython.core.formatters import format_display_data
 import logging
 import numpy as np
-import os
 import pandas as pd
 from pathlib import Path
 import shutil
 import subprocess
 import sys
-import time
 from typing import Union
-
 
 #logger = UserLogger(f"{APP_NAME}.{__name__}")
 logger = logging.getLogger(f"{APP_NAME}.{__name__}")
@@ -59,6 +55,10 @@ def bench_data_setup(args:argNamespace):
 
     logger.info(f"Preparing pdbs folder in {args.benchmarks_dir}.")
     logger.info(args_to_str(args))
+
+    print(f"\ndata_setup - Curr: {Path.cwd()}, {args.benchmarks_dir = }",
+          f"\ndata_seyup - Dir exists: {args.benchmarks_dir.exists()}\n")
+
     job_setup.setup_pdbs_folder(args.benchmarks_dir)
     logger.info("Setup over.")
 
@@ -73,26 +73,32 @@ def bench_from_step1(args:argNamespace) -> None:
         logger.exception(msg)
         raise FileNotFoundError(msg)
 
-    logger.info("Deleting previous pK.out files, if any.")
-    delete_pkout(args.benchmarks_dir)
+    logger.info(args_to_str(args))
 
+    logger.info("Deleting previous pK.out files, if any.")
+    print("\tDeleting previous pK.out files, if any.")
+    job_setup.delete_pkout(args.benchmarks_dir)
+
+    book = args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS, BENCH.Q_BOOK)
     logger.info("Write fresh book file.")
+    print("\tWrite fresh book file.")
     audit.rewrite_book_file(book)
 
     logger.info(f"Writing script for {args.job_name}.")
+    print(f"\tWriting script for {args.job_name}.")
     sh_path = job_setup.write_run_script(args.benchmarks_dir,
                                          args.job_name
                                          )
-    logger.info(args_to_str(args))
-
     logger.info("Submiting batch of jobs.")
-    batch_submit.launch_job(args.benchmarks_dir,
-                            args.job_name,
-                            args.n_active,
-                            args.sentinel_file)
-
-    #batch_submit.launch_job(**args)
-
+    DEBUG = True
+    if not DEBUG:
+        #batch_submit.launch_job(args.benchmarks_dir,
+        #                    args.job_name,
+        #                    args.n_active,
+        #                    args.sentinel_file)
+        batch_submit.launch_job(**args)
+    else:
+        print("\tDebug mode: batch_submit.launch_job not called")
     return
 
 
@@ -127,7 +133,7 @@ def bench_parser():
                                  help=HELP_0)
     sub0.add_argument(
         "-benchmarks_dir",
-        default = Path("./mcce_benchmarks"),
+        default = Path("./mcce_benchmarks").resolve(),
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
         "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
@@ -144,7 +150,7 @@ def bench_parser():
     sub1.add_argument(
         "-benchmarks_dir",
         type = arg_valid_dirpath,
-        default = Path("./mcce_benchmarks"),
+        default = Path("./mcce_benchmarks").resolve(),
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
         "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
         called within that directory; default: %(default)s.
@@ -219,4 +225,5 @@ def bench_cli(argv=None):
 
 
 if __name__ == "__main__":
-    bench_cli(sys.argv[1:])
+
+    bench_cli() #sys.argv[1:])

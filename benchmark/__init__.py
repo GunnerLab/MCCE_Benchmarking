@@ -36,10 +36,6 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
-# test
-logger.info("Benchmark starts.")
-
-
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
 N_SLEEP = 10   # default sleep duration after last step is submitted in the job run script
 N_ACTIVE = 10  # number of active jobs to maintain

@@ -114,7 +114,7 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
 
     curr = Path.cwd()
     if curr.name == benchmarks_dir.name:
-        logger.info("Function 'setup_pdbs_folder' called from within benchmarks_dir, not re-reated.")
+        logger.info("\nFunction 'setup_pdbs_folder' called from within benchmarks_dir, not re-reated.")
         benchmarks_dir = curr
     else:
         if not benchmarks_dir.exists():
@@ -123,14 +123,24 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     user_pdbs_folder = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs_folder.exists():
         user_pdbs_folder.mkdir()
+    logger.info(f"\nsetup_pdbs_folder:\t{user_pdbs_folder = }")
 
     valid, invalid = audit.list_all_valid_pdbs()
+    print(f"\t{len(valid) = }; {len(invalid) = }")
+
     for v in valid:
         # v :: PDBID/pdbid.pdb
         p = user_pdbs_folder.joinpath(v)
+        print(f"\t{v = }; Valid prot path from v: {p}")
+
         d = p.parent
-        if not d.exists():
+        print(f"\tprot.parent path: {d}")
+        print(f"\tprot.parent exists: {d.exists()}")
+
+        if not d.is_dir():
             d.mkdir()
+
+        print(f"\tprot.parent exists: {d.exists()}")
 
         src = BENCH.BENCH_PDBS.joinpath(v)
         if not p.exists():
@@ -158,7 +168,7 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
                 prot.unlink()
                 prot.symlink_to(p.name)
                 logger.info(f"Reset soft-linked pdb to prot.pdb for {d.name}")
-        os.chdir(d.parent)
+        os.chdir("../") #d.parent)
 
     os.chdir(curr)
 
@@ -192,7 +202,7 @@ def change_dir(from_dir:Path, target_dir:Path) -> None:
 
 
 def delete_pkout(benchmarks_dir:Path) -> None:
-    """New job preparation: delete pk.out from 'benchmarks_dir/clen_pdbs' subfolders."""
+    """New job preparation: delete pk.out from 'benchmarks_dir/clean_pdbs' subfolders."""
 
     for f in benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).glob("./*/pK.out"):
         f.unlink()
