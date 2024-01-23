@@ -1,14 +1,13 @@
 # pyproject.toml
 
 [build-system]
-requires = [
-    "setuptools>=60",
-]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.1.0b1"
 name = "benchmark"
+#version = "0.1.0b1"
+dynamic = ["version"]
 description = "MCCE benchmarking against Dr. Emil Axelov's pKa Database v1 (http://compbio.clemson.edu/lab/software/5/)"
 readme = "README.md"
 authors = [
@@ -60,3 +59,5 @@ find = {}
 mccebench = "benchmark.cli:bench_cli"
 #mypkg.mymodule:some_func"
 
+[tool.setuptools_scm]
+version_file = "benchmark/_version.py"
