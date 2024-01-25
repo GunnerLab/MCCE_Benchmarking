@@ -1,24 +1,26 @@
-Cat Chenal (22):
-      Wed Dec 27 13:42:07 2023 -0500 - Initial commit
-      Wed Jan 3 13:25:33 2024 -0500 - chore: Initital upload - no data
-      Thu Jan 4 17:55:39 2024 -0500 - feat: Update audit functions and sentinel files
-      Thu Jan 4 18:14:36 2024 -0500 - Update README
-      Thu Jan 4 18:15:01 2024 -0500 - chore: Reset multi-model proteins (see README)
-      Thu Jan 4 18:22:55 2024 -0500 - Update README
-      Thu Jan 4 18:25:03 2024 -0500 - Update README.md
-      Sat Jan 6 14:56:32 2024 -0500 - WIP
-      Sat Jan 6 14:58:46 2024 -0500 - Update README
-      Sat Jan 6 16:41:18 2024 -0500 - WIP on cli
-      Tue Jan 9 18:32:27 2024 -0500 - job_setup.py; user data setup : done.
-      Thu Jan 11 11:40:28 2024 -0500 - WIP
-      Thu Jan 11 11:42:48 2024 -0500 - Update README
-      Fri Jan 19 13:02:02 2024 -0500 - feat: Implement logging
-      Fri Jan 19 18:20:16 2024 -0500 - Tweak logging setup + cli call test:ok
-      Mon Jan 22 16:47:18 2024 -0500 - Update benchmark/
-      Mon Jan 22 16:49:01 2024 -0500 - Add MANIFEST.in to exclude folder from build
-      Tue Jan 23 14:30:40 2024 -0500 - chore: exclude legacy from build
-      Tue Jan 23 14:33:07 2024 -0500 - fix: Implement versioning via setuptools_scm
-      Tue Jan 23 14:35:13 2024 -0500 - fix: Default paths in cli need .resolve()
-      Tue Jan 23 14:38:53 2024 -0500 - chore: Setup CHANGELOG.md
-      Tue Jan 23 14:41:41 2024 -0500 - Update CHANGELOG.md
+Cat Chenal (24):
+      Wed, 27 Dec 2023 13:42:07 -0500 - Initial commit
+      Wed, 3 Jan 2024 13:25:33 -0500 - chore: Initital upload - no data
+      Thu, 4 Jan 2024 17:55:39 -0500 - feat: Update audit functions and sentinel files
+      Thu, 4 Jan 2024 18:14:36 -0500 - Update README
+      Thu, 4 Jan 2024 18:15:01 -0500 - chore: Reset multi-model proteins (see README)
+      Thu, 4 Jan 2024 18:22:55 -0500 - Update README
+      Thu, 4 Jan 2024 18:25:03 -0500 - Update README.md
+      Sat, 6 Jan 2024 14:56:32 -0500 - WIP
+      Sat, 6 Jan 2024 14:58:46 -0500 - Update README
+      Sat, 6 Jan 2024 16:41:18 -0500 - WIP on cli
+      Tue, 9 Jan 2024 18:32:27 -0500 - job_setup.py; user data setup : done.
+      Thu, 11 Jan 2024 11:40:28 -0500 - WIP
+      Thu, 11 Jan 2024 11:42:48 -0500 - Update README
+      Fri, 19 Jan 2024 13:02:02 -0500 - feat: Implement logging
+      Fri, 19 Jan 2024 18:20:16 -0500 - Tweak logging setup + cli call test:ok
+      Mon, 22 Jan 2024 16:47:18 -0500 - Update benchmark/
+      Mon, 22 Jan 2024 16:49:01 -0500 - Add MANIFEST.in to exclude folder from build
+      Tue, 23 Jan 2024 14:30:40 -0500 - chore: exclude legacy from build
+      Tue, 23 Jan 2024 14:33:07 -0500 - fix: Implement versioning via setuptools_scm
+      Tue, 23 Jan 2024 14:35:13 -0500 - fix: Default paths in cli need .resolve()
+      Tue, 23 Jan 2024 14:38:53 -0500 - chore: Setup CHANGELOG.md
+      Tue, 23 Jan 2024 14:41:41 -0500 - Update CHANGELOG.md
+      Tue, 23 Jan 2024 15:09:59 -0500 - chore: Switch CHANGELOG.md to plain text
+      Thu, 25 Jan 2024 14:11:32 -0500 - fix: Modify logging implementation + other (see notes)
 
