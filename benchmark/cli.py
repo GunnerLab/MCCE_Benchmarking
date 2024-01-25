@@ -6,21 +6,23 @@ Command line interface for MCCE benchmarking.
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 # import class of files resources and constants:
-from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
-from benchmark import audit, job_setup, batch_submit, UserLogger
+from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
+from benchmark import audit, getpass, job_setup, batch_submit
 from IPython.core.formatters import format_display_data
 import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 from typing import Union
 
-#logger = UserLogger(f"{APP_NAME}.{__name__}")
+
 logger = logging.getLogger(f"{APP_NAME}.{__name__}")
 logger.setLevel(logging.DEBUG)
+
+xtra = {'user':getpass.getuser()}
+logger = logging.LoggerAdapter(logger, extra=xtra)
 #.......................................................................
 
 
@@ -47,7 +49,7 @@ HELP_1 = f"Sub-command {SUB_CMD1!r} for starting the MCCE simulation from step1.
 def args_to_str(args:argNamespace) -> str:
     """For logging purposes, return cli args to string."""
 
-    return f"{CLI_NAME} args:\n{format_display_data(vars(args))[0]['text/plain']}"
+    return f"{CLI_NAME} args:\n{format_display_data(vars(args))[0]['text/plain']}\n"
 
 
 def bench_data_setup(args:argNamespace):
@@ -55,9 +57,6 @@ def bench_data_setup(args:argNamespace):
 
     logger.info(f"Preparing pdbs folder in {args.benchmarks_dir}.")
     logger.info(args_to_str(args))
-
-    print(f"\ndata_setup - Curr: {Path.cwd()}, {args.benchmarks_dir = }",
-          f"\ndata_seyup - Dir exists: {args.benchmarks_dir.exists()}\n")
 
     job_setup.setup_pdbs_folder(args.benchmarks_dir)
     logger.info("Setup over.")
@@ -76,16 +75,16 @@ def bench_from_step1(args:argNamespace) -> None:
     logger.info(args_to_str(args))
 
     logger.info("Deleting previous pK.out files, if any.")
-    print("\tDeleting previous pK.out files, if any.")
+    #print("\tDeleting previous pK.out files, if any.")
     job_setup.delete_pkout(args.benchmarks_dir)
 
     book = args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS, BENCH.Q_BOOK)
     logger.info("Write fresh book file.")
-    print("\tWrite fresh book file.")
+    #print("\tWrite fresh book file.")
     audit.rewrite_book_file(book)
 
     logger.info(f"Writing script for {args.job_name}.")
-    print(f"\tWriting script for {args.job_name}.")
+    #print(f"\tWriting script for {args.job_name}.")
     sh_path = job_setup.write_run_script(args.benchmarks_dir,
                                          args.job_name
                                          )
@@ -98,7 +97,7 @@ def bench_from_step1(args:argNamespace) -> None:
         #                    args.sentinel_file)
         batch_submit.launch_job(**args)
     else:
-        print("\tDebug mode: batch_submit.launch_job not called")
+        logger.info("Debug mode: batch_submit.launch_job not called")
     return
 
 
@@ -120,7 +119,7 @@ def bench_parser():
         epilog = ">>> END of %(prog)s.",
     )
     subparsers = p.add_subparsers(required = True,
-                                  title = "Benchmarking sub-commands",
+                                  title = "Benchmarking subcommands",
                                   description = "Subcommands of benchamrking MCCE.",
                                   help = """The 2 choices for the benchmarking process:
                                   1) Setup: {SUB_CMD0}
@@ -201,7 +200,7 @@ def bench_parser():
         "-u",
         metavar = "Comma-separated list of Key=Value pairs.",
         default = "",
-        help = """User selected comma-separated KEY=var from run.prm; e.g.:
+        help = """User selected, comma-separated KEY=var pairs from run.prm; e.g.:
         -u HOME_MCCE=/path/to/mcce_home,H2O_SASCUTOFF=0.05,EXTRA=./extra.tpl; default: %(default)s.
         Note: No space after a comma!"""
     )
@@ -226,4 +225,4 @@ def bench_cli(argv=None):
 
 if __name__ == "__main__":
 
-    bench_cli() #sys.argv[1:])
+    bench_cli(sys.argv[1:])

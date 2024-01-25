@@ -9,14 +9,13 @@ Contains functions to prepare a user's benchmarking folder using user-provided o
     - Create a copy of BENCH_PDBS (pakaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
       or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmarks_dir`;
     - Soft-link the relevant pdb as "prot.pdb";
-    - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
+    - Copy the "queue book" and default script files (BENCH_Q_BOOK, DEFAULT_JOB_SH, respectively)
       in `user_pdbs_folder`;
-    - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmarks_dir`.
-    Return the last known path (temporaryly for error checking).
+    - Copy ancillary files BENCH_WT, BENCH_PROTS in `benchmarks_dir`.
     ```
 
 * write_run_script(job_name, steps_options_dict)
- Write a shell script in user_job_folder similar to RUN_SRC (default template):
+ Write a shell script in user_job_folder similar to DEFAULT_JOB_SH (default template):
  ```
  #!/bin/bash
  step1.py --dry prot.pdb
@@ -27,36 +26,19 @@ Contains functions to prepare a user's benchmarking folder using user-provided o
  ```
  The script will be name as per args.job_name and its contents will differ depending on the chosen
  sub-command and associated options.
- NOTE: The other sub-command, "start_from_step3" is to be implemented after testing of the default one.
+ NOTE: The other sub-command, "start_from_step3" is to be implemented in a future realease.
 
 * launch_job(q_book, job_name, n_active:int = N_ACTIVE):
  cd user_job_folder/clean_pdbs
  call batch_submit.batch_run(q_book, job_name, n_active:int = N_ACTIVE)
   - q_book is the 'book.txt' file in user_job_folder.
-  - batch_submit.batch_run was batch_submit.main()
-
-* implement function for a fresh run in existing folder as per original instructions from jmao:
-```
-4. Start a fresh batch run
-    * make prot.pdb ready  :: part of job_setup step
-    * remove pK.out        "" done
-    * make book file ready (clear the status code)
-    * prepare job script - run.sh
-    * edit 3 entries in bin/batch_submit.py
-        n_active = 10   # keep this number of active jobs
-        queue_book = "book.txt"
-        job_name = "run.sh"
-    * go to clean_pdbs directory, run ../bin/batch_submit.py :: done in batch_submit.launch_job
-    * test if book.txt file has a new time stamp every time you run the batch_submit.py script.
-```
+  - batch_submit.batch_run() was batch_submit.main()
 """
 
 
 #...............................................................................
-from benchmark import audit
-# import class of files resources and constants:
-from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, MCCE_OUTPUTS
-import getpass
+from benchmark import audit, getpass
+from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
 import logging
 import os
 from pathlib import Path
@@ -67,37 +49,8 @@ from typing import Union
 
 logger = logging.getLogger(f"{APP_NAME}.{__name__}")
 logger.setLevel(logging.DEBUG)
-
-#...............................................................................
-# This may be used as a template;
-# as is, this script is part of the 'clean_pdbs' folder setup: "default_run.sh"
-RUN_SH_DEFAULTS = f"""
-#!/bin/bash
-step1.py --dry prot.pdb
-step2.py -d {MCCE_EPS}
-step3.py -d {MCCE_EPS}
-step4.py
-
-sleep {N_SLEEP}
-"""
-#.................................................................
-
-
-# To use for testing submit_script without running anything:
-
-# To check script is run inside a PDB folder:
-RUN_SH_TEST_ECHO = f"""
-#!/bin/bash
-
-echo "Using RUN_SH_TEST_ECHO as script: $PWD"
-"""
-# To test mcce can run:
-RUN_SH_NORUN = f"""
-#!/bin/bash
-
-step1.py prot.pdb --norun
-"""
-#.................................................................
+xtra = {'user':getpass.getuser()}
+logger = logging.LoggerAdapter(logger, extra=xtra)
 
 
 def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
@@ -114,7 +67,7 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
 
     curr = Path.cwd()
     if curr.name == benchmarks_dir.name:
-        logger.info("\nFunction 'setup_pdbs_folder' called from within benchmarks_dir, not re-reated.")
+        logger.info("Call from within benchmarks_dir, not re-reated.")
         benchmarks_dir = curr
     else:
         if not benchmarks_dir.exists():
@@ -123,28 +76,19 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     user_pdbs_folder = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs_folder.exists():
         user_pdbs_folder.mkdir()
-    logger.info(f"\nsetup_pdbs_folder:\t{user_pdbs_folder = }")
+    logger.info(f"{user_pdbs_folder = }")
 
     valid, invalid = audit.list_all_valid_pdbs()
-    print(f"\t{len(valid) = }; {len(invalid) = }")
 
     for v in valid:
         # v :: PDBID/pdbid.pdb
         p = user_pdbs_folder.joinpath(v)
-        print(f"\t{v = }; Valid prot path from v: {p}")
-
         d = p.parent
-        print(f"\tprot.parent path: {d}")
-        print(f"\tprot.parent exists: {d.exists()}")
-
         if not d.is_dir():
             d.mkdir()
 
-        print(f"\tprot.parent exists: {d.exists()}")
-
-        src = BENCH.BENCH_PDBS.joinpath(v)
         if not p.exists():
-            shutil.copy(src, p)
+            shutil.copy(BENCH.BENCH_PDBS.joinpath(v), p)
 
         # also copy full if prot is multi:
         if p.name.startswith(f"{d.name.lower()}_"):
@@ -186,11 +130,10 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
             logger.info(f"Ancillary file: {fp.name} copied to {dest.parent}")
 
     # include validity check in user's folder:
+    logger.info(f"Next: Validity check on user data.")
     valid, invalid = audit.list_all_valid_pdbs(user_pdbs_folder)
-    if len(invalid):
-        logger.error(f"Found {len(invalid)} invalid folder(s):\n{invalid}")
-    else:
-        logger.info(f"The data setup in {benchmarks_dir} went beautifully!")
+    if not invalid:
+        logger.info(f"The data setup in {user_pdbs_folder} went beautifully!")
 
     return Path.cwd()
 
@@ -252,64 +195,3 @@ def write_run_script(benchmarks_dir:Path,
 
     return sh_path
 
-
-from enum import Enum
-
-# may not need DEFAULT:
-class ScriptChoices(Enum):
-    TEST_ECHO = RUN_SH_TEST_ECHO
-    NORUN = RUN_SH_NORUN
-    DEFAULT = RUN_SH_DEFAULTS
-
-
-def write_run_script_from_template(benchmarks_dir:Path,
-                                   job_name:str = "default_run",
-                                   script_template:ScriptChoices = None) -> Path:
-    """
-    Write a shell script in user_job_folder similar to RUN_SH_DEFAULTS.
-    Return the script filepath.
-
-    For testing: job_name = "default_run" or script created from template.
-    Note: job_name has precedence over script_template: if "default_run" (default), the
-    file "default_run.sh" will be copied from the packaged data if it does not exist. Thus,
-    the job_name cannot be 'default_run' if script_template is provided.
-    """
-
-    user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
-    if not user_pdbs.exists():
-        msg = f"{benchmarks_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?"
-        logger.exception(msg)
-        raise FileNotFoundError(msg)
-
-    if job_name == "default_run" and script_template is not None:
-        print(f"""INFO: 'job_name' has precedence: if "default_run" (default), the file
-        'default_run.sh' will be copied from the packaged data if it does not exist.""")
-
-    if job_name == "default_run":
-        sh_path = user_pdbs.joinpath(BENCH.DEFAULT_JOB_SH.name)
-        if not sh_path.exists():
-            shutil.copy(BENCH.DEFAULT_JOB_SH, sh_path)
-    else:
-        if job_name and script_template is not None:
-            sh_path = user_pdbs.joinpath(f"{job_name}.sh")
-            if not sh_path.exists():
-                with open(sh_path , "w") as fh:
-                    fh.write(script_template.value)
-
-                # make script executable:
-                #permission denied with os.chmod(sh_path, stat.S_IXUSR)
-                try:
-                    p = subprocess.run(f"chmod +x {sh_path}",
-                                       capture_output=False,
-                                       check=True,
-                                       shell=True,
-                                       )
-                except subprocess.CalledProcessError as e:
-                    logger.exception(f"Error in subprocess cmd 'chmod +x':\nException: {e}")
-                    raise
-        else:
-            msg = "Missing 'job_name' or no 'script_template' was provided."
-            logger.exception(msg)
-            raise ValueError(msg)
-
-    return sh_path

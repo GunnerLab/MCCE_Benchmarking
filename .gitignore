@@ -1,5 +1,5 @@
 # local stuff
-benchmark/data/  # temporary until multi-model pdbs are prepped
+benchmark/future/  # code for future implementation
 #_legacy
 _tmp*
 _scratch*

@@ -1,27 +1,55 @@
 #!/usr/bin/env python
-from pathlib import Path
-import pandas
+"""
+Uses the legacy implementation usage:
+USAGE: to be run in the user's 'mcce_benchmarks' folder (defaults name).
+Example. Assuming your at you home directory (cd ~):
+> cd path/to/<mcce_benchmarks>
+> python pkanalysis.py
+"""
+
+from benchmark import BENCH
 import numpy as np
-"""
-TODO: Check fns with file path as input
-"""
+import pandas
+from pathlib import Path
 
-def job_pkas_to_dict(book_file:str) -> dict:
-    """
-    Uses the 'book' file to retrieve completed jobs and their respective pK.out file.
-    Origin: pkanalysis.py/read_calculated_pkas
+
+MATCHED_PKA_FILE = "matched_pka.csv"
+
+
+def get_book_dirs_for_status(book_fp:str, status:str="c") -> list
+    """Return a list of folder names from book_fp, the Q_BOOK file path,
+    if their status codes match 'status', i.e. completed ('c', default),
+    or errorneous ('e').
     """
 
-    completed_dirs = []
-    book_fp = Path(book_file)
+    status = status.lower()
+    if not status or status not in ["c", "e"]:
+        raise ValueError("Invalid 'status'; choices are 'c' or 'e'")
+
+    book_dirs = []
     with open(book_fp) as book:
         for line in book:
-            # select only the portion preceding any appended comment
+            # select the portion preceding any appended comment
             rawtxt = line.strip().split("#")[0]
             fields = rawtxt.split()
             if len(fields) == 2:
-                if fields[1].lower() == "c":
-                    completed_dirs.append(fields[0])
+                if fields[1].lower() == status:
+                    book_dirs.append(fields[0])
+
+    return book_dirs
+
+
+def job_pkas_to_dict(book_file:str = BENCH.Q_BOOK) -> dict:
+    """
+    Uses the 'q-book' file to retrieve completed jobs and their respective pK.out file.
+    Origin: pkanalysis.py/read_calculated_pkas
+    """
+
+    book_fp = Path.cwd().joinpath(book_file)
+    if not book_fp.exists():
+        raise FileNotFoundError(f"File path: {book_fp}")
+
+    completed_dirs = get_book_dirs_for_status(book_fp) # default 'c'
 
     calc_pkas = {}
     for dir in completed_dirs:
@@ -60,14 +88,18 @@ def to_upper(value:str):
     return str(value).upper()
 
 
-def experimental_pkas_to_dict(pkas_file:str, ) -> dict:
+def experimental_pkas_to_dict(pkas_file:str=BENCH.BENCH_WT.name, ) -> dict:
     """Origin: pkanalysis.py/read_experiment_pkas
     """
-    fp = Path(pkas_file)
-    if fp.name != "WT_pkas.csv":
-        raise TypeError("Only wild type proteins listed in 'WT_pkas.csv' are currently considered.")
 
-    translation = {"ARG": "ARG+",
+    if pkas_file != "WT_pkas.csv":
+        raise TypeError(f"Only wild type proteins listed in {BENCH.BENCH_WT.name!r} are currently considered.")
+
+    exp_pka_fp = Path.cwd().joinpath(pkas_file)
+    if not exp_pka_fp.exists():
+        raise FileNotFoundError(f"File path: {exp_pka_fp}")
+
+    res_to_mcce = {"ARG": "ARG+",
                    "HIS": "HIS+",
                    "LYS": "LYS+",
                    "N-TERM": "NTR+",
@@ -77,40 +109,40 @@ def experimental_pkas_to_dict(pkas_file:str, ) -> dict:
                    "CYS": "CYS-",
                    "TYR": "TYR-"}
 
-    pkas_df = pd.read_csv(fp,
-                      usecols=["PDB ID", "Res Name", "Chain", "Res ID", "Expt. pKa"],
-                      comment="#",
-                      converters={"PDB ID":to_upper,
-                                  "Res Name":to_upper,
-                                  "Expt. pKa": to_float,
-                                 },
-                      ).dropna(how="any")
+    pkas_df = pd.read_csv(exp_pka_fp,
+                          usecols=["PDB ID", "Res Name", "Chain", "Res ID", "Expt. pKa"],
+                          comment="#",
+                          converters={"PDB ID":to_upper,
+                                      "Res Name":to_upper,
+                                      "Expt. pKa": to_float,
+                                     },
+                          ).dropna(how="any")
     pkas_df.sort_values(by="PDB ID", inplace=True, ignore_index=True)
 
     expl_pkas = {}
     for _, row in pkas_df.iterrows():
         key = (row["PDB ID"],
-               f'{translation[row["Res Name"]]}{row["Chain"]}{int(row["Res ID"]):04d}_')
+               f'{res_to_mcce[row["Res Name"]]}{row["Chain"]}{int(row["Res ID"]):04d}_')
         expl_pkas[key] = row["Expt. pKa"]
 
     return expl_pkas
 
 
-def match_pkas(expr_pkas:dict, calc_pkas:dict) -> list:
+def match_pkas(expl_pkas:dict, calc_pkas:dict) -> list:
     """Return a list of 3-tuples:
     (id=<pdb>/<res>, experimental pka, calculated pka).
     """
 
     #calculated_ids = []
-    #for key in calc_pkas.keys():
+    #for key in calc_pkas:
     #    if key[0] not in calculated_ids:
     #        calculated_ids.append(key[0])
 
-    calculated_ids = list(set([key[0].name for key in calc_pkas.keys()]))
+    calculated_ids = list(set([key[0] for key in calc_pkas]))
     print(f"{calculated_ids = }") # temp
 
     pkas = []
-    for key in expr_pkas.keys():
+    for key in expl_pkas:
         if key[0] not in calculated_ids:
             continue
 
@@ -123,18 +155,18 @@ def match_pkas(expr_pkas:dict, calc_pkas:dict) -> list:
         else:
             print(f"Parsing error of job pKas for {key}")
 
-        pka = ("{}/{}".format(*key), expr_pkas[key], calc_pka)
-        pkas.append(pka)
+        #pka = ("{}/{}".format(*key), expl_pkas[key], calc_pka)
+        pkas.append(("{}/{}".format(*key), expl_pkas[key], calc_pka))
 
     return pkas
 
 
-def matched_pkas_to_csv(matched_pkas:list, file_path:str="matched_pkas.csv") -> None:
+def matched_pkas_to_csv(matched_pkas:list, file_path:str=MATCHED_PKA_FILE) -> None:
     """Write a list of 3-tuples (as in a matched pkas list) to a comma separated file."""
 
-    fp = Path(file_path)
+    fp = Path.cwd().joinpath(file_path)
     if fp.exists():
-        raise FileExistsError(f"File {fp.name!r} already exists: either delete or rename it before saving.")
+        raise FileExistsError(f"File {fp!r} already exists: either delete or rename it before saving.")
 
     if fp.suffix !=".csv":
         fp = fp.parent.joinpath(f"{fp.stem}.csv")
@@ -147,30 +179,31 @@ def matched_pkas_to_csv(matched_pkas:list, file_path:str="matched_pkas.csv") -> 
 
 def main():
     calc_pkas = read_calculated_pkas()
-    expr_pkas = read_experiment_pkas()
-    matched_pKas = match_pka(expr_pkas, calc_pkas)
+    expl_pkas = read_experiment_pkas()
+    matched_pKas = match_pka(expl_pkas, calc_pkas)
+    save_pka(matched_pKas, fname=MATCHED_PKA_FILE)
+
+    n = len(matched_pKas)
 
     # Overall fitting
     x = np.array([p[1] for p in matched_pKas])
     y = np.array([p[2] for p in matched_pKas])
+
     delta = np.abs(x-y)
     m, b = np.polyfit(x, y, 1)
     rmsd = np.sqrt(np.mean((x-y)**2))
-    within_2 = 0
-    within_1 = 0
-    n = len(matched_pKas)
+
+    within_1, within_2 = 0, 0
     for d in delta:
         if d <= 2.0:
             within_2 += 1
             if d <= 1.0:
                 within_1 += 1
 
-    print("y=%.3fx + %.3f" %(m, b))
-    print("RMSD between expr and calc = %.3f" % rmsd)
-    print("%.1f%% within 2 pH unit" % (within_2/n*100))
-    print("%.1f%% within 1 pH unit" % (within_1/n*100))
-
-    save_pka(matched_pKas, fname="matched_pka.txt")
+    print(f"Fit line: y = {m:.2f}.x + {b:.2f}")
+    print(f"RMSD between calculated and exprimental: {rmsd:.2f}")
+    print(f"Proportion within 2 pH units: {within_2/n:.1%}")
+    print(f"Proportion within 1 pH unit: {within_1/n:.1%}")
 
     #
     # plt.plot(x, y, 'o')

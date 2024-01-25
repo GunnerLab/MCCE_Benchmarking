@@ -7,33 +7,28 @@ import sys
 
 APP_NAME = "benchmark"
 
+FH_FORMAT = "%(asctime)s @%(user)s [%(levelname)s: %(name)s, %(funcName)s]:\n\t%(message)s"
+CH_FORMAT = "%(asctime)s @%(user)s [%(levelname)s: %(name)s]:\n\t%(message)s"
+DT_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-class UserLogger(logging.Logger):
-    # override the makeRecord method to include user name
-    def makeRecord(self, *args, **kwargs):
-        rv = super(UserLogger, self).makeRecord(*args, **kwargs)
-        rv.__dict__["user"] = rv.__dict__.get("user", getpass.getuser())
-        return rv
-
-
-logger = UserLogger(APP_NAME)
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter(fmt="%(asctime)s @%(user)s [%(name)s,%(levelname)s]:\n%(message)s",
-                              datefmt="%Y-%m-%d %H:%M:%S")
-
-log = Path.cwd().joinpath("benchmark.log")
-if not log.exists():
-    log.touch()
-
-fh = logging.FileHandler("benchmark.log", mode="a")
+# file handler
+fh = logging.FileHandler("benchmark.log")
 fh.setLevel(logging.DEBUG)
-fh.setFormatter(formatter)
-logger.addHandler(fh)
+fh.setFormatter(logging.Formatter(fmt=FH_FORMAT, datefmt=DT_FORMAT))
 
+# console handler
 ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.DEBUG) #.ERROR)
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+ch.setLevel(logging.INFO) #.ERROR)
+ch.setFormatter(logging.Formatter(fmt=CH_FORMAT, datefmt=DT_FORMAT))
+
+
+logging.basicConfig(level=logging.INFO,
+                    format=CH_FORMAT,
+                    datefmt=DT_FORMAT,
+                    handlers=[ch, fh]
+                   )
+logger = logging.getLogger(APP_NAME)
+logger.setLevel(logging.DEBUG)
 
 
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE

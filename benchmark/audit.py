@@ -3,7 +3,7 @@ Contains functions to query and manage data.
 """
 
 # import class of files resources and constants:
-from benchmark import APP_NAME, BENCH, MCCE_OUTPUTS
+from benchmark import getpass, APP_NAME, BENCH
 from functools import cache
 import logging
 import numpy as np
@@ -14,6 +14,12 @@ import subprocess
 from typing import Union
 
 
+logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger.setLevel(logging.DEBUG)
+xtra = {'user':getpass.getuser()}
+logger = logging.LoggerAdapter(logger, extra=xtra)
+
+
 MULTI_ACTIVE_MSG = \
 """Multi-model folder {!r} contains multiple 'active' pdbs with
 {!r} being the second one.
@@ -21,9 +27,6 @@ The only 'active' pdb (to be selected as 'prot.pdb'), must be the one
 listed in the 'Use' colummn in the 'proteins.tsv' file.
 The function audit.reset_multi_models() must be re-run to fix the problem.
 """
-
-logger = logging.getLogger(f"{APP_NAME}.{__name__}")
-logger.setLevel(logging.DEBUG)
 
 
 def proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = False) -> pd.DataFrame:
@@ -85,8 +88,9 @@ def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]
 
 @cache
 def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
-    """Return a list ["PDB/pdb[_*].pdb", ] of valid pdb.
-    Return a 2-tuple: (valid_folders, invalid_folders).
+    """Return a list ["PDB/pdb[_*].pdb", ..] of valid pdb.
+    Return a 2-tuple of lists: (valid_folders, invalid_folders), with
+    each list = ["PDB/pdb[_*].pdb", ..].
     For managing packaged data.
     """
     if not clean_pdbs_dir.is_dir():
@@ -103,9 +107,9 @@ def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
                 valid.append(f"{fp.name}/{p.name}")
     valid.sort()
     invalid.sort()
-    print(f"\tValid pdbs: {len(valid)}; Invalid pdbs: {len(invalid)}")
+    logger.info(f"{len(valid) = }; {len(invalid) = }")
     if len(invalid):
-        print(f"\tInvalid pdbs: {invalid}")
+        logger.info(f"Invalid pdbs: {invalid}")
 
     return valid, invalid
 
@@ -151,13 +155,20 @@ def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray
     print_fields = "{print $" + str(f1) + '","$' + str(f2) + "}"
     cmd = f"grep '^MODEL' {pdbs_query_path}/*.pdb | sed -e '/model/d; s/:MODEL/\//g'|gawk -F'/|:' '{print_fields}' | uniq"
 
-    data = subprocess.check_output(cmd,
-                                   stderr=subprocess.STDOUT,
-                                   text=True,
-                                   shell=True
-                                   ).splitlines()
-    if data:
-        multi_models = np.array([line.split(",") for line in data])
+    try:
+        data = subprocess.check_output(cmd,
+                                       stderr=subprocess.STDOUT,
+                                       check=True,
+                                       text=True,
+                                       shell=True
+                                       )
+        data = data.splitlines()
+        if data:
+            multi_models = np.array([line.split(",") for line in data])
+
+    except subprocess.CalledProcessError as e:
+        logger.exception(f"{__name__} :: Error in subprocess cmd.\nException: {e}")
+        raise
 
     return multi_models
 

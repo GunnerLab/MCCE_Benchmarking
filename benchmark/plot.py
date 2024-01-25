@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
-def read_pka(fname):
+MATCHED_PKA_FILE = "matched_pka.csv"
+
+def read_pka(fname=MATCHED_PKA_FILE):
     """TODO: rename read_matched_pka
     """
     lines = open(fname).readlines()
@@ -52,7 +54,7 @@ def pka_stat(matched_pkas):
 
 if __name__ == "__main__":
 
-    pkadb1 = read_pka("matched_pka.txt")
+    pkadb1 = read_pka()
 
     print("At rotamer level 1:")
     pka_stat(pkadb1)

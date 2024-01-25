@@ -94,16 +94,14 @@ def delete_folder(dir_path: str) -> None:
 
 
 def save_dict_to_txt(dict_data: dict, text_filepath: str) -> None:
-    """
-    Save a dict to a text file.
-    Extracted from unused /structure.DynamicStructure and modified.
-    """
+    """Save a dict to a text file. """
+
     text_filepath = Path(text_filepath)
     if not text_filepath.suffixes:
         text_filepath = text_filepath + ".txt"
 
     with open(text_filepath, "w") as out:
-        for k, v in dict_data.items():
-            out.write(f"{k} : {v}\n")
+        for k dict_data:
+            out.write(f"{k} : {dict_data[k]}\n")
 
     return

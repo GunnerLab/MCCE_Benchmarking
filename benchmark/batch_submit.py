@@ -9,8 +9,7 @@ State:
  "e": error - was running, dissapeared from job queue and no pK.out
 """
 
-from benchmark import APP_NAME, BENCH, N_ACTIVE
-import getpass
+from benchmark import getpass, APP_NAME, BENCH, N_ACTIVE
 import logging
 import os
 from pathlib import Path
@@ -21,6 +20,8 @@ from typing import Union
 
 logger = logging.getLogger(f"{APP_NAME}.{__name__}")
 logger.setLevel(logging.DEBUG)
+xtra = {'user':getpass.getuser()}
+logger = logging.LoggerAdapter(logger, extra=xtra)
 
 
 class ENTRY:

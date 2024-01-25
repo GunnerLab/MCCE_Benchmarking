@@ -1,7 +1,7 @@
 # MCCE_Benchmarking
 _beta version_
 
-## `benchmark/data` folder contents
+## Packaged `benchmark/data` folder contents
 ```
 	data
 	├── MT_pkas.csv
@@ -27,7 +27,7 @@ Comments out the excluded pdbs and gives the reason. Column 'Model' identifies s
 Experimental data source details; to be kept in data folder.
 
 ### Folder `clean_pdbs`:
-Holds the prepared pdb files which reside inside a folder with the same pdbid in upper case.
+Holds the prepared pdb files, which reside inside a folder with the same pdbid in upper case.
 ```
 	data/clean_pdbs/
 	├── book.txt		# Q_BOOK in the code
@@ -44,6 +44,4 @@ The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'p
 'Use' column -> pdbid_use.pdb is the new name, with 'use' being the string from the 'Use' column minus the period.
 
 # TODO:
-* Logging -> job.log.
 * Test bench cli with small number of processes.
-* Implement versioning scheme -> pyproject.
