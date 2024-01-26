@@ -1,3 +1,4 @@
+#from datetime import datetime
 import getpass
 from importlib import resources
 import logging
@@ -5,32 +6,46 @@ from pathlib import Path
 import sys
 
 
-APP_NAME = "benchmark"
+HEADER = '%(asctime)s @%(user)s [%(levelname)s: %(name)s]: - %(message)s'
+FORMAT = "[%(levelname)s]: %(name)s, %(funcName)s:\n\t%(message)s"
+#DT_FORMAT = "%Y-%m-%d %H:%M:%S"
 
-FH_FORMAT = "%(asctime)s @%(user)s [%(levelname)s: %(name)s, %(funcName)s]:\n\t%(message)s"
-CH_FORMAT = "%(asctime)s @%(user)s [%(levelname)s: %(name)s]:\n\t%(message)s"
-DT_FORMAT = "%Y-%m-%d %H:%M:%S"
+header_frmter = logging.Formatter(fmt=HEADER) #, datefmt=DT_FORMAT)
 
 # file handler
 fh = logging.FileHandler("benchmark.log")
+fh.name = "fh"
 fh.setLevel(logging.DEBUG)
-fh.setFormatter(logging.Formatter(fmt=FH_FORMAT, datefmt=DT_FORMAT))
+fh.setFormatter(header_frmter)
 
 # console handler
 ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.INFO) #.ERROR)
-ch.setFormatter(logging.Formatter(fmt=CH_FORMAT, datefmt=DT_FORMAT))
-
+ch.name = "ch"
+ch.setLevel(logging.INFO)
+ch.setFormatter(header_frmter)
 
 logging.basicConfig(level=logging.INFO,
-                    format=CH_FORMAT,
-                    datefmt=DT_FORMAT,
+                    format=FORMAT,
+                    datefmt="%Y-%m-%d %H:%M:%S",
                     handlers=[ch, fh]
                    )
-logger = logging.getLogger(APP_NAME)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+logger = logging.LoggerAdapter(logger,{'user':getpass.getuser()})
+logger.info("START")
+
+# reset format:
+body_frmter = logging.Formatter(fmt=FORMAT) #, datefmt=DT_FORMAT)
+fh.setFormatter(body_frmter)
+ch.setFormatter(body_frmter)
+
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+#.........................................................................................
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
 N_SLEEP = 10   # default sleep duration after last step is submitted in the job run script
 N_ACTIVE = 10  # number of active jobs to maintain

@@ -9,7 +9,7 @@ State:
  "e": error - was running, dissapeared from job queue and no pK.out
 """
 
-from benchmark import getpass, APP_NAME, BENCH, N_ACTIVE
+from benchmark import BENCH, N_ACTIVE
 import logging
 import os
 from pathlib import Path
@@ -18,10 +18,8 @@ import subprocess
 from typing import Union
 
 
-logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-xtra = {'user':getpass.getuser()}
-logger = logging.LoggerAdapter(logger, extra=xtra)
 
 
 class ENTRY:
@@ -148,12 +146,12 @@ def launch_job(benchmarks_dir:Path = None, job_name:str = None, n_active:int = N
     """
 
     if benchmarks_dir is None:
-        logger.exception(f"Argument not set: benchmarks_dir is None.")
-        raise ValueError(f"Argument not set: benchmarks_dir is None.")
+        logger.exception("Argument not set: benchmarks_dir is None.")
+        raise ValueError("Argument not set: benchmarks_dir is None.")
 
     if job_name is None:
-        logger.exception(f"Argument not set: job_name is None.")
-        raise ValueError(f"Argument not set: job_name is None.")
+        logger.exception("Argument not set: job_name is None.")
+        raise ValueError("Argument not set: job_name is None.")
 
     if Path.cwd().name != benchmarks_dir.name:
         os.chdir(benchmarks_dir)

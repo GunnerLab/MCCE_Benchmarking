@@ -3,7 +3,7 @@ Contains functions to query and manage data.
 """
 
 # import class of files resources and constants:
-from benchmark import getpass, APP_NAME, BENCH
+from benchmark import BENCH
 from functools import cache
 import logging
 import numpy as np
@@ -14,10 +14,8 @@ import subprocess
 from typing import Union
 
 
-logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-xtra = {'user':getpass.getuser()}
-logger = logging.LoggerAdapter(logger, extra=xtra)
 
 
 MULTI_ACTIVE_MSG = \

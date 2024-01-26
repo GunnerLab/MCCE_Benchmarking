@@ -37,8 +37,7 @@ Contains functions to prepare a user's benchmarking folder using user-provided o
 
 
 #...............................................................................
-from benchmark import audit, getpass
-from benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
+from benchmark import audit, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
 import logging
 import os
 from pathlib import Path
@@ -47,10 +46,8 @@ import subprocess
 from typing import Union
 
 
-logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-xtra = {'user':getpass.getuser()}
-logger = logging.LoggerAdapter(logger, extra=xtra)
 
 
 def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
@@ -65,10 +62,10 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     Return the last known path (temporarily for error checking).
     """
 
-    curr = Path.cwd()
-    if curr.name == benchmarks_dir.name:
-        logger.info("Call from within benchmarks_dir, not re-reated.")
-        benchmarks_dir = curr
+    in_benchmarks = Path.cwd().name == benchmarks_dir.name
+
+    if in_benchmarks:
+        logger.info(f"Call from within {benchmarks_dir}, not re-reated.")
     else:
         if not benchmarks_dir.exists():
             benchmarks_dir.mkdir()
@@ -147,8 +144,11 @@ def change_dir(from_dir:Path, target_dir:Path) -> None:
 def delete_pkout(benchmarks_dir:Path) -> None:
     """New job preparation: delete pk.out from 'benchmarks_dir/clean_pdbs' subfolders."""
 
-    for f in benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).glob("./*/pK.out"):
+    pkf = list(benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).glob("./*/pK.out"))
+    for f in pkf:
         f.unlink()
+    logger.info(f"{len(pkf)} file(s) deleted.")
+
     return
 
 
@@ -160,8 +160,7 @@ def write_run_script(benchmarks_dir:Path,
     Return the script filepath.
     """
 
-    curr = Path.cwd()
-    in_benchmarks = curr.name == benchmarks_dir.name
+    in_benchmarks = Path.cwd().name == benchmarks_dir.name
     if in_benchmarks:
         benchmarks_dir = curr
 
@@ -171,22 +170,25 @@ def write_run_script(benchmarks_dir:Path,
         logger.exception(msg)
         raise FileNotFoundError(msg)
 
+    sh_name = f"{job_name}.sh"
     if job_name == "default_run":
-        sh_path = user_pdbs.joinpath(BENCH.DEFAULT_JOB_SH.name)
+        sh_path = user_pdbs.joinpath(sh_name)
         if not sh_path.exists():
             shutil.copy(BENCH.DEFAULT_JOB_SH, sh_path)
+            logger.info(f"Re-installed {sh_name}")
     else:
         if not in_benchmarks:
             os.chdir(benchmarks_dir)
 
         os.chdir(user_pdbs)
-        sh_name = f"{job_name}.sh"
         sh_path = Path(sh_name)
         try:
             sh_path.symlink_to(BENCH.DEFAULT_JOB_SH.name)
         except FileExistsError:
             sh_path.unlink()
             sh_path.symlink_to(BENCH.DEFAULT_JOB_SH.name)
+
+        logger.info(f"Soft-linked {BENCH.DEFAULT_JOB_SH.name} as {sh_name}")
 
         # reset path:
         sh_path = user_pdbs.joinpath(sh_name)
