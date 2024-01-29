@@ -5,8 +5,7 @@ requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "benchmark"
-#version = "0.1.0b1"
+name = "mcce_benchmark"
 dynamic = ["version"]
 description = "MCCE benchmarking against Dr. Emil Axelov's pKa Database v1 (http://compbio.clemson.edu/lab/software/5/)"
 readme = "README.md"
@@ -27,7 +26,7 @@ keywords = [
     "pKa benchmark"
 ]
 classifiers = [
-    "Development Status :: 4 - Betaa",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Biophysicists, Developpers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
@@ -53,11 +52,11 @@ Source = "https://github.com/GunnerLab/MCCE_Benchmarking"
 find = {}
 
 [tool.setuptools.package-data]
-"benchmark.data" = ["*.txt","*.tsv", "*.csv", "*.pdb", "*.sh"]
+"mcce_benchmark.data" = ["*.txt","*.tsv", "*.csv", "*.pdb", "*.sh"]
 
 [project.scripts]
-mccebench = "benchmark.cli:bench_cli"
+mccebench = "mcce_benchmark.cli:bench_cli"
 #mypkg.mymodule:some_func"
 
 [tool.setuptools_scm]
-version_file = "benchmark/_version.py"
+version_file = "mcce_benchmark/_version.py"

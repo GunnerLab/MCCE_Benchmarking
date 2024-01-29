@@ -1,14 +1,21 @@
 #!/usr/bin/env python
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from pathlib import Path
 import seaborn as sns
+
 
 MATCHED_PKA_FILE = "matched_pka.csv"
 
-def read_pka(fname=MATCHED_PKA_FILE):
-    """TODO: rename read_matched_pka
+def read_matched_pka(fname:str=MATCHED_PKA_FILE) -> dict:
+    """PRE: file MATCHED_PKA_FILE was created via mcce_benchmark.pkanalysis.
     """
+
+    fh = Path(fname)
+    if not fh.exists():
+        raise FileNotFoundError(f"Not found: {fh}; run pkanalysis to create.")
+
     lines = open(fname).readlines()
     names = []
     experiment = []
@@ -19,11 +26,9 @@ def read_pka(fname=MATCHED_PKA_FILE):
         experiment.append(float(fields[1]))
         calculated.append(float(fields[2]))
 
-    pkadb = {'name': names,
-             'experiment': experiment,
-             'calculated': calculated}
-
-    return pkadb
+    return {'name': names,
+            'experiment': experiment,
+            'calculated': calculated}
 
 
 def pka_stat(matched_pkas):
@@ -54,7 +59,7 @@ def pka_stat(matched_pkas):
 
 if __name__ == "__main__":
 
-    pkadb1 = read_pka()
+    pkadb1 = read_matched_pka()
 
     print("At rotamer level 1:")
     pka_stat(pkadb1)

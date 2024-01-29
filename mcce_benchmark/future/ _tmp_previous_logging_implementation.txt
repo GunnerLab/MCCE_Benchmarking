@@ -1,0 +1,53 @@
+# _tmp_previous_logging_implementation
+
+from datetime import datetime
+import getpass
+from importlib import resources
+import logging
+from pathlib import Path
+import sys
+
+
+APP_NAME = "benchmark"
+
+HEADER = "%(asctime)s @%(user)s [%(levelname)s: %(name)s]:\n\t%(message)s"
+CH_HEADER = "@%(user)s [%(levelname)s: %(name)s, %(funcName)s]]:\n\t%(message)s"
+FORMAT = "[%(levelname)s: %(name)s, %(funcName)s]]:\n\t%(message)s"
+DT_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+level_names = {0: "NOTSET",
+               10: "DEBUG",
+               20: "INFO",
+               30: "WARNING",
+               40: "ERROR",
+               50: "CRITICAL"}
+
+
+
+# file handler
+fh = logging.FileHandler("benchmark.log")
+fh.name = "fh"
+fh.setLevel(logging.DEBUG)
+#fh.setFormatter(logging.Formatter(fmt=HEADER, datefmt=DT_FORMAT))
+
+# console handler
+ch = logging.StreamHandler(sys.stdout)
+ch.name = "ch"
+ch.setLevel(logging.INFO)
+#ch.setFormatter(logging.Formatter(fmt=CH_HEADER, datefmt=DT_FORMAT))
+
+logging.basicConfig(level=logging.INFO,
+                    format=FORMAT,
+                    datefmt=DT_FORMAT,
+                    handlers=[ch, fh]
+                   )
+
+logger = logging.getLogger(APP_NAME)
+logger.setLevel(logging.DEBUG)
+#xtra = {'user':getpass.getuser()}
+#logger = logging.LoggerAdapter(logger, extra=xtra)
+usr = getpass.getuser()
+
+header = f"[{datetime.now().strftime(DT_FORMAT)} @{usr} {level_names[logger.getEffectiveLevel()]}: {logger.name}] - START"
+print("header", header)
+logger.info(header)

@@ -3,54 +3,54 @@
 Contains functions to prepare a user's benchmarking folder using user-provided options
 (from cli args if cli is used).
 
-* setup_pdbs_folder(benchmarks_dir:Path) -> Path:
-    ```
+Functions:
+----------
+* setup_pdbs_folder(benchmarks_dir:Path) -> None:
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (pakaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
+    - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
       or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmarks_dir`;
     - Soft-link the relevant pdb as "prot.pdb";
-    - Copy the "queue book" and default script files (BENCH_Q_BOOK, DEFAULT_JOB_SH, respectively)
+    - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
       in `user_pdbs_folder`;
-    - Copy ancillary files BENCH_WT, BENCH_PROTS in `benchmarks_dir`.
-    ```
+    - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmarks_dir`.
+
+* delete_pkout(benchmarks_dir:Path) -> None:
+    Part of the job preparation for each new script.
+    Delete pk.out from 'benchmarks_dir/clean_pdbs' subfolders.
 
 * write_run_script(job_name, steps_options_dict)
- Write a shell script in user_job_folder similar to DEFAULT_JOB_SH (default template):
- ```
- #!/bin/bash
- step1.py --dry prot.pdb
- step2.py -d 4
- step3.py -d 4
- step4.py
- sleep 10
- ```
- The script will be name as per args.job_name and its contents will differ depending on the chosen
- sub-command and associated options.
- NOTE: The other sub-command, "start_from_step3" is to be implemented in a future realease.
+    Beta Phase : job_name = "default_run" (or soft link to 'default_run.sh' if different).
+    Write a shell script in user_job_folder similar to RUN_SH_DEFAULTS.
 
-* launch_job(q_book, job_name, n_active:int = N_ACTIVE):
- cd user_job_folder/clean_pdbs
- call batch_submit.batch_run(q_book, job_name, n_active:int = N_ACTIVE)
-  - q_book is the 'book.txt' file in user_job_folder.
-  - batch_submit.batch_run() was batch_submit.main()
+    Current default template: (BENCH.DEFAULT_JOB_SH):
+     ```
+     #!/bin/bash
+     step1.py --dry prot.pdb
+     step2.py -d 4
+     step3.py -d 4
+     step4.py
+     sleep 10
+     ```
+     Beta Phase: Only the above default script is used; it is soft-linked as job_name.sh if job_name
+     is different from "default_run" (i.e the string stored in BENCH.DEFAULT_JOB).
+     Future: The script will be name as per args.job_name and its contents will differ depending on the
+     options/values passed via the cli.
+
 """
 
-
 #...............................................................................
-from benchmark import audit, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
+from mcce_benchmark import audit, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
 import logging
 import os
 from pathlib import Path
 import shutil
-import subprocess
-from typing import Union
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
+def setup_pdbs_folder(benchmarks_dir:Path) -> None:
     """
     Replicate current setup.
     - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
@@ -59,10 +59,10 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
       in `user_pdbs_folder`;
     - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmarks_dir`.
-    Return the last known path (temporarily for error checking).
     """
 
-    in_benchmarks = Path.cwd().name == benchmarks_dir.name
+    curr = Path.cwd()
+    in_benchmarks = curr.name == benchmarks_dir.name
 
     if in_benchmarks:
         logger.info(f"Call from within {benchmarks_dir}, not re-reated.")
@@ -132,35 +132,37 @@ def setup_pdbs_folder(benchmarks_dir:Path) -> Path:
     if not invalid:
         logger.info(f"The data setup in {user_pdbs_folder} went beautifully!")
 
-    return Path.cwd()
-
-
-def change_dir(from_dir:Path, target_dir:Path) -> None:
-    if target_dir.name != from_dir.name:
-        os.chdir(target_dir)
     return
 
 
 def delete_pkout(benchmarks_dir:Path) -> None:
-    """New job preparation: delete pk.out from 'benchmarks_dir/clean_pdbs' subfolders."""
+    """Part of the job preparation for each new script.
+    Delete pk.out from 'benchmarks_dir/clean_pdbs' subfolders.
+    """
 
     pkf = list(benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).glob("./*/pK.out"))
     for f in pkf:
         f.unlink()
-    logger.info(f"{len(pkf)} file(s) deleted.")
+    logger.info(f"{len(pkf)} pK.out file(s) deleted.")
 
     return
 
 
+def get_script_contents(sh_path):
+    with open(sh_path) as f:
+        contents = f.read()
+    return contents
+
+
 def write_run_script(benchmarks_dir:Path,
-                     job_name:str = "default_run") -> Path:
+                     job_name:str = "default_run") -> None:
     """
-    Phase 1: job_name = "default_run" (or soft link to 'default_run.sh' if different).
+    Beta Phase : job_name = "default_run" (or soft link to 'default_run.sh' if different).
     Write a shell script in user_job_folder similar to RUN_SH_DEFAULTS.
-    Return the script filepath.
     """
 
-    in_benchmarks = Path.cwd().name == benchmarks_dir.name
+    curr = Path.cwd()
+    in_benchmarks = curr.name == benchmarks_dir.name
     if in_benchmarks:
         benchmarks_dir = curr
 
@@ -171,7 +173,7 @@ def write_run_script(benchmarks_dir:Path,
         raise FileNotFoundError(msg)
 
     sh_name = f"{job_name}.sh"
-    if job_name == "default_run":
+    if job_name == BENCH.DEFAULT_JOB:
         sh_path = user_pdbs.joinpath(sh_name)
         if not sh_path.exists():
             shutil.copy(BENCH.DEFAULT_JOB_SH, sh_path)
@@ -189,11 +191,13 @@ def write_run_script(benchmarks_dir:Path,
             sh_path.symlink_to(BENCH.DEFAULT_JOB_SH.name)
 
         logger.info(f"Soft-linked {BENCH.DEFAULT_JOB_SH.name} as {sh_name}")
+        #TODO:
+        # log script name & contents
 
         # reset path:
         sh_path = user_pdbs.joinpath(sh_name)
 
+    logger.info(f"Script contents:\n{get_script_contents(sh_path)}")
     os.chdir(curr)
 
-    return sh_path
-
+    return

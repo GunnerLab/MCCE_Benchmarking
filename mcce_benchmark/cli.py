@@ -6,16 +6,12 @@ Command line interface for MCCE benchmarking.
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 # import class of files resources and constants:
-from benchmark import BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
-from benchmark import audit, job_setup, batch_submit
+from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE
+from mcce_benchmark import audit, job_setup, batch_submit
 from IPython.core.formatters import format_display_data
 import logging
-import numpy as np
-import pandas as pd
 from pathlib import Path
-import shutil
 import sys
-from typing import Union
 
 
 logger = logging.getLogger(__name__)
@@ -25,20 +21,56 @@ logger.setLevel(logging.DEBUG)
 
 CLI_NAME = "mccebench"  # as per pyproject.toml
 SUB_CMD0 = "data_setup"
-SUB_CMD1 = "from_step1"
+SUB_CMD1 = "script_setup"
+SUB_CMD2 = "launch_batch"
 HELP_0 = "Sub-command for preparing `<benchmarks_dir>/clean_pdbs folder."
-HELP_1 = "Sub-command for starting the MCCE simulation from step1."
-
-USAGE = f"{CLI_NAME} <+ sub-command :: {SUB_CMD0} or {SUB_CMD1}> <related args>\n"
+HELP_1 = "Sub-command for seting up the job_name_run.sh script."
+HELP_2 = "Sub-command for launching a batch of jobs."
 
 DESC = f"""
-    Launch a MCCE benchmarking job using curated structures from the pKa Database v1.
+Description:
+Launch a MCCE benchmarking job using curated structures from the pKa Database v1.
 
-    The main command is {CLI_NAME!r} along with one of 2 sub-commands,
-    which distinguishes the starting point for the MCCE simulation.
-    - Sub-command 1: {SUB_CMD0!r}: setup data folders;
-    - Sub-command 2: {SUB_CMD1!r}: run mcce steps 1 to 4;
+The main command is {CLI_NAME!r} along with one of 3 sub-commands:
+- Sub-command 1: {SUB_CMD0!r}: setup data folders;
+- Sub-command 2: {SUB_CMD1!r}: setup the run script to run mcce steps 1 through 4;
+- Sub-command 3: {SUB_CMD2!r}: launch a batch of jobs;
 
+Post an issue for all errors and feature requests at:
+https://github.com/GunnerLab/MCCE_Benchmarking/issues
+
+"""
+bench_default_jobname = BENCH.DEFAULT_JOB
+
+USAGE = f"""
+{CLI_NAME} <+ sub-command :: one of [{SUB_CMD0}, {SUB_CMD1}, {SUB_CMD2}]> <related args>\n
+Examples for current implementation (Beta):
+
+1. Data setup
+ - Using defaults (benchmarks_dir= {DEFAULT_DIR}):
+   >mccebench data_setup
+
+ - Using a different folder name:
+   >mccebench data_setup -benchmarks_dir <different name>
+
+2. Script setup
+ - Using defaults (benchmarks_dir= {DEFAULT_DIR}; job_name= {bench_default_jobname}):
+   >mccebench script_setup
+
+ - Using non-default option(s):
+   >mccebench script_setup -job_name <my_job_name>
+   >mccebench script_setup -benchmarks_dir <different name> -job_name <my_job_name>
+
+3. Submit batch of jobs
+ - Using defaults (benchmarks_dir= {DEFAULT_DIR};
+                   job_name= {bench_default_jobname};
+                   n_active= {N_ACTIVE};
+                   sentinel_file= pK.out):
+   >mccebench launch_batch
+
+ - Using non-default option(s):
+   >mccebench launch_batch -n_active <jobs to maintain>
+   >mccebench launch_batch -job_name <my_job_name> -sentinel_file step2_out.pdb
 """
 
 
@@ -49,21 +81,26 @@ def args_to_str(args:argNamespace) -> str:
 
 
 def bench_data_setup(args:argNamespace):
-    """Benchmark data setup 'data_setup' sub-command."""
+    """Benchmark cli function for 'data_setup' sub-command.
+    Setup the pdbs data in args.benchmarks_dir.
+    """
 
     logger.info(args_to_str(args))
-    logger.info(f"Preparing pdbs folder in {args.benchmarks_dir}.")
-
+    logger.info(f"Preparing pdbs folder & data in {args.benchmarks_dir}.")
     job_setup.setup_pdbs_folder(args.benchmarks_dir)
     logger.info("Setup over.")
 
     return
 
 
-def bench_from_step1(args:argNamespace) -> None:
-    """Benchmark script writing and launch for 'from_step1' sub-command.
-    PRE-REQS: args.benchmarks_dir & clean_padbs folders exist because they
-    were previously created via > mccebench data_setup command.
+def bench_script_setup(args:argNamespace) -> None:
+    """Benchmark cli function for 'script_setup' sub-command.
+    PRE-REQS: args.benchmarks_dir & clean_padbs folders exist as previously
+    created via > mccebench data_setup command.
+    Processing steps:
+     1. Write fresh book file
+     2. Write script for args.job_name
+     3. Delete all previous pK.out files
     """
 
     in_benchmarks = Path.cwd().name == args.benchmarks_dir.name
@@ -71,36 +108,52 @@ def bench_from_step1(args:argNamespace) -> None:
         args.benchmarks_dir = Path.cwd()
 
     clean_pdbs_dir = args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
-
     if not clean_pdbs_dir.exists():
         msg = f"Missing {BENCH.CLEAN_PDBS!r} folder in {args.benchmarks_dir}:\nRe-run subcommand {SUB_CMD0!r}, perhaps?"
         logger.exception(msg)
         raise FileNotFoundError(msg)
 
     logger.info(args_to_str(args))
-    logger.info("Deleting previous pK.out files, if any.")
-    job_setup.delete_pkout(args.benchmarks_dir)
 
     book = clean_pdbs_dir.joinpath(BENCH.Q_BOOK)
     logger.info("Write fresh book file.")
     audit.rewrite_book_file(book)
 
-    print(f"{args.job_name.default = }")
+    logger.info(f"Writing script for {args.job_name!r} job.")
+    job_setup.write_run_script(args.benchmarks_dir, args.job_name)
 
-    logger.info(f"Writing script for {args.job_name}.")
-    sh_path = job_setup.write_run_script(args.benchmarks_dir,
-                                         args.job_name
-                                         )
+    logger.info("Deleting previous pK.out files, if any.")
+    job_setup.delete_pkout(args.benchmarks_dir)
+
+    return
+
+
+def bench_launch_batch(args:argNamespace) -> None:
+    """Benchmark cli function for 'launch_batch' sub-command.
+    PRE-REQS:
+    1. args.benchmarks_dir & clean_padbs folders exist as previously
+       created via > mccebench data_setup command.
+    2. args.job_name script exists as previously created via
+       mccebench script_setup command.
+    """
+
+    in_benchmarks = Path.cwd().name == args.benchmarks_dir.name
+    if in_benchmarks:
+        args.benchmarks_dir = Path.cwd()
+
+    logger.info(args_to_str(args))
+
     logger.info("Submiting batch of jobs.")
     DEBUG = True
-    if not DEBUG:
+    if DEBUG:
+        logger.info("Debug mode: batch_submit.launch_job not called")
+    else:
         #batch_submit.launch_job(args.benchmarks_dir,
         #                    args.job_name,
         #                    args.n_active,
         #                    args.sentinel_file)
         batch_submit.launch_job(**args)
-    else:
-        logger.info("Debug mode: batch_submit.launch_job not called")
+
     return
 
 
@@ -119,14 +172,15 @@ def bench_parser():
         description = DESC,
         usage = USAGE,
         formatter_class = RawDescriptionHelpFormatter,
-        epilog = ">>> END of %(prog)s.",
+        epilog = ">>> END of %(prog)s",
     )
     subparsers = p.add_subparsers(required = True,
                                   title = f"{CLI_NAME} sub-commands",
                                   description = "Sub-commands of MCCE benchmarking cli.",
-                                  help = """The 2 choices for the benchmarking process:
-                                  1) Setup: {SUB_CMD0}
-                                  2) Run mcce steps 1 to 4: {SUB_CMD1}""",
+                                  help = """The 3 choices for the benchmarking process:
+                                  1) Setup data: {SUB_CMD0}
+                                  2) Setup script: {SUB_CMD1}
+                                  3) Batch-run mcce steps 1 through 4: {SUB_CMD2}""",
                                   dest = "subparser_name"
                                  )
 
@@ -135,7 +189,7 @@ def bench_parser():
                                  help=HELP_0)
     sub0.add_argument(
         "-benchmarks_dir",
-        default = Path("mcce_benchmarks").resolve(),
+        default = Path(DEFAULT_DIR).resolve(),
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
         "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
@@ -150,8 +204,8 @@ def bench_parser():
                                  help=HELP_1)
     sub1.add_argument(
         "-benchmarks_dir",
+        default = Path(DEFAULT_DIR).resolve(),
         type = arg_valid_dirpath,
-        default = Path("mcce_benchmarks").resolve(),
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
         "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
         called within that directory; default: mcce_benchmarks.
@@ -160,18 +214,10 @@ def bench_parser():
     sub1.add_argument(
         "-job_name",
         type = str,
-        default = BENCH.DEFAULT_JOB,
+        default = bench_default_jobname,
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
         This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
         in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
-        """
-    )
-    sub1.add_argument(
-        "-sentinel_file",
-        type = str,
-        default = "pK.out",
-        help = """File whose existence signals a completed step; When running all 4 MCCE steps (default),
-        this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
     sub1.add_argument(
@@ -180,6 +226,7 @@ def bench_parser():
         help = "No water molecules.",
         action = "store_true"
     )
+    # Beta: the rest of the options are ignored
     sub1.add_argument(
         "--norun",
         default = False,
@@ -207,8 +254,46 @@ def bench_parser():
         Note: No space after a comma!"""
     )
     # bind sub1 parser with its related function:
-    sub1.set_defaults(func=bench_from_step1)
+    sub1.set_defaults(func=bench_script_setup)
 
+    sub2 = subparsers.add_parser(SUB_CMD2,
+                                 formatter_class = RawDescriptionHelpFormatter,
+                                 help=HELP_2)
+
+    sub2.add_argument(
+        "-benchmarks_dir",
+        default = Path(DEFAULT_DIR).resolve(),
+        type = arg_valid_dirpath,
+        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
+        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
+        called within that directory; default: mcce_benchmarks.
+        """
+    )
+    sub2.add_argument(
+        "-job_name",
+        type = str,
+        default = bench_default_jobname,
+        help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
+        This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
+        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
+        """
+    )
+    sub2.add_argument(
+        "-n_active",
+        type = int,
+        default = N_ACTIVE,
+        help = """The number of jobs to keep launching; default: %(default)s.
+        """
+    )
+    sub2.add_argument(
+        "-sentinel_file",
+        type = str,
+        default = "pK.out",
+        help = """File whose existence signals a completed step; When running all 4 MCCE steps (default),
+        this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
+        """
+    )
+    sub2.set_defaults(func=bench_launch_batch)
 
     return p
 

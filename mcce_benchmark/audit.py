@@ -1,9 +1,25 @@
 """Module: audit.py
 Contains functions to query and manage data.
+
+
+Main functions:
+--------------
+* proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = False) -> pd.DataFrame:
+* valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
+* list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+* list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+* multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
+* reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> list:
+* update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
+* rewrite_book_file(book_file:Path) -> None:
+* pdb_list_from_book(book_file:Path = Path(BENCH.Q_BOOK)) -> list:
+* pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
+* same_pdbs_book_vs_clean() -> bool:
+* pdb_list_from_experimental_pkas(pkas_file:str) -> list:
 """
 
-# import class of files resources and constants:
-from benchmark import BENCH
+# import class of files resources and associated constants:
+from mcce_benchmark import BENCH
 from functools import cache
 import logging
 import numpy as np
@@ -69,8 +85,7 @@ def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]
             # to check if several are 'valid'
             active.append(True)
             if len(active) > 1:
-                #-> log
-                print(MULTI_ACTIVE_MSG.format(pdb_dir.name, f.name))
+                logger.error(MULTI_ACTIVE_MSG.format(pdb_dir.name, f.name))
                 found_active = False
                 break
 
@@ -92,6 +107,7 @@ def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     For managing packaged data.
     """
     if not clean_pdbs_dir.is_dir():
+        logger.error(f"Directory not found: {clean_pdbs_dir}")
         raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
 
     valid = []
@@ -121,6 +137,7 @@ def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """
 
     if not clean_pdbs_dir.is_dir():
+        logger.error(f"Directory not found: {clean_pdbs_dir}")
         raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
 
     valid = []
@@ -134,7 +151,7 @@ def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
                 invalid.append(fp.name)
     valid.sort()
     invalid.sort()
-    logger.info(f"list_all_valid_pdbs_dirs :: Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
+    logger.info(f"Valid folders: {len(valid)}; Invalid folders: {len(invalid)}")
 
     return valid, invalid
 
@@ -146,12 +163,12 @@ def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray
     """
 
     multi_models = None
-    pdbs_query_path = clean_pdbs_dir.joinpath("*/")
+    query_path = clean_pdbs_dir.joinpath("*/")
     n_parts = len(pdbs_query_path.parts) + 2
     f1 = n_parts - 2
     f2 = n_parts - 1
-    print_fields = "{print $" + str(f1) + '","$' + str(f2) + "}"
-    cmd = f"grep '^MODEL' {pdbs_query_path}/*.pdb | sed -e '/model/d; s/:MODEL/\//g'|gawk -F'/|:' '{print_fields}' | uniq"
+    prt_fields = "{print $" + str(f1) + '","$' + str(f2) + "}"
+    cmd = f"grep '^MODEL' {query_path}/*.pdb|sed -e '/model/d; s/:MODEL/\//g'|gawk -F'/|:' '{prt_fields}'|uniq"
 
     try:
         data = subprocess.check_output(cmd,
@@ -163,9 +180,8 @@ def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray
         data = data.splitlines()
         if data:
             multi_models = np.array([line.split(",") for line in data])
-
     except subprocess.CalledProcessError as e:
-        logger.exception(f"{__name__} :: Error in subprocess cmd.\nException: {e}")
+        logger.exception("Error in subprocess cmd.\nException: {e}")
         raise
 
     return multi_models
@@ -237,7 +253,7 @@ def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> 
                 _ = shutil.move(pdb_path, path_full)
 
             if not modl_prot.exists():
-                print("Could not find {modl_prot} to rename as {use_prot}.")
+                logger.error("Could not find {modl_prot} to rename as {use_prot}.")
                 missing_data.append(modl_prot)
                 continue
 
@@ -308,15 +324,14 @@ def same_pdbs_book_vs_clean() -> bool:
     clean_pdbs = pdb_list_from_clean_pdbs_folder()
     same = len(book_pbs) == len(clean_pdbs)
     if not same:
-        print("The lists differ in lengths:",
-              f"{len(book_pbs) = }; {len(clean_pdbs) = }")
+        logger.warning(f"The lists differ in lengths:\n\t{len(book_pbs) = }; {len(clean_pdbs) = }")
         return same
 
     df = pd.DataFrame(zip(book_pbs, clean_pdbs), columns=['book','clean_dir'])
     comp = df[df.book != df.clean_dir]
     same = len(comp) == 0
     if not same:
-        print(f"The lists differ in data:\n{comp}")
+        logger.warning(f"The lists differ in data:\n{comp}")
 
     return same
 
@@ -339,6 +354,7 @@ def pdb_list_from_experimental_pkas(pkas_file:str) -> list:
 
     fp = Path(pkas_file)
     if fp.name != "WT_pkas.csv":
+        logger.error("Only wild type proteins listed in 'WT_pkas.csv' are currently considered.")
         raise TypeError("Only wild type proteins listed in 'WT_pkas.csv' are currently considered.")
 
     pkas_df = pd.read_csv(fp,

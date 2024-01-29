@@ -1,21 +1,41 @@
 """
 Module: batch_submit.py
 
-Submit and maintain a big batch of jobs based on book file
-State:
- " ": not submitted
- "r": running
- "c": completed - was running, dissapeared from job queue, pK.out generated
- "e": error - was running, dissapeared from job queue and no pK.out
+Main functions:
+--------------
+* read_book_entries(book:str = BENCH.Q_BOOK) -> list:
+    Read book file data using ENTRY class.
+    Return a list of entry instances.
+
+* get_running_jobs_dirs(job_name:str) -> list:
+    Query shell for user's processes with job_name.
+    Return a list of clean_pdbs sub-directories where the jobs are running.
+
+* batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
+    Update Q_BOOK according to user's running jobs' statuses.
+    Launch new jobs inside clean_pdbs subfolders until the number of
+    job equals n_active.
+    To be run in /clean_pdbs folder, which is where Q_BOOK resides.
+
+* launch_job(benchmarks_dir:Path = None,
+             job_name:str = None,
+             n_active:int = N_ACTIVE,
+             sentinel_file:str = "pK.out") -> None:
+    Go to benchmarks_dir/clean_pdbs directory & call batch_run.
+
+Q book status codes:
+     " ": not submitted
+     "r": running
+     "c": completed - was running, disapeared from job queue, sentinel_file generated
+     "e": error - was running, disapeared from job queue and no sentinel_file
 """
 
-from benchmark import BENCH, N_ACTIVE
+from mcce_benchmark import BENCH, N_ACTIVE
 import logging
 import os
 from pathlib import Path
 import shutil
 import subprocess
-from typing import Union
 
 
 logger = logging.getLogger(__name__)
@@ -50,36 +70,36 @@ def read_book_entries(book:str = BENCH.Q_BOOK) -> list:
     return entries
 
 
-def get_jobs(job_name:str) -> list:
-    """
-    Query shell for user's processes with job_name.
-    Return a list of directories where the jobs are running.
-    """
-    print(__name__)
+def subprocess_run(cmd:str) -> subprocess.CompletedProcess:
+    """Wraps subprocess.run together with error handling."""
+
     try:
-        data = subprocess.run(f"pgrep -u {getpass.getuser()} {job_name}",
+        data = subprocess.run(cmd,
                               capture_output=True,
                               check=True,
                               text=True,
                               shell=True,
                              )
     except subprocess.CalledProcessError as e:
-        logger.exception(f"Error in subprocess cmd 'pgrep -u' in 'get_jobs:\nException: {e}")
+        logger.exception(f"Error in subprocess cmd:\nException: {e}")
         raise
+
+    return data
+
+
+def get_running_jobs_dirs(job_name:str) -> list:
+    """
+    Query shell for user's processes with job_name.
+    Return a list of clean_pdbs sub-directories where the jobs are running.
+    """
+
+    # get the process IDs that match job_name from the user's running processes
+    data = subprocess_run(f"pgrep -u {getpass.getuser()} {job_name}")
 
     dirs = []
     for uid in data.stdout.splitlines():
-        try:
-            out = subprocess.run(f"pwdx {uid}",
-                                 capture_output=True,
-                                 check=True,
-                                 text=True,
-                                 shell=True
-                                )
-        except subprocess.CalledProcessError as e:
-            logger.exception(f"Error in subprocess cmd 'pwdx' in 'get_jobs:\nException: {e}")
-            continue
-
+        # get the current working directory of a process
+        out = subprocess_run(f"pwdx {uid}")
         d = Path(out.stdout.split(":")[1].strip())
         dirs.append(d.name)
 
@@ -100,39 +120,51 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
         When running all 4 MCCE steps (default), this file is 'pK.out', while
         when running only the first 2, this file is 'step2_out.pdb'.
     """
-    entries = read_book_entries()
-    jobs = get_jobs(job_name)
-    n_jobs = len(jobs)
 
     job_script = f"{job_name}.sh"
     if not Path(job_script).exists():
         logger.exception(f"The job script ({job_script}) is missing.")
         raise FileNotFoundError(f"The job script ({job_script!r}) is missing.")
 
+    # list of entry instances from Q_BOOK:
+    entries = read_book_entries()
+    logger.info("Read book entries")
+    running_jobs = get_running_jobs_dirs(job_name)
+    n_jobs = len(running_jobs)
+    logger.info(f"Running jobs: {n_jobs}")
+
     new_entries = []
+    logger.info("Launching script for unsubmitted entries")
     for entry in entries:
-        if entry.state == " ":
+        if entry.state == " ":  # unsubmitted
             n_jobs += 1
             if n_jobs <= n_active:
                 os.chdir(entry.name)
                 subprocess.Popen(f"../{job_script}", close_fds=True, stdout=open("run.log", "w"))
                 os.chdir("../")
                 entry.state = "r"
+                logging.info(f"Running: {entry.name}")
+
         elif entry.state == "r":
             if entry.name not in jobs:   # was running => completed or error
                 entry.state = "e"
                 if Path(f"{entry.name}/{sentinel_file}").exists():
                     entry.state = "c"
+            logging.info(f"Changed {entry.name}: 'r' -> {entry.state}")
 
         new_entries.append(entry)
 
+    # update q-book
     with open(BENCH.Q_BOOK, "w") as bk:
         bk.writelines([f"{e}\n" for e in new_entries])
 
     return
 
 
-def launch_job(benchmarks_dir:Path = None, job_name:str = None, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
+def launch_job(benchmarks_dir:Path = None,
+               job_name:str = None,
+               n_active:int = N_ACTIVE,
+               sentinel_file:str = "pK.out") -> None:
     """
     Go to benchmarks_dir/clean_pdbs directory & call batch_run.
 

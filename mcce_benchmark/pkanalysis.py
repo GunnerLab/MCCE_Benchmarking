@@ -7,7 +7,7 @@ Example. Assuming your at you home directory (cd ~):
 > python pkanalysis.py
 """
 
-from benchmark import BENCH
+from mcce_benchmark import BENCH
 import numpy as np
 import pandas
 from pathlib import Path

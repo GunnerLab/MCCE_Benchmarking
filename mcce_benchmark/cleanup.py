@@ -4,7 +4,7 @@ Module: cleanup.py
 Contains functions to clear a folder, delete a folder, etc.
 """
 
-from benchmark import MCCE_OUTPUTS
+from mcce_benchmark import MCCE_OUTPUTS
 from pathlib import Path
 import shutil
 
