@@ -1,6 +1,6 @@
 # local stuff
-benchmark/future/  # code for future implementation
-#_legacy
+mcce_benchmark/future/  # code for future implementation
+legacy/
 _tmp*
 _scratch*
 _nbkpy
@@ -18,13 +18,13 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+sdist/
 downloads/
 eggs/
 .eggs/
 lib/
 lib64/
 parts/
-sdist/
 var/
 wheels/
 share/python-wheels/
