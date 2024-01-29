@@ -1,4 +1,4 @@
-Cat Chenal (26):
+Cat Chenal (28):
       Wed, 27 Dec 2023 13:42:07 -0500 - Initial commit
       Wed, 3 Jan 2024 13:25:33 -0500 - chore: Initital upload - no data
       Thu, 4 Jan 2024 17:55:39 -0500 - feat: Update audit functions and sentinel files
@@ -25,4 +25,6 @@ Cat Chenal (26):
       Thu, 25 Jan 2024 14:11:32 -0500 - fix: Modify logging implementation + other (see notes)
       Thu, 25 Jan 2024 14:36:33 -0500 - chore: Update CHANGELOG
       Fri, 26 Jan 2024 17:46:57 -0500 - fix: Modified logging to get header vs body lines
+      Fri, 26 Jan 2024 17:51:43 -0500 - chore: Update CHANGELOG
+      Mon, 29 Jan 2024 16:01:00 -0500 - feat: Change proj name to mcce_benchmark & global update (see notes)
 
