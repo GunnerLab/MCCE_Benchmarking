@@ -1,4 +1,4 @@
-
+"""
 # see also: https://realpython.com/the-minimum-viable-test-suite/
 
 def initial_transform(data):
@@ -119,5 +119,4 @@ def fixtm_initial_transform_parameters(request, mocker):
     mocker.patch.object(outside_module, 'do_something')
     mocker.do_something.return_value(1)
     [...]
-
-
+"""

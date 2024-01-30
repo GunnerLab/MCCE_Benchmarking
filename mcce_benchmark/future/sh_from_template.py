@@ -2,7 +2,7 @@
 code for future implementation
 """
 
-from benchmark import getpass, APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
+from mcce_benchmark import getpass, APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
 from enum import Enum
 import logging
 from pathlib import Path
@@ -10,10 +10,8 @@ import shutil
 import subprocess
 
 
-logger = logging.getLogger(f"{APP_NAME}.{__name__}")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-xtra = {'user':getpass.getuser()}
-logger = logging.LoggerAdapter(logger, extra=xtra)
 
 
 #...............................................................................
