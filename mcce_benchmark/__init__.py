@@ -128,7 +128,8 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-logger = logging.LoggerAdapter(logger,{'user':getpass.getuser()})
+USER = getpass.getuser()
+logger = logging.LoggerAdapter(logger,{'user':USER})
 
 # output start msg and app defaults:
 msg_body = f"""

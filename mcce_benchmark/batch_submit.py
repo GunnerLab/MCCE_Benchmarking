@@ -30,7 +30,7 @@ Q book status codes:
      "e": error - was running, disapeared from job queue and no sentinel_file
 """
 
-from mcce_benchmark import BENCH, N_ACTIVE
+from mcce_benchmark import BENCH, N_ACTIVE, USER
 import logging
 import os
 from pathlib import Path
@@ -70,13 +70,13 @@ def read_book_entries(book:str = BENCH.Q_BOOK) -> list:
     return entries
 
 
-def subprocess_run(cmd:str) -> subprocess.CompletedProcess:
+def subprocess_run(cmd:str, do_check:bool=False) -> subprocess.CompletedProcess:
     """Wraps subprocess.run together with error handling."""
 
     try:
         data = subprocess.run(cmd,
                               capture_output=True,
-                              check=True,
+                              check=do_check,
                               text=True,
                               shell=True,
                              )
@@ -94,8 +94,7 @@ def get_running_jobs_dirs(job_name:str) -> list:
     """
 
     # get the process IDs that match job_name from the user's running processes
-    data = subprocess_run(f"pgrep -u {getpass.getuser()} {job_name}")
-
+    data = subprocess_run(f"pgrep -u {USER} {job_name}")
     dirs = []
     for uid in data.stdout.splitlines():
         # get the current working directory of a process
@@ -104,6 +103,26 @@ def get_running_jobs_dirs(job_name:str) -> list:
         dirs.append(d.name)
 
     return dirs
+
+
+
+def get_jobs():
+    """From legacy.batch_submit.py"""
+
+    lines = subprocess.Popen(["ps", "-u", USER],
+                             stdout=subprocess.PIPE).stdout.readlines()
+
+    job_uids = [x.decode("ascii").split()[0] for x in lines if x.decode("ascii").find(job_name) > 0]
+    job_uids = [x for x in job_uids if x and x != "PID"]
+
+    jobs = []
+    for uid in job_uids:
+        output = subprocess.Popen(["pwdx", uid], stdout=subprocess.PIPE).stdout.readlines()[0].decode("ascii")
+        job = output.split(":")[1].split("/")[-1].strip()
+        if job:
+            jobs.append(job)
+    return jobs
+
 
 
 def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
@@ -140,17 +159,24 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
             n_jobs += 1
             if n_jobs <= n_active:
                 os.chdir(entry.name)
-                subprocess.Popen(f"../{job_script}", close_fds=True, stdout=open("run.log", "w"))
+                subprocess.Popen(f"../{job_script}",
+                                 shell=True,
+                                 close_fds=True,
+                                 stdout=open("run.log", "w"))
                 os.chdir("../")
                 entry.state = "r"
-                logging.info(f"Running: {entry.name}")
+                logger.info(f"Running: {entry.name}")
 
         elif entry.state == "r":
-            if entry.name not in jobs:   # was running => completed or error
+            if entry.name not in running_jobs:   # was running => completed or error
                 entry.state = "e"
-                if Path(f"{entry.name}/{sentinel_file}").exists():
+                # for debugging:
+                sentin_fp = Path(entry.name).joinpath(sentinel_file)
+                logger.info(f"Sentinel: {sentin_fp}; Exists: {sentin_fp.exists()}")
+                # was Path(f"{entry.name}/{sentinel_file}")
+                if sentin_fp.exists():
                     entry.state = "c"
-            logging.info(f"Changed {entry.name}: 'r' -> {entry.state}")
+            logger.info(f"Changed {entry.name}: 'r' -> {entry.state}")
 
         new_entries.append(entry)
 

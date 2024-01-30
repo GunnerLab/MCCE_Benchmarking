@@ -164,12 +164,11 @@ def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray
 
     multi_models = None
     query_path = clean_pdbs_dir.joinpath("*/")
-    n_parts = len(pdbs_query_path.parts) + 2
+    n_parts = len(query_path.parts) + 2
     f1 = n_parts - 2
     f2 = n_parts - 1
     prt_fields = "{print $" + str(f1) + '","$' + str(f2) + "}"
     cmd = f"grep '^MODEL' {query_path}/*.pdb|sed -e '/model/d; s/:MODEL/\//g'|gawk -F'/|:' '{prt_fields}'|uniq"
-
     try:
         data = subprocess.check_output(cmd,
                                        stderr=subprocess.STDOUT,

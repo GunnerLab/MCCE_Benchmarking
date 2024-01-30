@@ -1,5 +1,6 @@
 # local stuff
-mcce_benchmark/future/  # code for future implementation
+mcce_benchmark/_version.py  # as per setuptools_scm
+mcce_benchmark/future/      # code for future implementation
 legacy/
 _tmp*
 _scratch*

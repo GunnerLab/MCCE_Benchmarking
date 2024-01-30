@@ -24,7 +24,7 @@ SUB_CMD0 = "data_setup"
 SUB_CMD1 = "script_setup"
 SUB_CMD2 = "launch_batch"
 HELP_0 = "Sub-command for preparing `<benchmarks_dir>/clean_pdbs folder."
-HELP_1 = "Sub-command for seting up the job_name_run.sh script."
+HELP_1 = "Sub-command for setting up the job_name_run.sh script."
 HELP_2 = "Sub-command for launching a batch of jobs."
 
 DESC = f"""
@@ -75,7 +75,9 @@ Examples for current implementation (Beta):
 
 
 def args_to_str(args:argNamespace) -> str:
-    """For logging purposes, return cli args to string."""
+    """Return cli args to string.
+    Note: Using format_display_data output is as in nbk: 'func' object ref is
+    in readeable form instead of uid."""
 
     return f"{CLI_NAME} args:\n{format_display_data(vars(args))[0]['text/plain']}\n"
 
@@ -95,7 +97,7 @@ def bench_data_setup(args:argNamespace):
 
 def bench_script_setup(args:argNamespace) -> None:
     """Benchmark cli function for 'script_setup' sub-command.
-    PRE-REQS: args.benchmarks_dir & clean_padbs folders exist as previously
+    PRE-REQS: args.benchmarks_dir & clean_pdbs folders exist as previously
     created via > mccebench data_setup command.
     Processing steps:
      1. Write fresh book file
@@ -144,15 +146,15 @@ def bench_launch_batch(args:argNamespace) -> None:
     logger.info(args_to_str(args))
 
     logger.info("Submiting batch of jobs.")
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         logger.info("Debug mode: batch_submit.launch_job not called")
     else:
-        #batch_submit.launch_job(args.benchmarks_dir,
-        #                    args.job_name,
-        #                    args.n_active,
-        #                    args.sentinel_file)
-        batch_submit.launch_job(**args)
+        logger.info("Beta mode: calling batch_submit.launch_job")
+        batch_submit.launch_job(args.benchmarks_dir,
+                                args.job_name,
+                                args.n_active,
+                                args.sentinel_file)
 
     return
 
