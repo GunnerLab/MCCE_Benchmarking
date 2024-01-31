@@ -111,7 +111,6 @@ def get_jobs():
 
     lines = subprocess.Popen(["ps", "-u", USER],
                              stdout=subprocess.PIPE).stdout.readlines()
-
     job_uids = [x.decode("ascii").split()[0] for x in lines if x.decode("ascii").find(job_name) > 0]
     job_uids = [x for x in job_uids if x and x != "PID"]
 
@@ -176,7 +175,7 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
                 # was Path(f"{entry.name}/{sentinel_file}")
                 if sentin_fp.exists():
                     entry.state = "c"
-            logger.info(f"Changed {entry.name}: 'r' -> {entry.state}")
+                logger.info(f"Changed {entry.name}: 'r' -> {entry.state!r}")
 
         new_entries.append(entry)
 
