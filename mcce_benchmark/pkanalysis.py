@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 Uses the legacy implementation usage:
 USAGE: to be run in the user's 'mcce_benchmarks' folder (defaults name).

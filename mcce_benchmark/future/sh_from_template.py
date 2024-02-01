@@ -2,7 +2,7 @@
 code for future implementation
 """
 
-from mcce_benchmark import getpass, APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
+from mcce_benchmark import APP_NAME, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE, USER
 from enum import Enum
 import logging
 from pathlib import Path
@@ -35,6 +35,7 @@ RUN_SH_TEST_ECHO = """
 
 echo "Using RUN_SH_TEST_ECHO as script: $PWD"
 """
+
 # To test mcce can run:
 RUN_SH_NORUN = """
 #!/bin/bash

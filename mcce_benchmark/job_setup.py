@@ -183,6 +183,7 @@ def write_run_script(benchmarks_dir:Path,
             os.chdir(benchmarks_dir)
 
         os.chdir(user_pdbs)
+
         sh_path = Path(sh_name)
         try:
             sh_path.symlink_to(BENCH.DEFAULT_JOB_SH.name)
@@ -191,8 +192,6 @@ def write_run_script(benchmarks_dir:Path,
             sh_path.symlink_to(BENCH.DEFAULT_JOB_SH.name)
 
         logger.info(f"Soft-linked {BENCH.DEFAULT_JOB_SH.name} as {sh_name}")
-        #TODO:
-        # log script name & contents
 
         # reset path:
         sh_path = user_pdbs.joinpath(sh_name)

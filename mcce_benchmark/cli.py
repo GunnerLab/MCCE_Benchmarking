@@ -151,6 +151,14 @@ def bench_launch_batch(args:argNamespace) -> None:
         logger.info("Debug mode: batch_submit.launch_job not called")
     else:
         logger.info("Beta mode: calling batch_submit.launch_job")
+
+        #if args.schedule_job
+        #   create crontab file & save in /etc/cron.d ?
+        # see https://pypi.org/project/python-crontab/
+        # see https://unix.stackexchange.com/questions/458713/how-are-files-under-etc-cron-d-used
+        #   PATH=<output of subprocess.run 'echo "$PATH"'
+        #   */5 * * * * mccebench launch_batch -benchmarks_dir args.benchmarks_dir -job_name args.job_name -n_active args.n_active -sentinel_file args.sentinel_file > /tmp/cron.log 2>&1
+        #else:
         batch_submit.launch_job(args.benchmarks_dir,
                                 args.job_name,
                                 args.n_active,

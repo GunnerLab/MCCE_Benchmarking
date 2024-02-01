@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Module: batch_submit.py
 
@@ -30,12 +31,13 @@ Q book status codes:
      "e": error - was running, disapeared from job queue and no sentinel_file
 """
 
-from mcce_benchmark import BENCH, N_ACTIVE, USER
+from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR, 
 import logging
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 
 logger = logging.getLogger(__name__)
@@ -185,9 +187,9 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
 
     return
 
-
-def launch_job(benchmarks_dir:Path = None,
-               job_name:str = None,
+default_path = Path(DEFAULT_DIR)
+def launch_job(benchmarks_dir:Path = default_path,
+               job_name:str = BENCH.DEFAULT_JOB,
                n_active:int = N_ACTIVE,
                sentinel_file:str = "pK.out") -> None:
     """
@@ -218,3 +220,13 @@ def launch_job(benchmarks_dir:Path = None,
     os.chdir("../")
 
     return
+
+
+if __name__ == "__main__":
+
+    if sys.argv is None:
+        launch_job()
+    else:
+        launch_job(sys.argv)
+
+
