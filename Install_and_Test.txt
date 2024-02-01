@@ -1,0 +1,55 @@
+Installing MCCE_Benchmarking for testing purposes:
+
+0. Preferable: cd $HOME
+1. Install miniconda, if needed
+2. Create a virtual environment and activate it
+3. Run this command to download the repo & install it into your env:
+   Note: You should create a folder, e.g. `benchcode` as the installer
+   will download the repo as 'src', which may overwrite any src folder
+   you may have [not tested if that's the case], then cd to it:
+
+   >mkdir benchcode
+   >cd benchcode
+   >pip install -e git+https://github.com/GunnerLab/MCCE_Benchmarking.git#egg=mcce_benchmark
+   >cd ../
+
+4. Check that the installation created the main cli command:
+   (The command will not be available outside your environment.)
+
+   >which mccebench
+   >~/miniconda3/envs/mce/bin/mccebench
+
+4.5 Check the online help:
+
+   >mccebench data_setup --help
+   >mccebench script_setup --help
+   >mccebench launch_batch --help
+
+5. Run the first sub-command, data setup:
+
+   >mccebench data_setup
+
+6. Reduce # of folders (Optional and manual):
+   To run a batch on a limited number of folders, perform the following:
+   * Rename 'clean_pdbs' folder:
+     > mv clean_pdbs clean_pdbs0
+   * Create a new, empty one:
+     > mkdir clean_pdbs
+   * Copy the following dirs from clean_pdbs0 to clean_pdbs: 7RSA, 8RNT, 9RAT, 9RNT
+
+7. Run the second sub-command, script setup; book.txt will reflect new number of folders:
+
+   >mccebench script_setup
+
+8. Run launch_batch sub-command:
+
+   >mccebench launch_batch -n_active 4
+
+Note: until scheduling is automated, this step is needed:
+9. Wait a bit and repeat #8 to update clean_pdbs/book.txt
+
+   You can find out out many jobs are left to be submitted with this command:
+   (mce) cchenal@isis:~/projects$ to_submit=$(grep -v -e 'r$' -e 'c$' mcce_benchmarks/clean_pdbs/book.txt | wc -l)
+   (mce) cchenal@isis:~/projects$ echo "$to_submit"
+  
+   (If -n_active equals the number of folders, it should be 0.)
