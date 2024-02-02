@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Module: audit.py
 Contains functions to query and manage data.
 

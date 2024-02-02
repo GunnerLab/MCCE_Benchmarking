@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Module: job_setup.py
 
 Contains functions to prepare a user's benchmarking folder using user-provided options
@@ -154,6 +156,19 @@ def get_script_contents(sh_path):
     return contents
 
 
+def get_default_script(pdb_dir:Path) -> Path:
+    """Re-install BENCH.DEFAULT_JOB_SH in pdb_dir if not found.
+    Return its path.
+    """
+
+    sh_path = pdb_dir.joinpath(BENCH.DEFAULT_JOB_SH.name)
+    if not sh_path.exists():
+        shutil.copy(BENCH.DEFAULT_JOB_SH, sh_path)
+        logger.info(f"Re-installed {BENCH.DEFAULT_JOB_SH.name}")
+
+    return sh_path
+
+
 def write_run_script(benchmarks_dir:Path,
                      job_name:str = "default_run") -> None:
     """
@@ -172,13 +187,14 @@ def write_run_script(benchmarks_dir:Path,
         logger.exception(msg)
         raise FileNotFoundError(msg)
 
+    # reinstall the default script if not found:
+    default_sh = get_default_script(user_pdbs)
+
     sh_name = f"{job_name}.sh"
     if job_name == BENCH.DEFAULT_JOB:
-        sh_path = user_pdbs.joinpath(sh_name)
-        if not sh_path.exists():
-            shutil.copy(BENCH.DEFAULT_JOB_SH, sh_path)
-            logger.info(f"Re-installed {sh_name}")
+        sh_path = default_sh
     else:
+        # soft-link default_sh to sh_name
         if not in_benchmarks:
             os.chdir(benchmarks_dir)
 

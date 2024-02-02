@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 """
 Module: batch_submit.py
 
@@ -31,7 +32,7 @@ Q book status codes:
      "e": error - was running, disapeared from job queue and no sentinel_file
 """
 
-from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR, 
+from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR
 import logging
 import os
 from pathlib import Path

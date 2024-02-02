@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import getpass
 from importlib import resources
 import logging
