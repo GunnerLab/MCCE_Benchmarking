@@ -20,21 +20,21 @@ logger.setLevel(logging.DEBUG)
 
 
 CLI_NAME = "mccebench"  # as per pyproject.toml
-SUB_CMD0 = "data_setup"
-SUB_CMD1 = "script_setup"
-SUB_CMD2 = "launch_batch"
-HELP_0 = "Sub-command for preparing `<benchmarks_dir>/clean_pdbs folder."
-HELP_1 = "Sub-command for setting up the job_name_run.sh script."
-HELP_2 = "Sub-command for launching a batch of jobs."
+SUB_CMD1 = "data_setup"
+SUB_CMD2 = "script_setup"
+SUB_CMD3 = "launch_batch"
+HELP_1 = "Sub-command for preparing `<benchmarks_dir>/clean_pdbs folder."
+HELP_2 = "Sub-command for setting up the job_name_run.sh script."
+HELP_3 = "Sub-command for launching a batch of jobs."
 
 DESC = f"""
 Description:
 Launch a MCCE benchmarking job using curated structures from the pKa Database v1.
 
 The main command is {CLI_NAME!r} along with one of 3 sub-commands:
-- Sub-command 1: {SUB_CMD0!r}: setup data folders;
-- Sub-command 2: {SUB_CMD1!r}: setup the run script to run mcce steps 1 through 4;
-- Sub-command 3: {SUB_CMD2!r}: launch a batch of jobs;
+- Sub-command 1: {SUB_CMD1!r}: setup data folders;
+- Sub-command 2: {SUB_CMD2!r}: setup the run script to run mcce steps 1 through 4;
+- Sub-command 3: {SUB_CMD3!r}: launch a batch of jobs;
 
 Post an issue for all errors and feature requests at:
 https://github.com/GunnerLab/MCCE_Benchmarking/issues
@@ -43,7 +43,7 @@ https://github.com/GunnerLab/MCCE_Benchmarking/issues
 bench_default_jobname = BENCH.DEFAULT_JOB
 
 USAGE = f"""
-{CLI_NAME} <+ sub-command :: one of [{SUB_CMD0}, {SUB_CMD1}, {SUB_CMD2}]> <related args>\n
+{CLI_NAME} <+ sub-command :: one of [{SUB_CMD1}, {SUB_CMD2}, {SUB_CMD3}]> <related args>\n
 Examples for current implementation (Beta):
 
 1. Data setup
@@ -77,7 +77,8 @@ Examples for current implementation (Beta):
 def args_to_str(args:argNamespace) -> str:
     """Return cli args to string.
     Note: Using format_display_data output is as in nbk: 'func' object ref is
-    in readeable form instead of uid."""
+    in readeable form instead of uid.
+    """
 
     return f"{CLI_NAME} args:\n{format_display_data(vars(args))[0]['text/plain']}\n"
 
@@ -188,26 +189,11 @@ def bench_parser():
                                   title = f"{CLI_NAME} sub-commands",
                                   description = "Sub-commands of MCCE benchmarking cli.",
                                   help = """The 3 choices for the benchmarking process:
-                                  1) Setup data: {SUB_CMD0}
-                                  2) Setup script: {SUB_CMD1}
-                                  3) Batch-run mcce steps 1 through 4: {SUB_CMD2}""",
+                                  1) Setup data: {SUB_CMD1}
+                                  2) Setup script: {SUB_CMD2}
+                                  3) Batch-run mcce steps 1 through 4: {SUB_CMD3}""",
                                   dest = "subparser_name"
                                  )
-
-    sub0 = subparsers.add_parser(SUB_CMD0,
-                                 formatter_class = RawDescriptionHelpFormatter,
-                                 help=HELP_0)
-    sub0.add_argument(
-        "-benchmarks_dir",
-        default = Path(DEFAULT_DIR).resolve(),
-        type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
-        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
-        called within that directory; default: mcce_benchmarks.
-        """
-    )
-    # bind sub0 parser with its related function:
-    sub0.set_defaults(func=bench_data_setup)
 
     sub1 = subparsers.add_parser(SUB_CMD1,
                                  formatter_class = RawDescriptionHelpFormatter,
@@ -221,55 +207,12 @@ def bench_parser():
         called within that directory; default: mcce_benchmarks.
         """
     )
-    sub1.add_argument(
-        "-job_name",
-        type = str,
-        default = bench_default_jobname,
-        help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
-        This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
-        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
-        """
-    )
-    sub1.add_argument(
-        "--dry",
-        default = False,
-        help = "No water molecules.",
-        action = "store_true"
-    )
-    # Beta: the rest of the options are ignored
-    sub1.add_argument(
-        "--norun",
-        default = False,
-        help = "Create run.prm without running the step",
-        action = "store_true",
-    )
-    sub1.add_argument(
-        "-e",
-        metavar = "/path/to/mcce",
-        default = "mcce",
-        help = "Location of the mcce executable, i.e. which mcce; default: %(default)s.",
-    )
-    sub1.add_argument(
-        "-eps",
-        metavar = "epsilon",
-        default = MCCE_EPS,
-        help = "Protein dielectric constant; default: %(default)s.",
-    )
-    sub1.add_argument(
-        "-u",
-        metavar = "Comma-separated list of Key=Value pairs.",
-        default = "",
-        help = """User selected, comma-separated KEY=var pairs from run.prm; e.g.:
-        -u HOME_MCCE=/path/to/mcce_home,H2O_SASCUTOFF=0.05,EXTRA=./extra.tpl; default: %(default)s.
-        Note: No space after a comma!"""
-    )
-    # bind sub1 parser with its related function:
-    sub1.set_defaults(func=bench_script_setup)
+    # bind subparser with its related function:
+    sub1.set_defaults(func=bench_data_setup)
 
     sub2 = subparsers.add_parser(SUB_CMD2,
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_2)
-
     sub2.add_argument(
         "-benchmarks_dir",
         default = Path(DEFAULT_DIR).resolve(),
@@ -289,13 +232,69 @@ def bench_parser():
         """
     )
     sub2.add_argument(
+        "--dry",
+        default = False,
+        help = "No water molecules.",
+        action = "store_true"
+    )
+    # Beta: the rest of the options are ignored
+    sub2.add_argument(
+        "--norun",
+        default = False,
+        help = "Create run.prm without running the step",
+        action = "store_true",
+    )
+    sub2.add_argument(
+        "-e",
+        metavar = "/path/to/mcce",
+        default = "mcce",
+        help = "Location of the mcce executable, i.e. which mcce; default: %(default)s.",
+    )
+    sub2.add_argument(
+        "-eps",
+        metavar = "epsilon",
+        default = MCCE_EPS,
+        help = "Protein dielectric constant; default: %(default)s.",
+    )
+    sub2.add_argument(
+        "-u",
+        metavar = "Comma-separated list of Key=Value pairs.",
+        default = "",
+        help = """User selected, comma-separated KEY=var pairs from run.prm; e.g.:
+        -u HOME_MCCE=/path/to/mcce_home,H2O_SASCUTOFF=0.05,EXTRA=./extra.tpl; default: %(default)s.
+        Note: No space after a comma!"""
+    )
+    sub2.set_defaults(func=bench_script_setup)
+
+    sub3 = subparsers.add_parser(SUB_CMD3,
+                                 formatter_class = RawDescriptionHelpFormatter,
+                                 help=HELP_3)
+    sub3.add_argument(
+        "-benchmarks_dir",
+        default = Path(DEFAULT_DIR).resolve(),
+        type = arg_valid_dirpath,
+        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
+        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
+        called within that directory; default: mcce_benchmarks.
+        """
+    )
+    sub3.add_argument(
+        "-job_name",
+        type = str,
+        default = bench_default_jobname,
+        help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
+        This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
+        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
+        """
+    )
+    sub3.add_argument(
         "-n_active",
         type = int,
         default = N_ACTIVE,
         help = """The number of jobs to keep launching; default: %(default)s.
         """
     )
-    sub2.add_argument(
+    sub3.add_argument(
         "-sentinel_file",
         type = str,
         default = "pK.out",
@@ -303,7 +302,7 @@ def bench_parser():
         this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
-    sub2.set_defaults(func=bench_launch_batch)
+    sub3.set_defaults(func=bench_launch_batch)
 
     return p
 
