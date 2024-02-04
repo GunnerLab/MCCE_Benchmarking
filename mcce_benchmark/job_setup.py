@@ -150,6 +150,19 @@ def delete_pkout(benchmarks_dir:Path) -> None:
     return
 
 
+def delete_sentinel(benchmarks_dir:Path, sentinel_file:str) -> None:
+    """Part of the job preparation for each new script.
+    Delete sentinel_file from 'benchmarks_dir/clean_pdbs' subfolders.
+    """
+
+    fl = list(benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).glob("./*/"+sentinel_file))
+    for f in fl:
+        f.unlink()
+    logger.info(f"{len(fl)} sentinel file(s) deleted. Sentinel: {sentinel_file!r}")
+
+    return
+
+
 def get_script_contents(sh_path):
     with open(sh_path) as f:
         contents = f.read()

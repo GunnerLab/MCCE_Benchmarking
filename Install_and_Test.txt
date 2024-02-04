@@ -1,5 +1,9 @@
 Installing MCCE_Benchmarking for testing purposes:
 
+Notation remarks:
+  ">" denotes the command line prompt (whatever it may be in your profile);
+  ">>" denotes the output of a command.
+
 0. Preferable: cd $HOME
 1. Install miniconda, if needed
 2. Create a virtual environment and activate it
@@ -17,7 +21,7 @@ Installing MCCE_Benchmarking for testing purposes:
    (The command will not be available outside your environment.)
 
    >which mccebench
-   >~/miniconda3/envs/mce/bin/mccebench
+   >>~/miniconda3/envs/mce/bin/mccebench
 
 4.5 Check the online help:
 
@@ -31,11 +35,18 @@ Installing MCCE_Benchmarking for testing purposes:
 
 6. Reduce # of folders (Optional and manual):
    To run a batch on a limited number of folders, perform the following:
+
    * Rename 'clean_pdbs' folder:
-     > mv clean_pdbs clean_pdbs0
+     >mv clean_pdbs clean_pdbs0
+
    * Create a new, empty one:
-     > mkdir clean_pdbs
-   * Copy the following dirs from clean_pdbs0 to clean_pdbs: 7RSA, 8RNT, 9RAT, 9RNT
+     >mkdir clean_pdbs
+
+   * Copy the following dirs from clean_pdbs0 to clean_pdbs:
+    >cp -r clean_pdbs0/7RSA clean_pdbs/.
+    >cp -r clean_pdbs0/8RNT clean_pdbs/.
+    >cp -r clean_pdbs0/9RAT clean_pdbs/.
+    >cp -r clean_pdbs0/9RNT clean_pdbs/.
 
 7. Run the second sub-command, script setup; book.txt will reflect new number of folders:
 
@@ -51,5 +62,5 @@ Note: until scheduling is automated, this step is needed:
    You can find out out many jobs are left to be submitted with this command:
    (mce) cchenal@isis:~/projects$ to_submit=$(grep -v -e 'r$' -e 'c$' mcce_benchmarks/clean_pdbs/book.txt | wc -l)
    (mce) cchenal@isis:~/projects$ echo "$to_submit"
-  
+
    (If -n_active equals the number of folders, it should be 0.)

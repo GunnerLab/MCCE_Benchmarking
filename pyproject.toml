@@ -57,8 +57,7 @@ find = {}
 
 [project.scripts]
 mccebench = "mcce_benchmark.cli:bench_cli"
-mcce_launch_job = "mcce_benchmark.batch_submit:launch_job"
-#mypkg.mymodule:some_func"
+mccebench_launchjob = "mcce_benchmark.batch_submit:launch_cli"
 
 [tool.setuptools_scm]
 version_file = "mcce_benchmark/_version.py"

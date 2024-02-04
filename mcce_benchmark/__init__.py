@@ -14,6 +14,9 @@ DEFAULT_DIR = "mcce_benchmarks"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
 N_SLEEP = 10   # default sleep duration after last step is submitted in the job run script
 N_ACTIVE = 10  # number of active jobs to maintain
+ENTRY_POINTS = {"parent": "mccebench",
+                "child": "mccebench_launchjob"}
+CRON_COMMENT = f"Scheduled from {ENTRY_POINTS['parent']}"
 MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "fort.38",
                 "head1.lst", "head2.lst", "head3.lst",
                 "mc_out", "name.txt", "new.tpl",
@@ -23,7 +26,7 @@ MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "fort.38",
                 "step2_out.pdb", "step3_out.pdb",
                 "sum_crg.out", "vdw0.lst",
                ]
-
+USER = getpass.getuser()
 
 class Bench_Resources():
     """Immutable class to store package data paths and main constants."""
@@ -129,8 +132,6 @@ logging.basicConfig(level=logging.INFO,
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-USER = getpass.getuser()
 logger = logging.LoggerAdapter(logger,{'user':USER})
 
 # output start msg and app defaults:

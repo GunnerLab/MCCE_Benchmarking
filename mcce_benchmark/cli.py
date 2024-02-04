@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Module: cli.py
 
@@ -5,9 +7,12 @@ Command line interface for MCCE benchmarking.
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
+from crontab import CronTab
 # import class of files resources and constants:
-from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE
+from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE, ENTRY_POINTS, CRON_COMMENT
 from mcce_benchmark import audit, job_setup, batch_submit
+from mcce_benchmark.scheduling import build_cron_path, build_cron_cmd, create_crontab
+
 from IPython.core.formatters import format_display_data
 import logging
 from pathlib import Path
@@ -19,7 +24,7 @@ logger.setLevel(logging.DEBUG)
 #.......................................................................
 
 
-CLI_NAME = "mccebench"  # as per pyproject.toml
+CLI_NAME = ENTRY_POINTS["parent"] # as per pyproject.toml entry point
 SUB_CMD1 = "data_setup"
 SUB_CMD2 = "script_setup"
 SUB_CMD3 = "launch_batch"
@@ -103,7 +108,7 @@ def bench_script_setup(args:argNamespace) -> None:
     Processing steps:
      1. Write fresh book file
      2. Write script for args.job_name
-     3. Delete all previous pK.out files
+     3. Delete all previous sentinel files, if any
     """
 
     in_benchmarks = Path.cwd().name == args.benchmarks_dir.name
@@ -125,10 +130,21 @@ def bench_script_setup(args:argNamespace) -> None:
     logger.info(f"Writing script for {args.job_name!r} job.")
     job_setup.write_run_script(args.benchmarks_dir, args.job_name)
 
-    logger.info("Deleting previous pK.out files, if any.")
-    job_setup.delete_pkout(args.benchmarks_dir)
-
+    logger.info("Deleting previous sentinel files, if any.")
+    job_setup.delete_sentinel(args.benchmarks_dir, args.sentinel_file)
     return
+
+
+def schedule_job(launch_args:argNamespace):
+    """Create a contab entry for batch_submit.py with `launch_args`"""
+
+    PA = build_cron_path()
+    launch_cmd = build_cron_cmd(launch_args.benchmarks_dir,
+                                launch_args.job_name,
+                                launch_args.n_active,
+                                launch_args.sentinel_file)
+    create_crontab(PA, launch_cmd)
+    logger.info("Scheduled batch submission with crontab every minute.")
 
 
 def bench_launch_batch(args:argNamespace) -> None:
@@ -151,19 +167,14 @@ def bench_launch_batch(args:argNamespace) -> None:
     if DEBUG:
         logger.info("Debug mode: batch_submit.launch_job not called")
     else:
-        logger.info("Beta mode: calling batch_submit.launch_job")
-
-        #if args.schedule_job
-        #   create crontab file & save in /etc/cron.d ?
-        # see https://pypi.org/project/python-crontab/
-        # see https://unix.stackexchange.com/questions/458713/how-are-files-under-etc-cron-d-used
-        #   PATH=<output of subprocess.run 'echo "$PATH"'
-        #   */5 * * * * mccebench launch_batch -benchmarks_dir args.benchmarks_dir -job_name args.job_name -n_active args.n_active -sentinel_file args.sentinel_file > /tmp/cron.log 2>&1
-        #else:
+        logger.info("Beta mode: scheduling job")
+        # submit 1st with batch_submit.launch_job:
         batch_submit.launch_job(args.benchmarks_dir,
                                 args.job_name,
                                 args.n_active,
                                 args.sentinel_file)
+        # with crontab; FIX: fails silently
+        schedule_job(args)
 
     return
 
@@ -229,6 +240,14 @@ def bench_parser():
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
         This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
         in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
+        """
+    )
+    sub2.add_argument(
+        "-sentinel_file",
+        type = str,
+        default = "pK.out",
+        help = """File whose existence signals a completed step; When running all 4 MCCE steps (default),
+        this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
     sub2.add_argument(
@@ -309,7 +328,7 @@ def bench_parser():
 
 def bench_cli(argv=None):
     """
-    Command line interface for MCCE benchmarking.
+    Command line interface for MCCE benchmarking entry point 'mccebench'.
     """
 
     cli_parser = bench_parser()

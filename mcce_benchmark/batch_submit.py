@@ -32,7 +32,9 @@ Q book status codes:
      "e": error - was running, disapeared from job queue and no sentinel_file
 """
 
-from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR, ENTRY_POINTS
+from mcce_benchmark.scheduling import subprocess_run
 import logging
 import os
 from pathlib import Path
@@ -43,6 +45,10 @@ import sys
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+#.......................................................................
+
+
+CLI_NAME = ENTRY_POINTS["child"]  # as per pyproject.toml entry point
 
 
 class ENTRY:
@@ -73,23 +79,6 @@ def read_book_entries(book:str = BENCH.Q_BOOK) -> list:
     return entries
 
 
-def subprocess_run(cmd:str, do_check:bool=False) -> subprocess.CompletedProcess:
-    """Wraps subprocess.run together with error handling."""
-
-    try:
-        data = subprocess.run(cmd,
-                              capture_output=True,
-                              check=do_check,
-                              text=True,
-                              shell=True,
-                             )
-    except subprocess.CalledProcessError as e:
-        logger.exception(f"Error in subprocess cmd:\nException: {e}")
-        raise
-
-    return data
-
-
 def get_running_jobs_dirs(job_name:str) -> list:
     """
     Query shell for user's processes with job_name.
@@ -106,25 +95,6 @@ def get_running_jobs_dirs(job_name:str) -> list:
         dirs.append(d.name)
 
     return dirs
-
-
-
-def get_jobs():
-    """From legacy.batch_submit.py"""
-
-    lines = subprocess.Popen(["ps", "-u", USER],
-                             stdout=subprocess.PIPE).stdout.readlines()
-    job_uids = [x.decode("ascii").split()[0] for x in lines if x.decode("ascii").find(job_name) > 0]
-    job_uids = [x for x in job_uids if x and x != "PID"]
-
-    jobs = []
-    for uid in job_uids:
-        output = subprocess.Popen(["pwdx", uid], stdout=subprocess.PIPE).stdout.readlines()[0].decode("ascii")
-        job = output.split(":")[1].split("/")[-1].strip()
-        if job:
-            jobs.append(job)
-    return jobs
-
 
 
 def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
@@ -175,7 +145,6 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
                 # for debugging:
                 sentin_fp = Path(entry.name).joinpath(sentinel_file)
                 logger.info(f"Sentinel: {sentin_fp}; Exists: {sentin_fp.exists()}")
-                # was Path(f"{entry.name}/{sentinel_file}")
                 if sentin_fp.exists():
                     entry.state = "c"
                 logger.info(f"Changed {entry.name}: 'r' -> {entry.state!r}")
@@ -189,6 +158,7 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
     return
 
 default_path = Path(DEFAULT_DIR)
+
 def launch_job(benchmarks_dir:Path = default_path,
                job_name:str = BENCH.DEFAULT_JOB,
                n_active:int = N_ACTIVE,
@@ -223,11 +193,79 @@ def launch_job(benchmarks_dir:Path = default_path,
     return
 
 
-if __name__ == "__main__":
+def batch_parser():
+    """Command line arguments parser with for batch_submit.launch_job.
+    """
 
-    if sys.argv is None:
+    def arg_valid_dirpath(p: str):
+        """Return resolved path from the command line."""
+        if not len(p):
+            return None
+        return Path(p).resolve()
+
+    parser = ArgumentParser(
+        prog = f"{CLI_NAME} ",
+        description = "Same arguments as for mccebench launch_batch.",
+        formatter_class = RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "-benchmarks_dir",
+        default = default_path,
+        type = arg_valid_dirpath,
+        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
+        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
+        called within that directory; default: mcce_benchmarks.
+        """
+    )
+    parser.add_argument(
+        "-job_name",
+        type = str,
+        default = BENCH.DEFAULT_JOB,
+        help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
+        This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
+        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
+        """
+    )
+    parser.add_argument(
+        "-n_active",
+        type = int,
+        default = N_ACTIVE,
+        help = """The number of jobs to keep launching; default: %(default)s.
+        """
+    )
+    parser.add_argument(
+        "-sentinel_file",
+        type = str,
+        default = "pK.out",
+        help = """File whose existence signals a completed step; When running all 4 MCCE steps (default),
+        this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
+        """
+    )
+
+    return parser
+
+
+def launch_cli(argv=None):
+    """
+    Command line interface for MCCE benchmarking entry point 'mccebench_launchjob'.
+    """
+
+    launch_parser = batch_parser()
+    args = launch_parser.parse_args(argv)
+
+    if args is None:
+        logger.info("Using default args for launch_job")
         launch_job()
     else:
-        launch_job(sys.argv)
+        launch_job(args.benchmarks_dir,
+                   args.job_name,
+                   args.n_active,
+                   args.sentinel_file)
+
+    return
 
 
+if __name__ == "__main__":
+
+    launch_cli(sys.argv[1:])
