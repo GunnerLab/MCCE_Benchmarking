@@ -6,7 +6,9 @@ Contains functions to query and manage data.
 
 Main functions:
 --------------
-* proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = False) -> pd.DataFrame:
+Note: proteins.tsv should be considered the ground truth.
+
+* proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = None) -> pd.DataFrame:
 * valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
 * list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
 * list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
@@ -45,15 +47,32 @@ The function audit.reset_multi_models() must be re-run to fix the problem.
 """
 
 
-def proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = False) -> pd.DataFrame:
+def proteins_df(prot_tsv_file:Path=BENCH.BENCH_PROTS, return_excluded:bool=None) -> pd.DataFrame:
     """
     Load data/proteins.tsv into a pandas.DataFrame.
+    Args:
+    return_excluded (bool, None): of None, return unfiltered df; if True: return
+    df of commented out entries (and see the reasons), else return df of "got to go"
+    proteins.
     """
     df = pd.read_csv(prot_tsv_file, sep="\t")
     df.sort_values(by="PDB", inplace=True)
+    if return_excluded is None:
+        return df
+
     if return_excluded:
         return df[df.Use.isna()]
-    return df
+    else:
+        return df[~ df.Use.isna()]
+
+
+def get_usable_prots(prot_tsv_file:Path=BENCH.BENCH_PROTS) -> list:
+    """
+    Return a list of uncommented pdb ids from proteins.tsv.
+    """
+    df = pd.read_csv(prot_tsv_file, sep="\t")
+    df.sort_values(by="PDB", inplace=True)
+    return df[~ df.Use.isna()].PDB.to_list()
 
 
 def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
@@ -315,6 +334,64 @@ def pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> l
     return clean_pdbs_dirs
 
 
+def prots_symdiff_clean(prot_tsv_file:Path=BENCH.BENCH_PROTS,
+                        clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+    """Get the symmetric difference btw the list of usable proteins
+    and the clean_pdbs/subfolders list.
+    Return a tuple of lists: extra_dirs, missing_dirs.
+    Package data management.
+    """
+
+    # list from "ground truth" file, proteins.tsv:
+    curated_ok = get_usable_prots(prot_tsv_file)
+
+    # list from folder setup: would differ if a change occured
+    # without related change in proteins.tsv
+    clean_dir_list = pdb_list_from_clean_pdbs_folder(clean_pdbs_dir)
+
+    s1 = set(curated_ok)
+    s2 = set(clean_dir_list)
+
+    extra = s1.symmetric_difference(s2)
+    extra_dirs = []
+    missing_dirs = []
+
+    for x in extra:
+        if x not in s1:
+            #print(f"Extra dir: {x}")
+            extra_dirs.append(x)
+        else:
+            #print(f"Missing dir for: {x}")
+            missing_dirs.append(x)
+
+    return extra_dirs, missing_dirs
+
+
+def update_data(prot_tsv_file:Path=BENCH.BENCH_PROTS,
+                clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> None:
+    """Delete extra subfolders from clean_pdbs when corresponding pdb id not
+    in proteins.tsv.
+    """
+
+    # Note: if missing dirs: no pdb => will need to be downloaded again and
+    # processed (mannually) as per jmao.
+
+    extra_dirs, missing_dirs = prots_symdiff_clean(prot_tsv_file, clean_pdbs_dir)
+    if not extra_dirs:
+        logger.info("No extra dirs.")
+    else:
+        for x in extra_dirs:
+            dx = clean_pdbs_dir.joinpath(x)
+            shutil.rmtree(dx)
+        logger.info("Removed extra dirs.")
+
+    book = clean_pdbs_dir.joinpath(BENCH.Q_BOOK)
+    rewrite_book_file(book)
+    logger.info("Wrote fresh book file.")
+
+    return
+
+
 def same_pdbs_book_vs_clean() -> bool:
     """
     Compares the list of pdbs in the Q_BOOK with the list
@@ -349,12 +426,12 @@ def to_float(value):
     return new
 
 
-def pdb_list_from_experimental_pkas(pkas_file:str) -> list:
-    """Parses valid pKa values from an experiemntal pKa file and return
+def pdb_list_from_experimental_pkas(pkas_file:Path=BENCH.BENCH_WT) -> list:
+    """Parses valid pKa values from an experimental pKa file and return
     their pdb ids in a list."""
 
     fp = Path(pkas_file)
-    if fp.name != "WT_pkas.csv":
+    if fp.name != BENCH.BENCH_WT.name:
         logger.error("Only wild type proteins listed in 'WT_pkas.csv' are currently considered.")
         raise TypeError("Only wild type proteins listed in 'WT_pkas.csv' are currently considered.")
 

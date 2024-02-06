@@ -10,8 +10,8 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as a
 from crontab import CronTab
 # import class of files resources and constants:
 from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE, ENTRY_POINTS, CRON_COMMENT
-from mcce_benchmark import audit, job_setup, batch_submit
-from mcce_benchmark.scheduling import build_cron_path, build_cron_cmd, create_crontab
+from mcce_benchmark import audit, job_setup, batch_submit, scheduling
+#import build_cron_path, build_cron_cmd, create_crontab, 
 
 from IPython.core.formatters import format_display_data
 import logging
@@ -25,11 +25,18 @@ logger.setLevel(logging.DEBUG)
 
 
 CLI_NAME = ENTRY_POINTS["parent"] # as per pyproject.toml entry point
+
 SUB_CMD1 = "data_setup"
-SUB_CMD2 = "script_setup"
-SUB_CMD3 = "launch_batch"
 HELP_1 = "Sub-command for preparing `<benchmarks_dir>/clean_pdbs folder."
+
+SUB_CMD2 = "script_setup"
 HELP_2 = "Sub-command for setting up the job_name_run.sh script."
+
+#TODO?:
+# - cmd3 name: change to "batch_schedule"?
+# - add arg --do_not_schedule => for very small jobs?
+#
+SUB_CMD3 = "launch_batch"
 HELP_3 = "Sub-command for launching a batch of jobs."
 
 DESC = f"""
@@ -138,19 +145,25 @@ def bench_script_setup(args:argNamespace) -> None:
 def schedule_job(launch_args:argNamespace):
     """Create a contab entry for batch_submit.py with `launch_args`"""
 
-    PA = build_cron_path()
-    launch_cmd = build_cron_cmd(launch_args.benchmarks_dir,
-                                launch_args.job_name,
-                                launch_args.n_active,
-                                launch_args.sentinel_file)
-    create_crontab(PA, launch_cmd)
+    sh_path = scheduling.create_cron_sh(launch_args.conda_env,
+                                        launch_args.benchmarks_dir,
+                                        launch_args.job_name,
+                                        launch_args.n_active,
+                                        launch_args.sentinel_file
+                                       )
+    logger.info("Created the bash script for crontab.")
+
+    #pa = scheduling.build_cron_path()  #previously
+    cron_cmd = scheduling.build_cron_cmd(sh_path)
+    scheduling.create_crontab(cron_cmd)
     logger.info("Scheduled batch submission with crontab every minute.")
 
 
+# bench_batch_schedule
 def bench_launch_batch(args:argNamespace) -> None:
     """Benchmark cli function for 'launch_batch' sub-command.
     PRE-REQS:
-    1. args.benchmarks_dir & clean_padbs folders exist as previously
+    1. args.benchmarks_dir & clean_pdbs folders exist as previously
        created via > mccebench data_setup command.
     2. args.job_name script exists as previously created via
        mccebench script_setup command.
@@ -288,6 +301,12 @@ def bench_parser():
     sub3 = subparsers.add_parser(SUB_CMD3,
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_3)
+    sub3.add_argument(
+        "-conda_env",
+        default = "base",
+        type = str,
+        help = """Name of the conda environment where mcce_benchmark was installed."""
+    )
     sub3.add_argument(
         "-benchmarks_dir",
         default = Path(DEFAULT_DIR).resolve(),

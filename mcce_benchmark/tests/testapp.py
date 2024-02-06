@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 # see also: https://realpython.com/the-minimum-viable-test-suite/
 

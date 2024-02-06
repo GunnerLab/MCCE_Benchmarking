@@ -3,7 +3,14 @@
 """
 Module: scheduling.py
 
-For automating the crontab creation for scheduling job with the mcce_bench sub command "mccebench_launchjob"
+For automating the crontab creation for scheduling job with the mcce_benchmark dedicated
+cli named "mccebench_launchjob"
+
+Implementation:
+ 1. create bash script to be called by cron
+ 2. chmod +x
+ 3. create crontab for that script
+
 """
 
 # import class of files resources and constants:
@@ -20,15 +27,20 @@ logger.setLevel(logging.DEBUG)
 #.......................................................................
 
 
-def subprocess_run(cmd:str, do_check:bool=False) -> subprocess.CompletedProcess:
+def subprocess_run(cmd:str,
+                   capture_output=True,
+                   check:bool=False,
+                   text=True,
+                   shell=True,
+                  ) -> subprocess.CompletedProcess:
     """Wraps subprocess.run together with error handling."""
 
     try:
         data = subprocess.run(cmd,
-                              capture_output=True,
-                              check=do_check,
-                              text=True,
-                              shell=True,
+                              capture_output=capture_output,
+                              check=check,
+                              text=text,
+                              shell=shell
                              )
     except subprocess.CalledProcessError as e:
         #logger.exception(f"Error in subprocess cmd:\nException: {e}")
@@ -38,13 +50,73 @@ def subprocess_run(cmd:str, do_check:bool=False) -> subprocess.CompletedProcess:
     return data
 
 
+def make_executable(sh_path:Path) -> None:
+    """Alternative to os.chmod(sh_path, stat.S_IXUSR): permission denied."""
+
+    cmd = f"chmod +x {sh_path}"
+    try:
+        p = subprocess_run(cmd,
+                           capture_output=False,
+                           check=True,
+                           )
+    except subprocess.CalledProcessError as e:
+        logger.exception(f"Error in subprocess cmd 'chmod +x':\nException: {e}")
+        raise
+
+
+CRON_SH_NAME = "crontab_sh"
+def create_cron_sh(conda_env:str,
+                   benchmarks_dir:Path,
+                   job_name:str,
+                   n_active:int,
+                   sentinel_file:str
+                  ) -> Path:
+    """
+    Create the batch-submitting bash script that crontab will use in
+    benchmarks_dir as 'crontab_sh'.
+    Return its path
+    """
+
+    cli = ENTRY_POINTS["child"]
+    sh_fstr = """
+#!/usr/bin/env sh
+
+#conda run -n <mce> <cli> -benchmarks_dir <dir> -job_name <foo> -n_active <n> -sentinel_file <sf>.
+
+conda run -n {} {} -benchmarks_dir {} -job_name {} -n_active {} -sentinel_file {}
+"""
+    sh_path = benchmarks_dir.joinpath(CRON_SH_NAME)
+    with open(sh_path , "w") as fh:
+        fh.write(sh_fstr.format(conda_env,
+                                cli,
+                                str(benchmarks_dir),
+                                job_name,
+                                n_active,
+                                sentinel_file))
+
+    make_executable(sh_path)  #needed?
+    logger.info(f"Created script for crontab {CRON_SH_NAME!r} in {benchmarks_dir}\n")
+
+    return sh_path
+
+
 def build_cron_path():
-    """Replicate PATH as per jmao:
+    """
+    DEPRECATE?
+    Switched to creating an ad-hoc bash script that's calling
+    the launching cli using conda run + a conda env name;
+    => presumably, a more specific path is not needed.
+
+    Replicate PATH as per jmao:
     PATH=/home/jmao/miniconda3/bin: \
     /home/jmao/Stable-MCCE/bin: \
     /home/jmao/bin: \
     /home/jmao/miniconda3/condabin: \
     /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin
+
+    On isis:
+    (base) cchenal@isis:~/projects$ which step1.py
+    /home/mcce/Stable-MCCE/bin/step1.py => keep in path?
     """
 
     conda_exec = f"/home/{USER}/miniconda3/bin"
@@ -63,31 +135,15 @@ def build_cron_path():
     return p
 
 
-def build_cron_cmd(benchmarks_dir:Path,
-                   job_name:str,
-                   n_active:int,
-                   sentinel_file:str):
-    """replicate jmao:
-    * * * * * cd /home/jmao/benchmark/e08_calc && /home/jmao/benchmark/bin/batch_submit.py > /tmp/cron.log 2>&1
+def build_cron_cmd(sh_path:Path):
+    return f"#{CRON_COMMENT}\n* * * * * {str(sh_path)} > /tmp/cron.log 2>&1\n"
 
-    mccebench_launchjob -job_name "foo" -n_active 4 -sentinel_file "step2_out.pdb"
+
+def create_crontab(cron_cmd:str, cron_path:str=None):
     """
-
-    # mccebench_launchjob
-    out = subprocess_run(f"which {ENTRY_POINTS['child']}")
-    launch_subcmd = str(Path(out.stdout.strip()))
-
-    launch_cmd = f"#{CRON_COMMENT}\n* * * * * cd {str(benchmarks_dir)} && "
-    launch_cmd = launch_cmd + f"{launch_subcmd} "
-    launch_cmd = launch_cmd + f"-benchmarks_dir {benchmarks_dir} -job_name {job_name} "
-    launch_cmd = launch_cmd + f"-n_active {n_active} -sentinel_file {sentinel_file}"
-    #launch_cmd = launch_cmd + " > /tmp/cron.log 2>&1\n"
-    launch_cmd = launch_cmd + "\n"
-
-    return launch_cmd
-
-
-def create_crontab(cron_path:str, cron_cmd:str):
+    Create a crontab entry with 'cron_cmd'; precede it with 'cron_path' if not None.
+    Note: cron_path could hold env variable.
+    """
 
     cron = CronTab(user=True)
     # Remove all cron jobs with the automated comment
@@ -96,10 +152,14 @@ def create_crontab(cron_path:str, cron_cmd:str):
     cron_in = subprocess.Popen(['crontab', '-l'], stdout=subprocess.PIPE)
     cur_crontab, _ = cron_in.communicate()
 
-    logger.info(f"Crontab text:\n{cron_path + cron_cmd}")
-    new_crontab = bytes(cron_path + cron_cmd, 'utf-8')
+    if cron_path is None:
+        crontab_txt = cron_cmd
+    else:
+        crontab_txt = cron_path + cron_cmd
+    logger.info(f"Crontab text:\n{crontab_txt}")
+
     cron_out = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE)
-    cron_out.communicate(input=new_crontab)
+    cron_out.communicate(input=bytes(crontab_txt, 'utf-8'))
 
     logger.info("User's cron jobs, if any:")
     for job in cron:

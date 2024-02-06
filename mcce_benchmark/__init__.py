@@ -142,9 +142,9 @@ msg_body = f"""
     {BENCH.CLEAN_PDBS = }
     {BENCH.Q_BOOK = }
     {BENCH.DEFAULT_JOB = }
-{'='*70}
+{'-'*70}
 """
-msg = f"START\n{'='*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \
+msg = f"START\n{'-'*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \
       + msg_body
 logger.info(msg)
 
