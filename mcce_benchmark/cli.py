@@ -10,7 +10,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as a
 from crontab import CronTab
 # import class of files resources and constants:
 from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE, ENTRY_POINTS, CRON_COMMENT
-from mcce_benchmark import audit, job_setup, batch_submit, scheduling
+from mcce_benchmark import apply_header_logger, audit, job_setup, batch_submit, scheduling
 #import build_cron_path, build_cron_cmd, create_crontab, 
 
 from IPython.core.formatters import format_display_data
@@ -18,6 +18,7 @@ import logging
 from pathlib import Path
 import sys
 
+apply_header_logger()
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

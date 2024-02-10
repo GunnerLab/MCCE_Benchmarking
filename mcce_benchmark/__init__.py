@@ -106,53 +106,60 @@ BENCH = Bench_Resources()
 
 
 #................................................................................
-# Logging to file & stream
-HEADER = '%(asctime)s @%(user)s [%(levelname)s: %(name)s]: - %(message)s'
+# Config for root logger: handlers at module level
+
+DT_FMT = "%Y-%m-%d %H:%M:%S"
 BODY = "[%(levelname)s]: %(name)s, %(funcName)s:\n\t%(message)s"
-# initial formatter:
-header_frmter = logging.Formatter(fmt=HEADER)
+logging.basicConfig(level=logging.INFO,
+                    format=BODY,
+                    datefmt=DT_FMT
+                   )
 
 # file handler
 fh = logging.FileHandler("benchmark.log")
 fh.name = "fh"
 fh.setLevel(logging.DEBUG)
-fh.setFormatter(header_frmter)
-
 # console handler
 ch = logging.StreamHandler(sys.stdout)
 ch.name = "ch"
 ch.setLevel(logging.INFO)
-ch.setFormatter(header_frmter)
 
-logging.basicConfig(level=logging.INFO,
-                    format=BODY,
-                    datefmt="%Y-%m-%d %H:%M:%S",
-                    handlers=[ch, fh]
-                   )
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger = logging.LoggerAdapter(logger,{'user':USER})
+def apply_header_logger():
+    """
+    Config logger for displaying app info;
+    Log that info;
+    Reset the handlers formatters that the module loggers will use.
+    """
 
-# output start msg and app defaults:
-msg_body = f"""
-    Globals: {MCCE_EPS = }; {N_SLEEP = }; {N_ACTIVE = }
-    Default names:
-    {DEFAULT_DIR = }
-    {BENCH.CLEAN_PDBS = }
-    {BENCH.Q_BOOK = }
-    {BENCH.DEFAULT_JOB = }
-{'-'*70}
-"""
-msg = f"START\n{'-'*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \
-      + msg_body
-logger.info(msg)
+    # Logging to file & stream - note 'user' param
+    HEADER = '%(asctime)s @%(user)s [%(levelname)s: %(name)s]: - %(message)s'
+    # initial formatter:
+    header_frmter = logging.Formatter(fmt=HEADER)
+    fh.setFormatter(header_frmter)
+    ch.setFormatter(header_frmter)
 
-# reset format:
-body_frmter = logging.Formatter(fmt=BODY)
-fh.setFormatter(body_frmter)
-ch.setFormatter(body_frmter)
-del logger
+    logger = logging.getLogger(__name__)
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    #logger.setLevel(logging.DEBUG)
+    logger = logging.LoggerAdapter(logger,{'user':USER})
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+    # output start msg and app defaults:
+    msg_body = f"""
+        Globals: {MCCE_EPS = }; {N_SLEEP = }; {N_ACTIVE = }
+        Default names:
+        {DEFAULT_DIR = }
+        {BENCH.CLEAN_PDBS = }
+        {BENCH.Q_BOOK = }
+        {BENCH.DEFAULT_JOB = }\n{'-'*70}
+    """
+    msg = f"START\n{'-'*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \
+          + msg_body
+    logger.info(msg)
+
+    # reset format:
+    body_frmter = logging.Formatter(fmt=BODY)
+    fh.setFormatter(body_frmter)
+    ch.setFormatter(body_frmter)
+    #del logger
