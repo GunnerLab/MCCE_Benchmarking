@@ -152,7 +152,7 @@ def apply_header_logger():
         {DEFAULT_DIR = }
         {BENCH.CLEAN_PDBS = }
         {BENCH.Q_BOOK = }
-        {BENCH.DEFAULT_JOB = }\n{'-'*70}
+        {BENCH.DEFAULT_JOB = } (-> {BENCH.DEFAULT_JOB}.sh script in clean_pdbs/)\n{'-'*70}
     """
     msg = f"START\n{'-'*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \
           + msg_body
