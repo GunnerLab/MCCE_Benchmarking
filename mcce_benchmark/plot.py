@@ -1,20 +1,25 @@
 #!/usr/bin/env python
 
+from mcce_benchmark import BENCH, MATCHED_PKAS_FILE
 import matplotlib.pyplot as plt
+import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import seaborn as sns
 
 
-MATCHED_PKA_FILE = "matched_pka.csv"
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
-def read_matched_pka(fname:str=MATCHED_PKA_FILE) -> dict:
+
+def read_matched_pkas(fname:str=MATCHED_PKAS_FILE) -> dict:
     """PRE: file MATCHED_PKA_FILE was created via mcce_benchmark.pkanalysis.
     """
 
     fh = Path(fname)
     if not fh.exists():
+        logger.error(f"Not found: {fh}; run pkanalysis to create.")
         raise FileNotFoundError(f"Not found: {fh}; run pkanalysis to create.")
 
     lines = open(fname).readlines()
@@ -32,7 +37,7 @@ def read_matched_pka(fname:str=MATCHED_PKA_FILE) -> dict:
             'calculated': calculated}
 
 
-def pka_stat(matched_pkas):
+def pka_stats(matched_pkas):
     x = np.array(matched_pkas['experiment'])
     y = np.array(matched_pkas['calculated'])
     delta = np.abs(x-y)

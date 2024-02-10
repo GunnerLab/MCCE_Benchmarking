@@ -8,13 +8,22 @@ Example. Assuming your at you home directory (cd ~):
 > python pkanalysis.py
 """
 
-from mcce_benchmark import BENCH
+from mcce_benchmark import BENCH, MATCHED_PKAS_FILE
+from mcce_benchmark.scheduling import subprocess_run
+import logging
 import numpy as np
 import pandas
 from pathlib import Path
 
 
-MATCHED_PKA_FILE = "matched_pka.csv"
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+
+def get_conf_count() -> int:
+    """Get the number of conformers in step3_out.pdb."""
+
+    #awk '{print $5}' step3_out.pdb |uniq|wc -l
 
 
 def get_book_dirs_for_status(book_fp:str, status:str="c") -> list
@@ -25,6 +34,7 @@ def get_book_dirs_for_status(book_fp:str, status:str="c") -> list
 
     status = status.lower()
     if not status or status not in ["c", "e"]:
+        logger.error("Invalid 'status'; choices are 'c' or 'e'")
         raise ValueError("Invalid 'status'; choices are 'c' or 'e'")
 
     book_dirs = []
@@ -48,6 +58,7 @@ def job_pkas_to_dict(book_file:str = BENCH.Q_BOOK) -> dict:
 
     book_fp = Path.cwd().joinpath(book_file)
     if not book_fp.exists():
+        logger.error(f"File not found: {book_fp}")
         raise FileNotFoundError(f"File path: {book_fp}")
 
     completed_dirs = get_book_dirs_for_status(book_fp) # default 'c'
@@ -94,10 +105,12 @@ def experimental_pkas_to_dict(pkas_file:str=BENCH.BENCH_WT.name, ) -> dict:
     """
 
     if pkas_file != "WT_pkas.csv":
+        logger.error(f"Only wild type proteins listed in {BENCH.BENCH_WT.name!r} are currently considered.")
         raise TypeError(f"Only wild type proteins listed in {BENCH.BENCH_WT.name!r} are currently considered.")
 
     exp_pka_fp = Path.cwd().joinpath(pkas_file)
     if not exp_pka_fp.exists():
+        logger.error(f"File not found: {exp_pka_fp}")
         raise FileNotFoundError(f"File path: {exp_pka_fp}")
 
     res_to_mcce = {"ARG": "ARG+",
@@ -154,7 +167,7 @@ def match_pkas(expl_pkas:dict, calc_pkas:dict) -> list:
         elif key[1][3] == "+":
             calc_pka = 14.0
         else:
-            print(f"Parsing error of job pKas for {key}")
+            logger.error(f"Parsing error of job pKas for {key}")
 
         #pka = ("{}/{}".format(*key), expl_pkas[key], calc_pka)
         pkas.append(("{}/{}".format(*key), expl_pkas[key], calc_pka))
@@ -162,11 +175,12 @@ def match_pkas(expl_pkas:dict, calc_pkas:dict) -> list:
     return pkas
 
 
-def matched_pkas_to_csv(matched_pkas:list, file_path:str=MATCHED_PKA_FILE) -> None:
+def matched_pkas_to_csv(matched_pkas:list, file_path:str=MATCHED_PKAS_FILE) -> None:
     """Write a list of 3-tuples (as in a matched pkas list) to a comma separated file."""
 
     fp = Path.cwd().joinpath(file_path)
     if fp.exists():
+        logger.error(f"File {fp!r} already exists: either delete or rename it before saving.")
         raise FileExistsError(f"File {fp!r} already exists: either delete or rename it before saving.")
 
     if fp.suffix !=".csv":
@@ -178,13 +192,13 @@ def matched_pkas_to_csv(matched_pkas:list, file_path:str=MATCHED_PKA_FILE) -> No
     return
 
 
-def main():
+def expl_pka_comparison():
     #TODO: Get run times
 
-    calc_pkas = read_calculated_pkas()
-    expl_pkas = read_experiment_pkas()
-    matched_pKas = match_pka(expl_pkas, calc_pkas)
-    save_pka(matched_pKas, fname=MATCHED_PKA_FILE)
+    calc_pkas = job_pkas_to_dict()
+    expl_pkas = experimental_pkas_to_dict()
+    matched_pKas = match_pkas(expl_pkas, calc_pkas)
+    matched_pkas_to_csv(matched_pKas, fname=MATCHED_PKAS_FILE)
 
     n = len(matched_pKas)
 

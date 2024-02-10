@@ -11,11 +11,18 @@ import sys
 #................................................................................
 APP_NAME = "mcce_benchmark"
 DEFAULT_DIR = "mcce_benchmarks"
+MATCHED_PKAS_FILE = "matched_pkas.csv"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
 N_SLEEP = 10   # default sleep duration after last step is submitted in the job run script
 N_ACTIVE = 10  # number of active jobs to maintain
-ENTRY_POINTS = {"parent": "mccebench",
-                "child": "mccebench_launchjob"}
+ENTRY_POINTS = {"main": "mccebench",
+                "launch": "mccebench_launchjob"}
+#new needed:
+#ENTRY_POINTS = {"main": "mccebench",
+#                "launch": "mccebench_launchjob",
+#                "analyze": "mccebench_analyze"
+#               }
+
 CRON_COMMENT = f"Scheduled from {ENTRY_POINTS['parent']}"
 MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "fort.38",
                 "head1.lst", "head2.lst", "head3.lst",
