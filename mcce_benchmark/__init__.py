@@ -125,6 +125,26 @@ ch.name = "ch"
 ch.setLevel(logging.INFO)
 
 
+def get_user_env() -> str:
+    """Return the conda environment."""
+
+    user_prefix = sys.prefix
+    env = Path(user_prefix).name
+
+    if "envs" not in user_prefix:
+        if env != "miniconda3" and env != "anaconda3":
+            logging.error("EnvironmentError: You appear not to be using conda, which is required for scheduling.")
+            raise EnvironmentError("You appear not to be using conda, which is required for scheduling.")
+        else:
+            logging.warning("You should be using a dedicated conda environment!")
+            return "base"
+    else:
+         return env
+
+
+USER_ENV = get_user_env()
+
+
 def apply_header_logger():
     """
     Config logger for displaying app info;
@@ -152,7 +172,9 @@ def apply_header_logger():
         {DEFAULT_DIR = }
         {BENCH.CLEAN_PDBS = }
         {BENCH.Q_BOOK = }
-        {BENCH.DEFAULT_JOB = } (-> {BENCH.DEFAULT_JOB}.sh script in clean_pdbs/)\n{'-'*70}
+        {BENCH.DEFAULT_JOB = } (-> {BENCH.DEFAULT_JOB}.sh script in clean_pdbs/)
+
+        User envir: {USER_ENV = }\n{'-'*70}
     """
     msg = f"START\n{'-'*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \
           + msg_body
@@ -162,4 +184,3 @@ def apply_header_logger():
     body_frmter = logging.Formatter(fmt=BODY)
     fh.setFormatter(body_frmter)
     ch.setFormatter(body_frmter)
-    #del logger

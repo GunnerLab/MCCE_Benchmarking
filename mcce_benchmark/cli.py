@@ -9,7 +9,7 @@ Command line interface for MCCE benchmarking.
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 from crontab import CronTab
 # import class of files resources and constants:
-from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE, ENTRY_POINTS, CRON_COMMENT
+from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE, ENTRY_POINTS, USER_ENV, CRON_COMMENT
 from mcce_benchmark import apply_header_logger, audit, job_setup, batch_submit, scheduling
 #import build_cron_path, build_cron_cmd, create_crontab, 
 
@@ -125,7 +125,7 @@ def bench_script_setup(args:argNamespace) -> None:
 
     clean_pdbs_dir = args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not clean_pdbs_dir.exists():
-        msg = f"Missing {BENCH.CLEAN_PDBS!r} folder in {args.benchmarks_dir}:\nRe-run subcommand {SUB_CMD0!r}, perhaps?"
+        msg = f"Missing {BENCH.CLEAN_PDBS!r} folder in {args.benchmarks_dir}:\nRe-run subcommand {SUB_CMD1!r}, perhaps?"
         logger.exception(msg)
         raise FileNotFoundError(msg)
 
@@ -220,6 +220,7 @@ def bench_parser():
                                   dest = "subparser_name"
                                  )
 
+    # data_setup
     sub1 = subparsers.add_parser(SUB_CMD1,
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_1)
@@ -235,6 +236,7 @@ def bench_parser():
     # bind subparser with its related function:
     sub1.set_defaults(func=bench_data_setup)
 
+    # script_setup
     sub2 = subparsers.add_parser(SUB_CMD2,
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_2)
@@ -265,24 +267,21 @@ def bench_parser():
         """
     )
     sub2.add_argument(
-        "--dry",
+        "-wet",
         default = False,
-        help = "No water molecules.",
-        action = "store_true"
+        help = "Keep water molecules.",
     )
-    # Beta: the rest of the options are ignored
     sub2.add_argument(
-        "--norun",
+        "-norun",
         default = False,
         help = "Create run.prm without running the step",
-        action = "store_true",
     )
-    sub2.add_argument(
-        "-e",
-        metavar = "/path/to/mcce",
-        default = "mcce",
-        help = "Location of the mcce executable, i.e. which mcce; default: %(default)s.",
-    )
+    #sub2.add_argument(
+    #    "-e",
+    #    metavar = "/path/to/mcce",
+    #    default = "mcce",
+    #    help = "Location of the mcce executable, i.e. which mcce; default: %(default)s.",
+    #)
     sub2.add_argument(
         "-eps",
         metavar = "epsilon",
@@ -299,6 +298,7 @@ def bench_parser():
     )
     sub2.set_defaults(func=bench_script_setup)
 
+    # launch_batch
     sub3 = subparsers.add_parser(SUB_CMD3,
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_3)
