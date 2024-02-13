@@ -5,26 +5,33 @@ from importlib import resources
 import logging
 from mcce_benchmark import _version
 from pathlib import Path
+import shutil
 import sys
 
 
 #................................................................................
 APP_NAME = "mcce_benchmark"
+
+# fail fast:
+USER_MCCE = shutil.which("mcce")
+if USER_MCCE is None:
+    raise EnvironmentError(f"{APP_NAME}, __init__ :: mcce executable not found.")
+
+
 DEFAULT_DIR = "mcce_benchmarks"
 MATCHED_PKAS_FILE = "matched_pkas.csv"
+ALL_PKAS_FILE = "all_pkas.tsv"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
-N_SLEEP = 10   # default sleep duration after last step is submitted in the job run script
 N_ACTIVE = 10  # number of active jobs to maintain
 ENTRY_POINTS = {"main": "mccebench",
                 "launch": "mccebench_launchjob"}
-#new needed:
+#TODO: new needed:
 #ENTRY_POINTS = {"main": "mccebench",
 #                "launch": "mccebench_launchjob",
 #                "analyze": "mccebench_analyze"
 #               }
 
-CRON_COMMENT = f"Scheduled from {ENTRY_POINTS['parent']}"
-MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "fort.38",
+MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "extra.tpl", "fort.38",
                 "head1.lst", "head2.lst", "head3.lst",
                 "mc_out", "name.txt", "new.tpl",
                 "pK.out", "respair.lst", "rot_stat",
@@ -33,8 +40,9 @@ MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "fort.38",
                 "step2_out.pdb", "step3_out.pdb",
                 "sum_crg.out", "vdw0.lst",
                ]
-USER = getpass.getuser()
 
+
+#TODO: add reference_runs folder?
 class Bench_Resources():
     """Immutable class to store package data paths and main constants."""
 
@@ -115,6 +123,7 @@ BENCH = Bench_Resources()
 #................................................................................
 # Config for root logger: handlers at module level
 
+USER = getpass.getuser()
 DT_FMT = "%Y-%m-%d %H:%M:%S"
 BODY = "[%(levelname)s]: %(name)s, %(funcName)s:\n\t%(message)s"
 logging.basicConfig(level=logging.INFO,
@@ -130,7 +139,6 @@ fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler(sys.stdout)
 ch.name = "ch"
 ch.setLevel(logging.INFO)
-
 
 def get_user_env() -> str:
     """Return the conda environment."""
@@ -148,11 +156,11 @@ def get_user_env() -> str:
     else:
          return env
 
-
+# user info
 USER_ENV = get_user_env()
 
 
-def apply_header_logger():
+def create_log_header():
     """
     Config logger for displaying app info;
     Log that info;
@@ -174,13 +182,15 @@ def apply_header_logger():
 
     # output start msg and app defaults:
     msg_body = f"""
-        Globals: {MCCE_EPS = }; {N_SLEEP = }; {N_ACTIVE = }
-        Default names:
+        Globals: {MCCE_EPS = }; {N_ACTIVE = }
+        Default resource names:
         {DEFAULT_DIR = }
         {BENCH.CLEAN_PDBS = }
         {BENCH.Q_BOOK = }
         {BENCH.DEFAULT_JOB = } (-> {BENCH.DEFAULT_JOB}.sh script in clean_pdbs/)
-
+        Default analysis output file names:
+        {MATCHED_PKAS_FILE = }
+        {ALL_PKAS_FILE = }
         User envir: {USER_ENV = }\n{'-'*70}
     """
     msg = f"START\n{'-'*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \

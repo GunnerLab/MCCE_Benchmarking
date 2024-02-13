@@ -47,6 +47,30 @@ The function audit.reset_multi_models() must be re-run to fix the problem.
 """
 
 
+def list_complete_runs(benchmarks_dir:str, like_clean_pdbs:bool=False) -> list:
+    """Return a list of folders that contain pK.out.
+    like_clean_pdbs: benchmarks_dir ~ clean_pdbs, else search takes place in
+                     benchmarks_dir/clean_pdbs.
+    """
+
+    search_dir = Path(benchmarks_dir)
+    if not like_clean_pdbs:
+        search_dir = search_dir.joinpath("clean_pdbs")
+    complete = list(fp.parent for fp in search_dir.glob("./*/pK.out"))
+
+    return complete
+
+
+def cp_completed_runs(src_dir:str, dest_dir:str) -> None:
+    complete = list_complete_runs(src_dir)
+    for fp in complete:
+        dest = Path(dest_dir).joinpath("clean_pdbs", fp.name)
+        if dest.exists():
+            shutil.copytree(fp, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns("prot.pdb*"))
+            logger.info("Copied:", dest)
+    return
+
+
 def proteins_df(prot_tsv_file:Path=BENCH.BENCH_PROTS, return_excluded:bool=None) -> pd.DataFrame:
     """
     Load data/proteins.tsv into a pandas.DataFrame.

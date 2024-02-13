@@ -24,13 +24,15 @@ Functions:
     Beta Phase : job_name = "default_run" (or soft link to 'default_run.sh' if different).
     Write a shell script in user_job_folder similar to RUN_SH_DEFAULTS.
 
-    Current default template: (BENCH.DEFAULT_JOB_SH):
+    Current default template: (BENCH.DEFAULT_JOB_SH, "default_run.sh"):
      ```
      #!/bin/bash
+
      step1.py --dry prot.pdb
      step2.py -d 4
      step3.py -d 4
-     step4.py
+     step4.py --xts
+
      sleep 10
      ```
      Beta Phase: Only the above default script is used; it is soft-linked as job_name.sh if job_name
@@ -41,7 +43,7 @@ Functions:
 """
 
 #...............................................................................
-from mcce_benchmark import audit, BENCH, MCCE_EPS, N_SLEEP, N_ACTIVE
+from mcce_benchmark import audit, BENCH, MCCE_EPS, N_ACTIVE
 import logging
 import os
 from pathlib import Path
@@ -182,11 +184,12 @@ def get_default_script(pdb_dir:Path) -> Path:
     return sh_path
 
 
-def write_run_script(benchmarks_dir:Path,
-                     job_name:str = "default_run") -> None:
+def write_default_run_script(benchmarks_dir:Path,
+                             job_name:str = BENCH.DEFAULT_JOB) -> None:
     """
-    Beta Phase : job_name = "default_run" (or soft link to 'default_run.sh' if different).
-    Write a shell script in user_job_folder similar to RUN_SH_DEFAULTS.
+    To use when cli args are all default.
+    If job_name is different from "default_run", the default script is soft-linked to it
+    as <job_name>.sh
     """
 
     curr = Path.cwd()
@@ -197,7 +200,7 @@ def write_run_script(benchmarks_dir:Path,
     user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs.exists():
         msg = f"{benchmarks_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?"
-        logger.exception(msg)
+        logger.error(msg)
         raise FileNotFoundError(msg)
 
     # reinstall the default script if not found:

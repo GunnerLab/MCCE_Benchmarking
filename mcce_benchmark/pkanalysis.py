@@ -1,23 +1,104 @@
 #!/usr/bin/env python
 
 """
-Uses the legacy implementation usage:
-USAGE: to be run in the user's 'mcce_benchmarks' folder (defaults name).
+Cli end point for analysis.
+
+TODO: transform into cli for 3rd entry point: "mccebench_analyze"
+TODO: Get run times
+
+Previously:
+USAGE: to be run in the user's 'mcce_benchmarks' folder (default name).
 Example. Assuming your at you home directory (cd ~):
 > cd path/to/<mcce_benchmarks>
 > python pkanalysis.py
+
+Refactoring:
+paser with 2 sub-commands:
+ 1. experimental_pkas_comparison:
+   Outputs in "-benchmarks_dir":
+     - MATCHED_PKAS_FILE
+     - residues stats report
+     - Figures if "--plots" was used
+
+   Options:
+   - "-benchmarks_dir"
+   - "--plots": create & save plots
+
+ 2. mcce_runs_comparison:
+   Outputs in "-new_calc_dir":
+
+   Options:
+   - "-new_calc_dir": path to a mcce output folder that will be compared
+   - "-reference_dir": path to a mcce output folder for use as reference; default=parse.e4 (when ready)
+   - "--plots": create & save plots
+   - [FUTURE] "-reference_subdir" (list): If reference_dir is the default one, the list enables subsetting;
+      e.g. if new_calc_dir was setup with only 2 pdbs found in parse.e4, then -reference_subdir=[1ANS,135L];
+      Each item is a folder name for the pdb of the same name.
+    - [FUTURE]: Add global list in __init__.py to read (virgin) book file (book.txt) as ALL_PDBS to facilitate subsetting of reference dataset.
 """
 
-from mcce_benchmark import BENCH, MATCHED_PKAS_FILE
+from mcce_benchmark import BENCH, MATCHED_PKAS_FILE, ALL_PKAS_FILE
 from mcce_benchmark.scheduling import subprocess_run
+import subprocess
 import logging
 import numpy as np
-import pandas
+import pandas as pd
 from pathlib import Path
+from typing import Union
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def collate_all_pkas(benchmarks_dir:Path) ->None:
+    """Collate all pK.out files from 'benchmarks_dir'/clean_pdbs
+       (i.e. assume canonical naming), into a tab-separated file
+       in 'benchmarks_dir'/clean_pdbs named as per ALL_PKAS_FILE.
+       This file can be loaded using pkanalysis.all_pkas_df(benchmarks_dir)."
+    """
+
+    d = benchmarks_dir.joinpath("clean_pdbs")
+    if not d.exists():
+        logger.error(f"Not found: {d}")
+        return
+
+    dirpath = str(d)
+
+    #FIX?: col name for mfe = 'mfe'?
+    pko_hdr = "PDB\tresid @ pH\tpKa/Em\tn(slope)\t1000*chi2\tvdw0\tvdw1\ttors\tebkb\tdsol\toffset\tpHpK0\tEhEm0\t-TS\tresidues\ttotal\tmfe"
+    ofs = '"\t"'
+    all_cmd = "awk 'BEGIN{OFS=" + ofs + "}{out = substr(FILENAME, length(FILENAME)-10, 4); "
+    all_cmd = all_cmd + "for (i = 1; i <= NF; i++) {out = out OFS $i}; print out}' "
+    all_cmd = all_cmd + f"{dirpath}/*/pK.out | sed '/total$/d' > {dirpath}/all_pkas; "
+    all_cmd = all_cmd + f"sed '1 i\{pko_hdr}' {dirpath}/all_pkas > "
+    all_cmd = all_cmd + f"{dirpath}/{ALL_PKAS_FILE}; /bin/rm {dirpath}/all_pkas"
+
+    data = subprocess_run(all_cmd, capture_output=False) #check=True)
+    if isinstance(data, subprocess.CompletedProcess):
+        logger.info(f"Created {ALL_PKAS_FILE!r}; Can be loaded using pkanalysis.all_pkas_df(benchmarks_dir).")
+    else:
+        logger.exception(f"Subprocess error")
+        raise data # data holds the error obj
+    return
+
+
+def all_pkas_df(benchmarks_dir:Path) -> Union[pd.DataFrame, None]:
+    """Load benchmarks_dir/clean_pdbs/all_pkas.tsv into a pandas DataFrame;
+    Return None if not possible.
+    """
+
+    d = benchmarks_dir.joinpath("clean_pdbs")
+    if not d.exists():
+        logger.error(f"Not found: {d}")
+        return None
+
+    allfp = d.joinpath("all_pkas.tsv")
+    if not allfp.exists():
+        logger.error(f"Not found: {allfp}; this file is created with pkanalysis.collate_all_pkas(benchmarks_dir).")
+        return None
+
+    return pd.read_csv(allfp, sep="\t")
 
 
 def get_conf_count() -> int:
@@ -26,7 +107,7 @@ def get_conf_count() -> int:
     #awk '{print $5}' step3_out.pdb |uniq|wc -l
 
 
-def get_book_dirs_for_status(book_fp:str, status:str="c") -> list
+def get_book_dirs_for_status(book_fp:str, status:str="c") -> list:
     """Return a list of folder names from book_fp, the Q_BOOK file path,
     if their status codes match 'status', i.e. completed ('c', default),
     or errorneous ('e').
@@ -193,8 +274,8 @@ def matched_pkas_to_csv(matched_pkas:list, file_path:str=MATCHED_PKAS_FILE) -> N
 
 
 def expl_pka_comparison():
-    #TODO: Get run times
 
+    #collate_all_pkas(test_dir) need arg from cli
     calc_pkas = job_pkas_to_dict()
     expl_pkas = experimental_pkas_to_dict()
     matched_pKas = match_pkas(expl_pkas, calc_pkas)

@@ -33,7 +33,7 @@ def delete_mcce_outputs(mcce_dir:str) -> None:
 
 def clean_job_folder(job_dir:str) -> None:
     """Delete all MCCE output files and folders from a directory `job_dir`,
-    which is a folder of folder named after the pdb id they contain.
+    which is a folder of folders named after the pdb id they contain, i.e. like 'clean_pdbs'.
     """
     pdbs_dir = Path(job_dir)
     for fp in pdbs_dir.iterdir():
@@ -85,7 +85,7 @@ def clear_folder(dir_path: str, file_type:str = None,
 
 
 def delete_folder(dir_path: str) -> None:
-    """Delete folder and all files there in."""
+    """Delete folder and all files therein."""
 
     p = Path(dir_path)
     if not p.is_dir():

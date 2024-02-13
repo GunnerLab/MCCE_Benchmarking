@@ -4,28 +4,28 @@
 Module: cli.py
 
 Command line interface for MCCE benchmarking.
+Main entry point: ENTRY_POINTS["main"] ("mccebench")
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 from crontab import CronTab
 # import class of files resources and constants:
-from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_SLEEP, N_ACTIVE, ENTRY_POINTS, USER_ENV, CRON_COMMENT
-from mcce_benchmark import apply_header_logger, audit, job_setup, batch_submit, scheduling
-#import build_cron_path, build_cron_cmd, create_crontab, 
-
+from mcce_benchmark import BENCH, DEFAULT_DIR, MCCE_EPS, N_ACTIVE, ENTRY_POINTS
+from mcce_benchmark import create_log_header, audit, job_setup, batch_submit, scheduling, custom_sh
 from IPython.core.formatters import format_display_data
 import logging
 from pathlib import Path
 import sys
 
-apply_header_logger()
+
+create_log_header()
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 #.......................................................................
 
 
-CLI_NAME = ENTRY_POINTS["parent"] # as per pyproject.toml entry point
+CLI_NAME = ENTRY_POINTS["main"] # as per pyproject.toml entry point
 
 SUB_CMD1 = "data_setup"
 HELP_1 = "Sub-command for preparing `<benchmarks_dir>/clean_pdbs folder."
@@ -33,10 +33,6 @@ HELP_1 = "Sub-command for preparing `<benchmarks_dir>/clean_pdbs folder."
 SUB_CMD2 = "script_setup"
 HELP_2 = "Sub-command for setting up the job_name_run.sh script."
 
-#TODO?:
-# - cmd3 name: change to "batch_schedule"?
-# - add arg --do_not_schedule => for very small jobs?
-#
 SUB_CMD3 = "launch_batch"
 HELP_3 = "Sub-command for launching a batch of jobs."
 
@@ -59,31 +55,43 @@ USAGE = f"""
 {CLI_NAME} <+ sub-command :: one of [{SUB_CMD1}, {SUB_CMD2}, {SUB_CMD3}]> <related args>\n
 Examples for current implementation (Beta):
 
-1. Data setup
- - Using defaults (benchmarks_dir= {DEFAULT_DIR}):
-   >mccebench data_setup
+1. Data setup; sub-command: {SUB_CMD1}
+   PURPOSE: Creation of a data set with this structure: <benchmarks_dir>/clean_pdbs,
+            including the all the curated pdbs from the pKaDB in their respective
+            folders, and all ancillary files.
+   THIS STEP IS NOT NEEDED if you want to compare two mcce runs that do not use any of the above pdbs.
+
+   - Using defaults (benchmarks_dir= {DEFAULT_DIR}):
+   >{CLI_NAME} {SUB_CMD1}
 
  - Using a different folder name:
-   >mccebench data_setup -benchmarks_dir <different name>
+   >{CLI_NAME} {SUB_CMD1} -benchmarks_dir <different name>
 
-2. Script setup
+2. Script setup; sub-command: {SUB_CMD2}
+   PURPOSE: Creation of a custom mcce run script for steps 1-4 if any of the command line
+            options differ from the default ones. If only the job_name differs, the
+            default run script is soft linked to that name, which will be identifiable
+            in the user's running processes list. For this reason, it is recommnended
+            customize the job_name for each benchmark submission else all processes will
+            show "default_run.sh".
+
  - Using defaults (benchmarks_dir= {DEFAULT_DIR}; job_name= {bench_default_jobname}):
-   >mccebench script_setup
+   >{CLI_NAME} {SUB_CMD2}
 
  - Using non-default option(s):
-   >mccebench script_setup -job_name <my_job_name>
-   >mccebench script_setup -benchmarks_dir <different name> -job_name <my_job_name>
+   >{CLI_NAME} {SUB_CMD2} -job_name <my_job_name>
+   >{CLI_NAME} {SUB_CMD2} -benchmarks_dir <different name> -job_name <my_job_name>
 
-3. Submit batch of jobs
+3. Submit batch of jobs; sub-command: {SUB_CMD3}
  - Using defaults (benchmarks_dir= {DEFAULT_DIR};
                    job_name= {bench_default_jobname};
                    n_active= {N_ACTIVE};
                    sentinel_file= pK.out):
-   >mccebench launch_batch
+   >{CLI_NAME} {SUB_CMD3}
 
  - Using non-default option(s):
-   >mccebench launch_batch -n_active <jobs to maintain>
-   >mccebench launch_batch -job_name <my_job_name> -sentinel_file step2_out.pdb
+   >{CLI_NAME} {SUB_CMD3} -n_active <jobs to maintain>
+   >{CLI_NAME} {SUB_CMD3} -job_name <my_job_name> -sentinel_file step2_out.pdb
 """
 
 
@@ -111,8 +119,8 @@ def bench_data_setup(args:argNamespace):
 
 def bench_script_setup(args:argNamespace) -> None:
     """Benchmark cli function for 'script_setup' sub-command.
-    PRE-REQS: args.benchmarks_dir & clean_pdbs folders exist as previously
-    created via > mccebench data_setup command.
+    PRE-REQS: args.benchmarks_dir & clean_pdbs folders exist (as they would
+    if 'mccebench data_setup' command was used prior to this step).
     Processing steps:
      1. Write fresh book file
      2. Write script for args.job_name
@@ -126,7 +134,7 @@ def bench_script_setup(args:argNamespace) -> None:
     clean_pdbs_dir = args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not clean_pdbs_dir.exists():
         msg = f"Missing {BENCH.CLEAN_PDBS!r} folder in {args.benchmarks_dir}:\nRe-run subcommand {SUB_CMD1!r}, perhaps?"
-        logger.exception(msg)
+        logger.error(msg)
         raise FileNotFoundError(msg)
 
     logger.info(args_to_str(args))
@@ -136,28 +144,18 @@ def bench_script_setup(args:argNamespace) -> None:
     audit.rewrite_book_file(book)
 
     logger.info(f"Writing script for {args.job_name!r} job.")
-    job_setup.write_run_script(args.benchmarks_dir, args.job_name)
+    # determine if args are all defaults
+    use_default_sh = custom_sh.all_opts_are_defaults(args)
+    if use_default_sh:
+        job_setup.write_default_run_script(args.benchmarks_dir, args.job_name)
+    else:
+        custom_sh.write_run_script_from_template(args.benchmarks_dir,
+                                                 args.job_name,
+                                                 job_args = args)
 
     logger.info("Deleting previous sentinel files, if any.")
     job_setup.delete_sentinel(args.benchmarks_dir, args.sentinel_file)
     return
-
-
-def schedule_job(launch_args:argNamespace):
-    """Create a contab entry for batch_submit.py with `launch_args`"""
-
-    sh_path = scheduling.create_cron_sh(launch_args.conda_env,
-                                        launch_args.benchmarks_dir,
-                                        launch_args.job_name,
-                                        launch_args.n_active,
-                                        launch_args.sentinel_file
-                                       )
-    logger.info("Created the bash script for crontab.")
-
-    #pa = scheduling.build_cron_path()  #previously
-    cron_cmd = scheduling.build_cron_cmd(sh_path)
-    scheduling.create_crontab(cron_cmd)
-    logger.info("Scheduled batch submission with crontab every minute.")
 
 
 # bench_batch_schedule
@@ -165,10 +163,13 @@ def bench_launch_batch(args:argNamespace) -> None:
     """Benchmark cli function for 'launch_batch' sub-command.
     PRE-REQS:
     1. args.benchmarks_dir & clean_pdbs folders exist as previously
-       created via > mccebench data_setup command.
+       created via 'mccebench data_setup' command.
     2. args.job_name script exists as previously created via
        mccebench script_setup command.
     """
+
+    #TODO:
+    #Output script to log again in case it was manualy modified
 
     in_benchmarks = Path.cwd().name == args.benchmarks_dir.name
     if in_benchmarks:
@@ -182,13 +183,13 @@ def bench_launch_batch(args:argNamespace) -> None:
         logger.info("Debug mode: batch_submit.launch_job not called")
     else:
         logger.info("Beta mode: scheduling job")
-        # submit 1st with batch_submit.launch_job:
+        # temp: submit 1st with batch_submit.launch_job:
         batch_submit.launch_job(args.benchmarks_dir,
                                 args.job_name,
                                 args.n_active,
                                 args.sentinel_file)
         # with crontab; FIX: fails silently
-        schedule_job(args)
+        scheduling.schedule_job(args)
 
     return
 
@@ -203,6 +204,7 @@ def bench_parser():
             return None
         return Path(p).resolve()
 
+    # parent parser
     p = ArgumentParser(
         prog = f"{CLI_NAME} ",
         description = DESC,
@@ -210,6 +212,7 @@ def bench_parser():
         formatter_class = RawDescriptionHelpFormatter,
         epilog = ">>> END of %(prog)s",
     )
+
     subparsers = p.add_subparsers(required = True,
                                   title = f"{CLI_NAME} sub-commands",
                                   description = "Sub-commands of MCCE benchmarking cli.",
@@ -236,7 +239,6 @@ def bench_parser():
     # bind subparser with its related function:
     sub1.set_defaults(func=bench_data_setup)
 
-    # script_setup
     sub2 = subparsers.add_parser(SUB_CMD2,
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_2)
@@ -258,6 +260,7 @@ def bench_parser():
         in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
         """
     )
+    # sentinel_file (e.g. pK.out) is part of script setup to ensure it is deleted prior to using launch sub-command.
     sub2.add_argument(
         "-sentinel_file",
         type = str,
@@ -266,35 +269,130 @@ def bench_parser():
         this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
+    #step1.py prot.pdb {wet} {noter} {d} {s1_norun} {u}
     sub2.add_argument(
         "-wet",
+        type = bool,
         default = False,
         help = "Keep water molecules.",
     )
     sub2.add_argument(
-        "-norun",
+        "--noter",
         default = False,
-        help = "Create run.prm without running the step",
+        help = "Do not label terminal residues (for making ftpl).", action="store_true"
     )
-    #sub2.add_argument(
-    #    "-e",
-    #    metavar = "/path/to/mcce",
-    #    default = "mcce",
-    #    help = "Location of the mcce executable, i.e. which mcce; default: %(default)s.",
-    #)
+    # common to all steps:
     sub2.add_argument(
-        "-eps",
-        metavar = "epsilon",
-        default = MCCE_EPS,
-        help = "Protein dielectric constant; default: %(default)s.",
-    )
-    sub2.add_argument(
-        "-u",
-        metavar = "Comma-separated list of Key=Value pairs.",
-        default = "",
-        help = """User selected, comma-separated KEY=var pairs from run.prm; e.g.:
+        "-u", metavar = "Key=Value",
+        type = str, default = "",
+        help = """
+        User selected, comma-separated KEY=var pairs from run.prm; e.g.:
         -u HOME_MCCE=/path/to/mcce_home,H2O_SASCUTOFF=0.05,EXTRA=./extra.tpl; default: %(default)s.
         Note: No space after a comma!"""
+    )
+
+    # norun option for each steps:
+    sub2.add_argument(
+        "-s1_norun",
+        default = False,
+        type = bool,
+        help = "Create run.prm without running step 1."
+    )
+    sub2.add_argument(
+        "-s2_norun",
+        default = False,
+        type = bool,
+        help = "Create run.prm without running step 2."
+    )
+    sub2.add_argument(
+        "-s3_norun",
+        default = False,
+        type = bool,
+        help = "Create run.prm without running step 3."
+    )
+    sub2.add_argument(
+        "-s4_norun",
+        default = False,
+        type = bool,
+        help = "Create run.prm without running step 4."
+    )
+    # steps 1-3:
+    sub2.add_argument(
+        "-d", metavar = "epsilon",
+        type = float,
+        default = 4.0,
+        help = "protein dielectric constant for delphi; %(default)s."
+    )
+
+    #step2.py {conf_making_level} {d} {s2_norun} {u}
+    sub2.add_argument(
+        "-conf_making_level",
+        type = int,
+        default = 1,
+        help = "conformer level 1: quick, 2: medium, 3: comprehensive; default: %(default)s.")
+
+    #step3.py {c} {x} {f} {p} {r} {d} {s3_norun} {u}
+    sub2.add_argument(
+        "-c", metavar=('start','end'),
+        type=int,
+        default = [1, 99999], nargs = 2,
+        help = "Starting and ending conformer; default: %(default)s."
+    )
+    sub2.add_argument(
+        "-x", metavar = "/path/to/delphi",
+        default = "delphi",
+        help = "Delphi executable location; default: %(default)s."
+    )
+    sub2.add_argument(
+        "-f", metavar = "tmp folder",
+        default = "/tmp",
+        help = "Delphi temporary folder; default: %(default)s."
+    )
+    sub2.add_argument(
+        "-p", metavar = "processes",
+        type = int,
+        default = 1,
+        help="Number of processes to use; default: %(default)s."
+    )
+    #should be --r:
+    sub2.add_argument(
+        "-r",
+        default = False,
+        help = "Refresh opp files and head3.lst without running Delphi",
+        action = "store_true"
+    )
+
+    #step4.py --xts {titr_type} {i} {interval} {n} {ms} {s4_norun} {u}
+    sub2.add_argument(
+        "-titr_type", metavar="ph or eh",
+        type = str,
+        default = "ph",
+        help = "Titration type, pH or Eh; default: %(default)s."
+    )
+    sub2.add_argument(
+        "-i",
+        metavar = "initial ph/eh",
+        type = float,
+        default = 0.0,
+        help="Initial pH/Eh of titration; default: %(default)s."
+    )
+    sub2.add_argument(
+        "-interval", metavar="interval",
+        type = float,
+        default = 1.0,
+        help = "Titration interval in pJ or mV; default: %(default)s."
+    )
+    sub2.add_argument(
+        "-n", metavar = "steps",
+        type = int,
+        default = 15,
+        help = "number of steps of titration; default: %(default)s."
+    )
+    sub2.add_argument(
+        "--ms",
+        default = False,
+        help = "Enable microstate output",
+        action="store_true"
     )
     sub2.set_defaults(func=bench_script_setup)
 
@@ -302,12 +400,6 @@ def bench_parser():
     sub3 = subparsers.add_parser(SUB_CMD3,
                                  formatter_class = RawDescriptionHelpFormatter,
                                  help=HELP_3)
-    sub3.add_argument(
-        "-conda_env",
-        default = "base",
-        type = str,
-        help = """Name of the conda environment where mcce_benchmark was installed."""
-    )
     sub3.add_argument(
         "-benchmarks_dir",
         default = Path(DEFAULT_DIR).resolve(),
@@ -341,6 +433,12 @@ def bench_parser():
         this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
+    #sub3.add_argument(
+    #    "--do_not_schedule",
+    #    default = False,
+    #    help = "Do schedule via crontab. Use for very small jobs, i.e. number of pdbs < N_ACTIVE.",
+    #    action="store_true"
+    #)
     sub3.set_defaults(func=bench_launch_batch)
 
     return p

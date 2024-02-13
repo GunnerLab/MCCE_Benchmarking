@@ -48,7 +48,7 @@ logger.setLevel(logging.DEBUG)
 #.......................................................................
 
 
-CLI_NAME = ENTRY_POINTS["child"]  # as per pyproject.toml entry point
+CLI_NAME = ENTRY_POINTS["launch"]  # as per pyproject.toml entry point
 
 
 class ENTRY:
