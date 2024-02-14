@@ -4,9 +4,12 @@ import getpass
 from importlib import resources
 import logging
 from mcce_benchmark import _version
+from mcce_benchmark.scheduling import subprocess_run
 from pathlib import Path
 import shutil
+import subprocess
 import sys
+from typing import Union
 
 
 #................................................................................
@@ -18,11 +21,33 @@ if USER_MCCE is None:
     raise EnvironmentError(f"{APP_NAME}, __init__ :: mcce executable not found.")
 
 
+def get_user_env() -> tuple:
+    """Return the sys.prefix, env name, ."""
+
+    user_prefix = sys.prefix
+    env = Path(user_prefix).name
+
+    if "envs" not in user_prefix:
+        if env != "miniconda3" and env != "anaconda3":
+            logging.error("EnvironmentError: You appear not to be using conda, which is required for scheduling.")
+            raise EnvironmentError("You appear not to be using conda, which is required for scheduling.")
+        else:
+            #logging.warning("Using base conda environment.")
+            env = 'base'
+    else:
+         return user_prefix, env
+
+
+# user envir:
+USER_PRFX, USER_ENV = get_user_env()
+CONDA_PATH = shutil.which("conda")
+
+
 DEFAULT_DIR = "mcce_benchmarks"
 MATCHED_PKAS_FILE = "matched_pkas.csv"
 ALL_PKAS_FILE = "all_pkas.tsv"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
-N_ACTIVE = 10  # number of active jobs to maintain
+N_ACTIVE = 10  # number of active jobs to maintain in the process queue
 ENTRY_POINTS = {"main": "mccebench",
                 "launch": "mccebench_launchjob"}
 #TODO: new needed:
@@ -40,6 +65,33 @@ MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "extra.tpl", "fort.38",
                 "step2_out.pdb", "step3_out.pdb",
                 "sum_crg.out", "vdw0.lst",
                ]
+
+
+def Pathok(pathname:str, check_fn:str=None, raise_err=True) -> Union[Path, bool]:
+    """Return path if check passed, else raise error.
+    check_fn: one of 'exists', 'is_dir', 'is_file'.
+    if raise_err=False, return False insteadt of err.
+    """
+
+    pathname = Path(pathname)
+    if check_fn not in ['exists', 'is_dir', 'is_file']:
+        check_fn = 'exists'
+
+    if check_fn == 'exists':
+        msg = f"Path not found: {pathname}"
+    elif check_fn == 'is_dir':
+        msg = f"Directory not found: {pathname}"
+    elif check_fn == 'is_file':
+        msg = f"Path is not a file: {pathname}"
+
+    if not pathname.__getattribute__(check_fn)():
+        if not raise_err:
+            return False
+
+        logging.error(msg)
+        raise FileNotFoundError(msg)
+
+    return pathname
 
 
 #TODO: add reference_runs folder?
@@ -124,6 +176,7 @@ BENCH = Bench_Resources()
 # Config for root logger: handlers at module level
 
 USER = getpass.getuser()
+
 DT_FMT = "%Y-%m-%d %H:%M:%S"
 BODY = "[%(levelname)s]: %(name)s, %(funcName)s:\n\t%(message)s"
 logging.basicConfig(level=logging.INFO,
@@ -139,25 +192,6 @@ fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler(sys.stdout)
 ch.name = "ch"
 ch.setLevel(logging.INFO)
-
-def get_user_env() -> str:
-    """Return the conda environment."""
-
-    user_prefix = sys.prefix
-    env = Path(user_prefix).name
-
-    if "envs" not in user_prefix:
-        if env != "miniconda3" and env != "anaconda3":
-            logging.error("EnvironmentError: You appear not to be using conda, which is required for scheduling.")
-            raise EnvironmentError("You appear not to be using conda, which is required for scheduling.")
-        else:
-            logging.warning("You should be using a dedicated conda environment!")
-            return "base"
-    else:
-         return env
-
-# user info
-USER_ENV = get_user_env()
 
 
 def create_log_header():
