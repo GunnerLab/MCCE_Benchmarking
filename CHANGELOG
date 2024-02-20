@@ -1,4 +1,4 @@
-Cat Chenal (28):
+Cat Chenal (49):
       Wed, 27 Dec 2023 13:42:07 -0500 - Initial commit
       Wed, 3 Jan 2024 13:25:33 -0500 - chore: Initital upload - no data
       Thu, 4 Jan 2024 17:55:39 -0500 - feat: Update audit functions and sentinel files
@@ -27,4 +27,25 @@ Cat Chenal (28):
       Fri, 26 Jan 2024 17:46:57 -0500 - fix: Modified logging to get header vs body lines
       Fri, 26 Jan 2024 17:51:43 -0500 - chore: Update CHANGELOG
       Mon, 29 Jan 2024 16:01:00 -0500 - feat: Change proj name to mcce_benchmark & global update (see notes)
+      Mon, 29 Jan 2024 16:04:55 -0500 - Update CHNAGELOG
+      Mon, 29 Jan 2024 17:48:22 -0500 - Tweak settings for build
+      Tue, 30 Jan 2024 11:37:42 -0500 - chore: clean test folder
+      Tue, 30 Jan 2024 16:22:33 -0500 - chore: Uncomment default_run.sh; new global: USER
+      Wed, 31 Jan 2024 15:22:59 -0500 - fix: Add indentation level on L178 of batch_submit
+      Thu, 1 Feb 2024 17:45:10 -0500 - chore: Prep for job scheduling.
+      Thu, 1 Feb 2024 18:34:30 -0500 - docs: Install_and_Test.txt
+      Fri, 2 Feb 2024 12:08:07 -0500 - chore: Update cli.py
+      Fri, 2 Feb 2024 13:29:39 -0500 - feat: Setup new entry point, mcce_launch_job for cron scheduling Also reinserted '#!/usr/bin/env python' directive in all modules Closes #7
+      Sun, 4 Feb 2024 12:44:28 -0500 - feat: Add scheduling
+      Tue, 6 Feb 2024 11:36:33 -0500 - docs: Add Benchmarking_Project.md
+      Tue, 6 Feb 2024 16:57:18 -0500 - chore: Data cleanup
+      Wed, 7 Feb 2024 11:14:48 -0500 - docs: Add MG's outline
+      Fri, 9 Feb 2024 14:56:04 -0500 - Open issues as per Benchmarking_Outline_MG.md
+      Sat, 10 Feb 2024 12:03:31 -0500 - chore: Fix logging
+      Sat, 10 Feb 2024 12:20:07 -0500 - feat: Add '--xts' on step4 of default sh script.
+      Sat, 10 Feb 2024 13:16:08 -0500 - fix: Change --dry and --norun to options without actions.
+      Sat, 10 Feb 2024 14:39:57 -0500 - feat: Add logging to pKanalysys.py
+      Mon, 12 Feb 2024 19:45:27 -0500 - feat: Update cli to allow fully customized run script.
+      Wed, 14 Feb 2024 16:15:53 -0500 - Add flowcharts notebook (mermaid not rendered in gh).
+      Tue, 20 Feb 2024 13:42:45 -0500 - feat: New analysis entry point; parse.e4 reference set.
 

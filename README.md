@@ -86,3 +86,9 @@ Examples for current implementation (Beta):
                    sentinel_file= pK.out):
    >bench_expl_pkas job_launch
 ```
+
+
+## Installation:
+
+See [Install_and_Test](./Install_and_Test.txt) for ad-hoc installation until app is published.
+

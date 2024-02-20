@@ -6,7 +6,7 @@ Notation remarks:
 
 0. Preferable: cd $HOME
 1. Install miniconda, if needed
-2. Create a virtual environment and activate it
+2. Create a virtual environment and activate it; mine is 'mce'.
 3. Run this command to download the repo & install it into your env:
    Note: You should create a folder, e.g. `benchcode` as the installer
    will download the repo as 'src', which may overwrite any src folder
@@ -20,47 +20,53 @@ Notation remarks:
 4. Check that the installation created the main cli command:
    (The command will not be available outside your environment.)
 
-   >which mccebench
-   >>~/miniconda3/envs/mce/bin/mccebench
+   >which bench_expl_pkas
+   >>~/miniconda3/envs/mce/bin/bench_expl_pkas
+   
+   The other ones are:
+   >which bench_launchjob
+   >>~/miniconda3/envs/mce/bin/bench_launchjob
 
-4.5 Check the online help:
+   >which bench_analyze
+   >>~/miniconda3/envs/mce/bin/bench_analyze
 
-   >mccebench data_setup --help
-   >mccebench script_setup --help
-   >mccebench launch_batch --help
+4.5 Check the online help, e.g.:
 
-5. Run the first sub-command, data setup:
+   >bench_expl_pkas job_setup --help
+   >bench_analyze expl_pkas: --help
 
-   >mccebench data_setup
+5. Run the first sub-command, job setup (includes scheduling step when run this way):
 
-6. Reduce # of folders (Optional and manual):
-   To run a batch on a limited number of folders, perform the following:
+   >bench_expl_pkas job_setup
 
-   * Rename 'clean_pdbs' folder:
-     >mv clean_pdbs clean_pdbs0
+[6. Manually launching a batch (in case the scheduler fails):
 
-   * Create a new, empty one:
-     >mkdir clean_pdbs
+   >bench_launchjob -n_active 20
 
-   * Copy the following dirs from clean_pdbs0 to clean_pdbs:
-    >cp -r clean_pdbs0/7RSA clean_pdbs/.
-    >cp -r clean_pdbs0/8RNT clean_pdbs/.
-    >cp -r clean_pdbs0/9RAT clean_pdbs/.
-    >cp -r clean_pdbs0/9RNT clean_pdbs/.
-
-7. Run the second sub-command, script setup; book.txt will reflect new number of folders:
-
-   >mccebench script_setup
-
-8. Run launch_batch sub-command:
-
-   >mccebench launch_batch -n_active 4
-
-Note: until scheduling is automated, this step is needed:
-9. Wait a bit and repeat #8 to update clean_pdbs/book.txt
+ 7. Wait a bit and repeat #6 to update clean_pdbs/book.txt
 
    You can find out out many jobs are left to be submitted with this command:
+
+   Note: replace 'mcce_benchmarks' if this is not the folder name you provided during setup:
+
    (mce) cchenal@isis:~/projects$ to_submit=$(grep -v -e 'r$' -e 'c$' mcce_benchmarks/clean_pdbs/book.txt | wc -l)
    (mce) cchenal@isis:~/projects$ echo "$to_submit"
 
-   (If -n_active equals the number of folders, it should be 0.)
+   (If -n_active equals the number of folders, the result should be 0.)
+]
+
+8. Analyze:
+   The command line interface for analyzing a job setup via `bench_expl_pkas`, accept two arguments: -benchmarks_dir 
+   (default: 'mcce_benchmarks'), and -min_pct_complete (default: 1=100%, which you should keep for now as the analysis
+   is currently using the pkadbv1 dataset - see README - to get the total number of pdbs; Issue 19).
+
+   The first step of the analysis is the check that this threshold has been met. Incidentally, it's an easy way to check for
+   how far long the job is.
+
+   >bench_analyze expl_pkas -benchmarks_dir foo -min_pct_complete 0.9
+
+
+Please, open an issue with any problem installing or using the app at:
+https://github.com/GunnerLab/MCCE_Benchmarking/issues
+
+Thanks.
