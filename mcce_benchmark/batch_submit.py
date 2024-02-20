@@ -19,11 +19,15 @@ Main functions:
     job equals n_active.
     To be run in /clean_pdbs folder, which is where Q_BOOK resides.
 
-* launch_job(benchmarks_dir:Path = None,
+* launch_job(benchmarks_dir:Path = Path(DEFAULT_DIR),
              job_name:str = None,
              n_active:int = N_ACTIVE,
              sentinel_file:str = "pK.out") -> None:
     Go to benchmarks_dir/clean_pdbs directory & call batch_run.
+
+ * launch_cli(argv=None)
+    Entry point function.
+
 
 Q book status codes:
      " ": not submitted
@@ -33,7 +37,7 @@ Q book status codes:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR, ENTRY_POINTS
+from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR, ENTRY_POINTS, Pathok
 from mcce_benchmark.scheduling import subprocess_run
 import logging
 import os
@@ -87,10 +91,18 @@ def get_running_jobs_dirs(job_name:str) -> list:
 
     # get the process IDs that match job_name from the user's running processes
     data = subprocess_run(f"pgrep -u {USER} {job_name}")
+    if data is subprocess.CalledProcessError:
+        logger.error("Error with pgrep cmd.")
+        raise data
+
     dirs = []
     for uid in data.stdout.splitlines():
         # get the current working directory of a process
         out = subprocess_run(f"pwdx {uid}")
+        if out is subprocess.CalledProcessError:
+            logger.error("Error with pwdx cmd.")
+            raise out
+
         d = Path(out.stdout.split(":")[1].strip())
         dirs.append(d.name)
 
@@ -113,9 +125,7 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
     """
 
     job_script = f"{job_name}.sh"
-    if not Path(job_script).exists():
-        logger.exception(f"The job script ({job_script}) is missing.")
-        raise FileNotFoundError(f"The job script ({job_script!r}) is missing.")
+    job_script_fp = Pathok(Path(job_script))
 
     # list of entry instances from Q_BOOK:
     entries = read_book_entries()
@@ -144,7 +154,7 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
                 entry.state = "e"
                 # for debugging:
                 sentin_fp = Path(entry.name).joinpath(sentinel_file)
-                logger.info(f"Sentinel: {sentin_fp}; Exists: {sentin_fp.exists()}")
+                logger.info(f"Sentinel: {sentin_fp}; found: {sentin_fp.exists()}")
                 if sentin_fp.exists():
                     entry.state = "c"
                 logger.info(f"Changed {entry.name}: 'r' -> {entry.state!r}")
@@ -157,9 +167,8 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
 
     return
 
-default_path = Path(DEFAULT_DIR)
 
-def launch_job(benchmarks_dir:Path = default_path,
+def launch_job(benchmarks_dir:str = DEFAULT_DIR,
                job_name:str = BENCH.DEFAULT_JOB,
                n_active:int = N_ACTIVE,
                sentinel_file:str = "pK.out") -> None:
@@ -175,14 +184,15 @@ def launch_job(benchmarks_dir:Path = default_path,
         when running only the first 2, this file is 'step2_out.pdb'.
     """
 
-    if benchmarks_dir is None:
-        logger.exception("Argument not set: benchmarks_dir is None.")
-        raise ValueError("Argument not set: benchmarks_dir is None.")
+    if benchmarks_dir is None or not benchmarks_dir:
+        logger.exception("Argument not set: benchmarks_dir.")
+        raise ValueError("Argument not set: benchmarks_dir.")
 
-    if job_name is None:
-        logger.exception("Argument not set: job_name is None.")
-        raise ValueError("Argument not set: job_name is None.")
+    if job_name is None or not job_name:
+        logger.exception("Argument not set: job_name.")
+        raise ValueError("Argument not set: job_name.")
 
+    benchmarks_dir = Path(benchmarks_dir)
     if Path.cwd().name != benchmarks_dir.name:
         os.chdir(benchmarks_dir)
 
@@ -211,7 +221,7 @@ def batch_parser():
 
     parser.add_argument(
         "-benchmarks_dir",
-        default = default_path,
+        default = str(Path(DEFAULT_DIR)),
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
         "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
@@ -239,7 +249,7 @@ def batch_parser():
         type = str,
         default = "pK.out",
         help = """File whose existence signals a completed step; When running all 4 MCCE steps (default),
-        this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
+        this file is 'pK.out', while when running only the first 2, this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
 

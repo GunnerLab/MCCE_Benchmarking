@@ -23,7 +23,7 @@ Note: proteins.tsv should be considered the ground truth.
 """
 
 # import class of files resources and associated constants:
-from mcce_benchmark import BENCH
+from mcce_benchmark import BENCH, Pathok
 from functools import cache
 import logging
 import numpy as np
@@ -99,12 +99,13 @@ def get_usable_prots(prot_tsv_file:Path=BENCH.BENCH_PROTS) -> list:
     return df[~ df.Use.isna()].PDB.to_list()
 
 
-def valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
-    """Return whether 'pdb_dir' contains a valid pdb (default), or its name if
-    'return_name'=True if valid, else None.
+def valid_pdb(pdb_dir:str, return_name:bool = False) -> Union[bool, Path, None]:
+    """Return whether 'pdb_dir' contains a valid pdb (bool, default), or its
+    Path if 'return_name'=True if valid, else None.
     Used by list_all_valid_pdbs.
     """
 
+    pdb_dir = Path(pdb_dir)
     # single model pdb
     pdb = pdb_dir.joinpath(f"{pdb_dir.name.lower()}.pdb")
     ok = pdb.exists()
@@ -151,9 +152,8 @@ def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     each list = ["PDB/pdb[_*].pdb", ..].
     For managing packaged data.
     """
-    if not clean_pdbs_dir.is_dir():
-        logger.error(f"Directory not found: {clean_pdbs_dir}")
-        raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
+
+    clean_pdbs_dir = Pathok(clean_pdbs_dir, check_fn='is_dir')
 
     valid = []
     invalid = []
@@ -181,9 +181,7 @@ def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     For managing packaged data.
     """
 
-    if not clean_pdbs_dir.is_dir():
-        logger.error(f"Directory not found: {clean_pdbs_dir}")
-        raise FileNotFoundError(f"Directory not found: {clean_pdbs_dir}")
+    clean_pdbs_dir = Pathok(clean_pdbs_dir, check_fn='is_dir')
 
     valid = []
     invalid = []

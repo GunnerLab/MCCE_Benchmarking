@@ -1,7 +1,10 @@
 #Remove all files under directories matching dir-pattern that match any of the listed patterns
-recursive-exclude legacy/ *.py *.txt *.md
-recursive-exclude mcce_benchmark/future/ *.py
-recursive-exclude notebooks/ *.ipynb
-recursive-exclude notebooks/_tmp/ *.ipynb *.txt
+recursive-exclude legacy/*
+recursive-exclude mcce_benchmark/tests/data/*
+recursive-exclude mcce_benchmark/future/*.py
+recursive-exclude notebooks/*.png
+recursive-exclude notebooks/*.txt
+recursive-exclude notebooks/*.log
+recursive-exclude notebooks/_tmp/*
 
 global-exclude _tmp*.*

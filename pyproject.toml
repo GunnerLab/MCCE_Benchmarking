@@ -53,11 +53,12 @@ Source = "https://github.com/GunnerLab/MCCE_Benchmarking"
 find = {}
 
 [tool.setuptools.package-data]
-"mcce_benchmark.data" = ["*.txt","*.tsv", "*.csv", "*.pdb", "*.sh"]
+"mcce_benchmark.data" = ["*.txt", "*.tsv", "*.csv", "*.pdb", "*.sh"]
 
 [project.scripts]
-mccebench = "mcce_benchmark.cli:bench_cli"
-mccebench_launchjob = "mcce_benchmark.batch_submit:launch_cli"
+bench_expl_pkas = "mcce_benchmark.cli:bench_cli"
+bench_launchjob = "mcce_benchmark.batch_submit:launch_cli"
+bench_analyze = "mcce_benchmark.pkanalysis:analyze_cli"
 
 [tool.setuptools_scm]
 version_file = "mcce_benchmark/_version.py"

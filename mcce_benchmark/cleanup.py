@@ -11,8 +11,9 @@ from pathlib import Path
 import shutil
 
 
-def delete_mcce_outputs(mcce_dir:str) -> None:
-    """Delete all MCCE output files or folders from a MCCE run folder.
+def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None) -> None:
+    """Delete all MCCE output files or folders from a MCCE run folder;
+    Only keep files in files_to_keep if not None.
     Note: All subfolders within `mcce_dir` are automatically deleted.
     """
 
@@ -21,12 +22,44 @@ def delete_mcce_outputs(mcce_dir:str) -> None:
         print(f"{folder = } does not exist.")
         return
 
+    if files_to_keep is None:
+        check_list = MCCE_OUTPUTS
+    else:
+        # deletion list:
+        check_list = list(set(files_to_keep).symmetric_difference(set(MCCE_OUTPUTS+["prot.pdb"])))
+
     for fp in folder.iterdir():
         if fp.is_dir():
             shutil.rmtree(fp)
         else:
-            if fp.name in MCCE_OUTPUTS:
+            if fp.name in check_list:
                 fp.unlink()
+            else:
+                # delete original pdb file:
+                if fp.name == f"{folder.name.lower()}.pdb":
+                    fp.unlink()
+
+    return
+
+
+def prep_refset(benchmarks_dir:str, keep_files:list=None) -> None:
+    """
+    ASSUME 'standard' structure: <benchmarks_dir>/clean_pdbs
+    Delete all MCCE output files that are not in the 'keep_files' list.
+    Delete all mcce subfolders,
+    which is a folder of folders named after the pdb id they contain, i.e. like 'clean_pdbs'.
+    ~ clean_job_folder()
+    """
+
+    pdbs = Path(benchmarks_dir)/"clean_pdbs"
+    if not pdbs.exists():
+        raise FileNotFoundError(f"Not found: {pdbs}")
+
+    for fp in pdbs.iterdir():
+        if fp.is_dir():
+            delete_mcce_outputs(fp, files_to_keep=keep_files)
+        else:
+            print(f"{fp = }: remaining")
 
     return
 
@@ -35,6 +68,7 @@ def clean_job_folder(job_dir:str) -> None:
     """Delete all MCCE output files and folders from a directory `job_dir`,
     which is a folder of folders named after the pdb id they contain, i.e. like 'clean_pdbs'.
     """
+
     pdbs_dir = Path(job_dir)
     for fp in pdbs_dir.iterdir():
         if fp.is_dir():
@@ -57,7 +91,7 @@ def clear_folder(dir_path: str, file_type:str = None,
 
     # validate del_subdir_begin:
     if del_subdir:
-        if del_subdir_begin is None or len(del_subdir_begin) == 0:
+        if del_subdir_begin is None or not del_subdir_begin == 0:
             del_subdir = False
 
     p = Path(dir_path)
@@ -103,7 +137,7 @@ def save_dict_to_txt(dict_data: dict, text_filepath: str) -> None:
         text_filepath = text_filepath + ".txt"
 
     with open(text_filepath, "w") as out:
-        for k dict_data:
+        for k in dict_data:
             out.write(f"{k} : {dict_data[k]}\n")
 
     return

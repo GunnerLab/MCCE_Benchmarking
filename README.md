@@ -3,19 +3,24 @@ _beta version_
 
 ## Packaged `mcce_benchmark/data` folder contents
 ```
-	data
-	├── MT_pkas.csv
-	├── WT_pkas.csv
-	├── metadata.md
-	├── proteins.tsv
-	└── clean_pdbs/
+  ./
+  ├── __init__.py
+  ├── pkadbv1
+  │   ├── WT_pkas.csv
+  │   ├── metadata.md
+  │   ├── proteins.tsv
+  │   └── clean_pdbs/
+  └── refsets
+      └── parse.e4/
+          ├── analysis/
+          ├── clean_pdbs/
+          └── all_pkas.out
 ```
 
 ## Experimental pKas data source
 The original data comes from [Dr. Emil Axelov's pKa Database (1)](http://compbio.clemson.edu/lab/software/5/). The list for wild types and mutants alike was further curated by Dr. Junjun Mao at the Gunner Lab at CCNY to
-mainly remove membrane proteins and those containing nucleotides, and to select the biological unit(s). The resulting files: `WT_pkas.csv` and `MT_pkas.csv`, contain the primary data needed for benchmarking purpose.
-However, only the WT data is currently used as most of pKas of the mutant proteins were measured by NMR, hence
-yield pKa _ranges_ rather than values.
+mainly remove membrane proteins and those containing nucleotides, and to select the biological unit(s). The resulting file: `WT_pkas.csv` contains the primary data needed for benchmarking purpose.
+
 
 #### pKa file header:
 **'PDB ID', 'Res Name', 'Chain', 'Res ID', 'Expt. pKa', 'Expt. Uncertainty', '%SASA', 'Expt. method', 'Expt. salt conc','Expt. pH', 'Expt. temp', 'Reference'**
@@ -29,7 +34,7 @@ Experimental data source details; to be kept in data folder.
 ### Folder `clean_pdbs`:
 Holds the prepared pdb files, which reside inside a folder with the same pdbid in upper case.
 ```
-	data/clean_pdbs/
+	data/pkadbv1/clean_pdbs/
 	├── book.txt		# Q_BOOK in the code
 	├── default_run.sh
 	├── 135L
@@ -50,45 +55,34 @@ The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'p
 Description:
 Launch a MCCE benchmarking job using curated structures from the pKa Database v1.
 
-The main command is 'mccebench' along with one of 3 sub-commands:
-- Sub-command 1: 'data_setup': setup data folders;
-- Sub-command 2: 'script_setup': setup the run script to run mcce steps 1 through 4;
-- Sub-command 3: 'launch_batch': launch a batch of jobs;
+Entry points available at the command line:
+ 1. 'bench_expl_pkas' along with one of 2 sub-commands:
+  - Sub-command 1: 'job_setup': setup data folders & the run script to run mcce steps 1 through 4;
+  - Sub-command 2: 'job_launch': launch a batch of jobs;
+    - Note this entry point is for the job scheduler; Can be used via cli if scheduler fails.
+ 2. 'bench_analyze' along with one of 1 sub-command:
+  - Sub-command 1: 'expl_pkas': analyze conformers and residues in user's 'benchmarks_dir';
 ```
 
 #### Usage:
 ```
-mccebench <+ sub-command :: one of [data_setup, script_setup, launch_batch]> <related args>
+bench_expl_pkas job_setup <related args>
 
 Examples for current implementation (Beta):
 
-1. Data setup
+1. Job setup
  - Using defaults (benchmarks_dir= mcce_benchmarks):
-   >mccebench data_setup
-
- - Using a different folder name:
-   >mccebench data_setup -benchmarks_dir <different name>
-
-2. Script setup
- - Using defaults (benchmarks_dir= mcce_benchmarks; job_name= default_run):
-   >mccebench script_setup
+   >bench_expl_pkas job_setup
 
  - Using non-default option(s):
-   >mccebench script_setup -job_name <my_job_name>
-   >mccebench script_setup -benchmarks_dir <different name> -job_name <my_job_name>
+   >bench_expl_pkas job_setup -benchmarks_dir <different name>
+   >bench_expl_pkas job_setup -job_name <my_job_name>
+   >bench_expl_pkas job_setup -job_name <my_job_name> -d 8
 
-3. Submit batch of jobs
+2. Submit batch of jobs (if done via the cli):
  - Using defaults (benchmarks_dir= mcce_benchmarks;
                    job_name= default_run;
                    n_active= 10;
                    sentinel_file= pK.out):
-   >mccebench launch_batch
-
- - Using non-default option(s):
-   >mccebench launch_batch -n_active <jobs to maintain>
-   >mccebench launch_batch -job_name <my_job_name> -sentinel_file step2_out.pdb
+   >bench_expl_pkas job_launch
 ```
-
-# TODO:
-* Test bench cli with small number of processes piecewise & end-to-end
-* Test pkanalysis & plot

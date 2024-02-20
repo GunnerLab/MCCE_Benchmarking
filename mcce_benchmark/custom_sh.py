@@ -138,7 +138,7 @@ def populate_custom_template(job_args:argNamespace) -> str:
     return body
 
 
-def write_run_script_from_template(benchmarks_dir:Path,
+def write_run_script_from_template(benchmarks_dir:str,
                                    job_name:str,
                                    script_template:ScriptChoices = ScriptChoices.CUSTOM,
                                    job_args:argNamespace = None) -> None:
@@ -149,6 +149,7 @@ def write_run_script_from_template(benchmarks_dir:Path,
     Delete a pre-exisitng script with the same name.
     """
 
+    benchmarks_dir = Path(benchmarks_dir)
     user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs.exists():
         msg = f"{benchmarks_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?"
