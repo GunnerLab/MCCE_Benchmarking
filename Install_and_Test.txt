@@ -14,7 +14,7 @@ Notation remarks:
 
    >mkdir benchcode
    >cd benchcode
-   >pip install -e git+https://github.com/GunnerLab/MCCE_Benchmarking.git#egg=mcce_benchmark
+   >pip install git+https://github.com/GunnerLab/MCCE_Benchmarking.git#egg=mcce_benchmark
    >cd ../
 
 4. Check that the installation created the main cli command:
