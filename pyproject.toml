@@ -38,12 +38,13 @@ classifiers = [
 
 requires-python = ">=3.10"
 dependencies = [
-    "matplotlib",
     "numpy",
     "pandas",
+    "ipykernel",
+    "matplotlib",
+    "seaborn",
     "pytest",
     "python-crontab",
-    "seaborn",
 ]
 
 [project.urls]
