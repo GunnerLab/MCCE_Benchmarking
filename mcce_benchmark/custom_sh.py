@@ -16,7 +16,7 @@ Functions for building a custom script when cli args are not all defaults.
 
  sleep 10
  ```
-=> recovers the flexibility of each stepx.py cli.
+=> recovers the flexibility of each step<n>.py cli.
 """
 
 from argparse import Namespace as argNamespace
@@ -28,7 +28,7 @@ import subprocess
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 #.................................................................
 # For testing:
@@ -58,7 +58,7 @@ SH_TEMPLATE = """
  sleep 10
 """
 
-class ScriptChoices(Enum):
+class ScriptChoices(str, Enum):
     TEST_ECHO = RUN_SH_TEST_ECHO
     NORUN = RUN_SH_NORUN
     CUSTOM = SH_TEMPLATE
@@ -78,8 +78,10 @@ cli_to_mcce_opt = {"wet":"dry",
 defaults_per_step = {
 "s1": {"wet":False, "noter":False, "d":4.0, "s1_norun":False, "u":""},
 "s2": {"conf_making_level":1, "d":4.0, "s2_norun":False, "u":""},
-"s3": {"c":[1, 99999], "x":"delphi", "f":"/tmp", "p":1, "r":False, "d":4.0, "s3_norun":False, "u":""},
-"s4": {"titr_type":"ph", "i":0.0, "interval":1.0, "n":15, "ms":False, "s4_norun":False, "u":""},
+"s3": {"c":[1, 99999], "x":"delphi", "f":"/tmp", "p":1, "r":False,
+       "d":4.0, "s3_norun":False, "u":""},
+"s4": {"titr_type":"ph", "i":0.0, "interval":1.0, "n":15, "ms":False,
+       "s4_norun":False, "u":""},
 }
 # combined:
 all_default_opts = {}
@@ -90,22 +92,25 @@ for S in defaults_per_step:
 def cli_args_to_dict(sh_args:argNamespace) -> dict:
     """Only return mcce steps args."""
 
-    excluded_keys = ["subparser_name","benchmarks_dir",
+    excluded_keys = ["subparser_name", "benchmarks_dir", "n_pdbs",
                      "sentinel_file", "job_name","func"]
     d_args = {k:v for k, v in vars(sh_args).items() if k not in excluded_keys}
     return d_args
 
 
 def all_opts_are_defaults(sh_args:argNamespace) -> bool:
-    """Purpose: to determine whether to write a custom script or use the default one.
-    If sh_args are default for all the steps: return True, else return False.
+    """Return True if sh_args are default in all the steps,
+    else return False. Purpose: determine whether to write
+    a custom script or use the default one.
     """
 
     # holds mcce options only
     d_sh_args = cli_args_to_dict(sh_args)
     is_default = True
     for opt in d_sh_args:
-        is_default = is_default and d_sh_args[opt] == all_default_opts.get(opt)
+        is_default = (is_default
+                      and d_sh_args[opt] == all_default_opts.get(opt)
+        )
         if not is_default:  # done
             return False
 
@@ -147,6 +152,9 @@ def write_run_script_from_template(benchmarks_dir:str,
     script_template is CUSTOM, or perform tests otherwise. job_args can be None for
     templates other than CUSTOM.
     Delete a pre-exisitng script with the same name.
+
+    Args:
+    script_template (ScriptChoices enum): one of TEST_ECHO, NORUN, CUSTOM (default)
     """
 
     benchmarks_dir = Path(benchmarks_dir)

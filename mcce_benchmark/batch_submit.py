@@ -42,13 +42,12 @@ from mcce_benchmark.scheduling import subprocess_run
 import logging
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 #.......................................................................
 
 
@@ -154,7 +153,6 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
                 entry.state = "e"
                 # for debugging:
                 sentin_fp = Path(entry.name).joinpath(sentinel_file)
-                logger.info(f"Sentinel: {sentin_fp}; found: {sentin_fp.exists()}")
                 if sentin_fp.exists():
                     entry.state = "c"
                 logger.info(f"Changed {entry.name}: 'r' -> {entry.state!r}")
@@ -185,11 +183,11 @@ def launch_job(benchmarks_dir:str = DEFAULT_DIR,
     """
 
     if benchmarks_dir is None or not benchmarks_dir:
-        logger.exception("Argument not set: benchmarks_dir.")
+        logger.error("Argument not set: benchmarks_dir.")
         raise ValueError("Argument not set: benchmarks_dir.")
 
     if job_name is None or not job_name:
-        logger.exception("Argument not set: job_name.")
+        logger.error("Argument not set: job_name.")
         raise ValueError("Argument not set: job_name.")
 
     benchmarks_dir = Path(benchmarks_dir)
@@ -197,10 +195,13 @@ def launch_job(benchmarks_dir:str = DEFAULT_DIR,
         os.chdir(benchmarks_dir)
 
     os.chdir(BENCH.CLEAN_PDBS)
+
     batch_run(job_name, n_active=n_active, sentinel_file=sentinel_file)
+
     os.chdir("../")
 
     return
+
 
 
 def batch_parser():
@@ -221,7 +222,7 @@ def batch_parser():
 
     parser.add_argument(
         "-benchmarks_dir",
-        default = str(Path(DEFAULT_DIR)),
+        default = str(Path(DEFAULT_DIR).resolve()),
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
         "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is

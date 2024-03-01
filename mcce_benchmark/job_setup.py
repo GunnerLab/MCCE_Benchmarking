@@ -43,7 +43,8 @@ Functions:
 """
 
 #...............................................................................
-from mcce_benchmark import audit, BENCH, MCCE_EPS, N_ACTIVE, Pathok
+from mcce_benchmark import BENCH, MCCE_EPS, N_ACTIVE, N_PDBS
+from mcce_benchmark import audit, Pathok
 import logging
 import os
 from pathlib import Path
@@ -51,18 +52,17 @@ import shutil
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
-def setup_pdbs_folder(benchmarks_dir:str) -> None:
+def setup_pdbs_folder(benchmarks_dir:str, n_pdbs:int) -> None:
     """
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
-      or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmarks_dir`;
+    - Create a copy of BENCH_PDBS (packaged data) in <benchmarks_dir>/clean_pdbs, or a subset
+      of size (1, n_pdbs) if n_pdbs < 120.
     - Soft-link the relevant pdb as "prot.pdb";
-    - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
+    - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH)
       in `user_pdbs_folder`;
-    - Copy ancillary files BENCH.BENCH_WT, BENCH.BENCH_PROTS `benchmarks_dir`.
     """
 
     benchmarks_dir = Path(benchmarks_dir)
@@ -70,7 +70,7 @@ def setup_pdbs_folder(benchmarks_dir:str) -> None:
     in_benchmarks = curr.name == benchmarks_dir.name
 
     if in_benchmarks:
-        logger.info(f"Call from within {benchmarks_dir}, not re-reated.")
+        logger.info(f"Call from within {benchmarks_dir}, not re-created.")
     else:
         if not benchmarks_dir.exists():
             benchmarks_dir.mkdir()
@@ -78,11 +78,13 @@ def setup_pdbs_folder(benchmarks_dir:str) -> None:
     user_pdbs_folder = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs_folder.exists():
         user_pdbs_folder.mkdir()
-    logger.info(f"{user_pdbs_folder = }")
+    #logger.info(f"{user_pdbs_folder = }")
 
     valid, invalid = audit.list_all_valid_pdbs()
+    for i, v in enumerate(valid):
+        if i == n_pdbs:
+            break
 
-    for v in valid:
         # v :: PDBID/pdbid.pdb
         p = user_pdbs_folder.joinpath(v)
         d = p.parent
@@ -92,17 +94,17 @@ def setup_pdbs_folder(benchmarks_dir:str) -> None:
         if not p.exists():
             shutil.copy(BENCH.BENCH_PDBS.joinpath(v), p)
 
-        # also copy full if prot is multi:
-        if p.name.startswith(f"{d.name.lower()}_"):
-            if not d.joinpath(f"{d.name.lower()}.pdb.full").exists():
-                try:
-                    shutil.copy(BENCH.BENCH_PDBS.joinpath(f"{d.name}",
-                                                          f"{d.name.lower()}.pdb.full"),
-                                d)
-                    logger.info(f"Copied .pdb.full for {d.name}")
-                except Exception as e:
-                    logger.exception(f".pdb.full not found for {d.name}?", e)
-                    raise
+        ## also copy full if prot is multi:
+        #if p.name.startswith(f"{d.name.lower()}_"):
+        #    if not d.joinpath(f"{d.name.lower()}.pdb.full").exists():
+        #        try:
+        #            shutil.copy(BENCH.BENCH_PDBS.joinpath(f"{d.name}",
+        #                                                  f"{d.name.lower()}.pdb.full"),
+        #                        d)
+        #            logger.info(f"Copied .pdb.full for {d.name}")
+        #        except Exception as e:
+        #            logger.exception(f".pdb.full not found for {d.name}?", e)
+        #            raise
 
         # cd to avoid links with long names:
         os.chdir(d)
@@ -118,24 +120,14 @@ def setup_pdbs_folder(benchmarks_dir:str) -> None:
 
     os.chdir(curr)
 
-    # copy ancillary files:
-    for i, fp in enumerate([BENCH.DEFAULT_JOB_SH,
-                            BENCH.BENCH_Q_BOOK,
-                            BENCH.BENCH_WT,
-                            BENCH.BENCH_PROTS]):
-        if i < 2:
-            dest = user_pdbs_folder.joinpath(fp.name)
-        else:
-            dest = benchmarks_dir.joinpath(fp.name)
-        if not dest.exists():
-            shutil.copy(fp, dest)
-            logger.info(f"Ancillary file: {fp.name} copied to {dest.parent}")
+    # copy script file:
+    dest = user_pdbs_folder.joinpath(BENCH.DEFAULT_JOB_SH.name)
+    if not dest.exists():
+        shutil.copy(BENCH.DEFAULT_JOB_SH, dest)
+        logger.info(f"Script file copied: {dest}")
 
-    # include validity check in user's folder:
-    logger.info(f"Next: Validity check on user data.")
-    valid, invalid = audit.list_all_valid_pdbs(user_pdbs_folder)
-    if not invalid:
-        logger.info(f"The data setup in {user_pdbs_folder} went beautifully!")
+    audit.rewrite_book_file(user_pdbs_folder.joinpath(BENCH.Q_BOOK))
+    logger.info(f"The data setup in {user_pdbs_folder} went beautifully!")
 
     return
 

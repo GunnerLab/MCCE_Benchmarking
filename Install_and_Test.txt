@@ -48,23 +48,28 @@ Notation remarks:
      >conda activate mce  # -> new prompt: (mce) >
 
    - Install mcce
-     * For Gunner Lab members: 
-       mcce is already installed on the server, but it must be in you path
-       variable; add this in your .bashrc, save & close the file, then source it:
+     * For Gunner Lab members:
+       [UPDATE, 03-01-2024:
+       This is a must: the packaged 'Stable-MCCE' is missing a fortran library;
+       See Issue 282, https://github.com/GunnerLab/Stable-MCCE/issues/282
+       ]
+       On the server, mcce is already installed, but it must be in your path
+       variable; Add this line in your .bashrc, save & close the file, then source it:
        ```
        export PATH="/home/mcce/Stable-MCCE/bin:$PATH"
        ```
-       (mce) >which mcce  # should return the added path
+       (mce) > . ~/.bashrc   # source or 'dot' the file
+       (mce) >which mcce     # should return the added path
 
-     * For all others, install the package:
+     * For all others, install the package if Issue 282 is resolved:
        (mce) >conda install -c newbooks mcce
    
 
-3. Install mcce_benchmark:
+3. Install mcce_benchmark (right now from GitHub, not yet published on pypa):
    (mce) >pip install git+https://github.com/GunnerLab/MCCE_Benchmarking.git#egg=mcce_benchmark
 
-  3.1 Check that the installation created the main commands:
-      (The commands will not be available outside your environment.)
+  3.1 Check that the installation created the cli commands:
+      (The commands will NOT be available outside your environment.)
 
       (mce) >which bench_expl_pkas
       >>~/miniconda3/envs/mce/bin/bench_expl_pkas
@@ -82,27 +87,28 @@ Notation remarks:
 
 
 4. Run the first sub-command, job setup (includes scheduling step when run this way):
-   (mce) >bench_expl_pkas setup_job -benchmarks_dir <some dir>
+   You can limit the number of curated proteins (folder) to setup using -n_pdbs: give
+   a low number for testing (max=120):
+   (mce) >bench_expl_pkas setup_job -benchmarks_dir <some dir> -n_pdbs 2
 
 
 [5. Manually launching a batch (in case the scheduler fails):
-    (mce) >bench_launchjob -benchmarks_dir <some dir> -n_active <n>   # n default: 10
+    (mce) >python -m mcce_benchmark.batch_submit -benchmarks_dir <some dir> -n_active <n>   # n default: 10
 
  6. Wait ~ 30 mins and repeat #5 to update clean_pdbs/book.txt
 
     You can find out out many jobs are left to be submitted with this command:
-    Note: replace 'mcce_benchmarks' if this is not the folder name you provided during setup:
 
-    (mce) >to_submit=$(grep -v -e 'r$' -e 'c$' -e 'e$' mcce_benchmarks/clean_pdbs/book.txt | wc -l)
+    (mce) >to_submit=$(grep -v -e 'r$' -e 'c$' -e 'e$' <some dir>/clean_pdbs/book.txt | wc -l)
     (mce) >echo "$to_submit"
 
-    (If -n_active equals the number of folders, the result should be 0.)
+    (If -n_active > the number of folders, the result should be 0.)
 ]
 
 7. Analyze:
    The command line interface for analyzing a job setup via `bench_expl_pkas`, accepts two arguments:
    -benchmarks_dir [ -min_pct_complete ]. Note: The default for 'min_pct_complete' is 1 (100%): do 
-   not modify until Issue 19 is closed.
+   not modify until Issue 19 (https://github.com/GunnerLab/MCCE_Benchmarking/issues/19) is closed.
 
    The first step of the analysis is to check that this threshold has been met. Incidentally, it's an
    easy way to check for how far long the job is.

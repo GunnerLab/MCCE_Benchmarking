@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Cli end point for analysis.
+Cli end point for analysis. `analyze`
 
 Cli parser with 2 sub-commands:
 
@@ -15,7 +15,7 @@ Cli parser with 2 sub-commands:
      - residues & conformers count files;
      - plots saved as figures
 
- [FUTURE 2. mcce_runs: ]
+ [2. mcce_runs: FUTURE ]
    Options:
    - "-new_calc_dir": path to a mcce output folder that will be compared
    - "-reference_dir": path to a mcce output folder for use as reference; default=parse.e4 (when ready)
@@ -731,7 +731,7 @@ def analyze_parser():
                                  help=HELP_1)
     sub1.add_argument(
         "-benchmarks_dir",
-        default = Path(DEFAULT_DIR).resolve(),
+        default = str(Path(DEFAULT_DIR).resolve()),
         type = arg_valid_dirpath,
         help = """The user's directory where the "clean_pdbs" folder reside; default: %(default)s.
         """
@@ -753,7 +753,19 @@ def analyze_cli(argv=None):
     Command line interface for MCCE benchmarking analysis entry point.
     """
 
+
     cli_parser = analyze_parser()
+
+    if argv is None or len(argv) <= 1:
+        cli_parser.print_usage()
+        #cli_parser.exit()
+        return
+
+    if '-h' in argv or '--help' in argv:
+        cli_parser.print_help()
+        #cli_parser.exit()
+        return
+
     args = cli_parser.parse_args(argv)
     args.func(args)
 
@@ -762,4 +774,5 @@ def analyze_cli(argv=None):
 
 if __name__ == "__main__":
 
+    print("Changed to: analyze_cli(sys.argv[1:)")
     analyze_cli(sys.argv[1:])

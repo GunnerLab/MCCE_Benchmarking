@@ -36,8 +36,8 @@ def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None) -> None:
                 fp.unlink()
             else:
                 # delete original pdb file:
-                if fp.name == f"{folder.name.lower()}.pdb":
-                    fp.unlink()
+                #if fp.name == f"{folder.name.lower()}.pdb":
+                #    fp.unlink()
 
     return
 

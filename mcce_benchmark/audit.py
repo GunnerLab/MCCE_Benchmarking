@@ -35,7 +35,7 @@ from typing import Union
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 MULTI_ACTIVE_MSG = \
@@ -168,7 +168,7 @@ def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     invalid.sort()
     logger.info(f"{len(valid) = }; {len(invalid) = }")
     if len(invalid):
-        logger.info(f"Invalid pdbs: {invalid}")
+        logger.warning(f"Invalid pdbs: {invalid}")
 
     return valid, invalid
 

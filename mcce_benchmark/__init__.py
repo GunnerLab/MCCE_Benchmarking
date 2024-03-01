@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from datetime import datetime
 from enum import Enum
 import getpass
 from importlib import resources
@@ -18,20 +19,18 @@ APP_NAME = "mcce_benchmark"
 USER_MCCE = shutil.which("mcce")
 if USER_MCCE is None:
     raise EnvironmentError(f"{APP_NAME}, __init__ :: mcce executable not found.")
-
+USER_MCCE = Path(USER_MCCE).parent
 
 def get_user_env() -> tuple:
-    """Return the sys.prefix, env name, ."""
+    """Return the sys.prefix, env name."""
 
     user_prefix = sys.prefix
     env = Path(user_prefix).name
 
     if "envs" not in user_prefix:
         if env != "miniconda3" and env != "anaconda3":
-            logging.error("EnvironmentError: You appear not to be using conda, which is required for scheduling.")
             raise EnvironmentError("You appear not to be using conda, which is required for scheduling.")
         else:
-            #logging.warning("Using base conda environment.")
             env = 'base'
     else:
          return user_prefix, env
@@ -39,12 +38,22 @@ def get_user_env() -> tuple:
 
 # user envir:
 USER_PRFX, USER_ENV = get_user_env()
-CONDA_PATH = shutil.which("conda")
+CONDA_PATH = Path(shutil.which("conda")).parent
+#assert CONDA_PATH.name == "condabin"
 
-N_PDBS = 120  # UPDATE if change in dataset!
+ENTRY_POINTS = {"main":    "bench_expl_pkas",
+                "launch":  "bench_launchjob",
+                "analyze": "bench_analyze"}
 
-# output file names
-class OUT_FILES(Enum):   # => <benchmarks_dir>/analysis/
+#ENTRY_POINTS = {"main": "bench_expl_pkas",
+#                "launch": "bench_launchjob",
+#                "mcruns": "bench_mcce_runs"  # new needed: TODO
+#                "analyze": "bench_analyze"}
+
+
+# output file names => <benchmarks_dir>/analysis/, except
+# ALL_PKAS_FILE: in <benchmarks_dir>
+class OUT_FILES(Enum):
     ALL_PKAS_FILE = "all_pkas.out"
     MATCHED_PKAS_FILE = "matched_pkas.csv"
     PKAS_STATS = "pkas_stats.csv"
@@ -53,22 +62,15 @@ class OUT_FILES(Enum):   # => <benchmarks_dir>/analysis/
     RUN_TIMES = "run_times.tsv"
     CONFS_PER_RES = "confs_per_res.tsv"
     CONFS_THRUPUT = "confs_throughput.tsv"
-    CONFS_TP_PNG = "confs_throughput.png"
-
+    FIG_CONFS_TP = "confs_throughput.png"
+    FIG_FIT_ALLPKS = "pkas_fit.png"
+    FIG_FIT_PER_RES = "res_analysis.png"
 
 DEFAULT_DIR = "mcce_benchmarks"
 ANALYZE_DIR = "analysis"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
 N_ACTIVE = 10  # number of active jobs to maintain in the process queue
-ENTRY_POINTS = {"main": "bench_expl_pkas",
-                "launch": "bench_launchjob",
-                "analyze":"bench_analyze"}
-
-#TODO: new needed:
-#ENTRY_POINTS = {"main": "bench_expl_pkas",
-#                 "launch": "bench_launchjob",
-#                "mcruns": "bench_mcce_runs"
-#               }
+N_PDBS = 120   # UPDATE if change in packaged data!
 
 MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "extra.tpl", "fort.38",
                 "head1.lst", "head2.lst", "head3.lst",
@@ -81,34 +83,6 @@ MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "extra.tpl", "fort.38",
                ]
 
 
-def Pathok(pathname:str, check_fn:str=None, raise_err=True) -> Union[Path, bool]:
-    """Return path if check passed, else raise error.
-    check_fn: one of 'exists', 'is_dir', 'is_file'.
-    if raise_err=False, return False insteadt of err.
-    """
-
-    pathname = Path(pathname)
-    if check_fn not in ['exists', 'is_dir', 'is_file']:
-        check_fn = 'exists'
-
-    if check_fn == 'exists':
-        msg = f"Path not found: {pathname}"
-    elif check_fn == 'is_dir':
-        msg = f"Directory not found: {pathname}"
-    elif check_fn == 'is_file':
-        msg = f"Path is not a file: {pathname}"
-
-    if not pathname.__getattribute__(check_fn)():
-        if not raise_err:
-            return False
-
-        logging.error(msg)
-        raise FileNotFoundError(msg)
-
-    return pathname
-
-
-#TODO: add reference_runs folder
 class Bench_Resources():
     """Immutable class to store package data paths and main constants."""
 
@@ -208,72 +182,63 @@ BENCH = Bench_Resources()
 
 
 #................................................................................
-# Config for root logger: handlers at module level
-
-USER = getpass.getuser()
-
+# Config for root logger:
 DT_FMT = "%Y-%m-%d %H:%M:%S"
 BODY = "[%(levelname)s]: %(name)s, %(funcName)s:\n\t%(message)s"
 logging.basicConfig(level=logging.INFO,
                     format=BODY,
                     datefmt=DT_FMT
                    )
-
-# file handler
+# file handler only
 fh = logging.FileHandler("benchmark.log")
 fh.name = "fh"
-fh.setLevel(logging.DEBUG)
-# console handler
-ch = logging.StreamHandler(sys.stdout)
-ch.name = "ch"
-ch.setLevel(logging.INFO)
+fh.setLevel(logging.INFO)
+#logger = logging.Logger(APP_NAME)
+#logger.addHandler(fh)
+#................................................................................
 
 
-def create_log_header():
+USER = getpass.getuser()
+now = datetime.now().strftime(format=DT_FMT)
+
+LOG_HDR = f"""
+START\n{'-'*70}\n{now} - {USER = } - User envir: {USER_ENV}
+APP VER: {_version.version_tuple}\nAPP DEFAULTS:
+Globals:
+{MCCE_EPS = }; {N_ACTIVE = }
+{N_PDBS = } : number of pdbs in the dataset
+Default analysis output file names (fixed):
+{OUT_FILES.MATCHED_PKAS_FILE.name = }
+{OUT_FILES.ALL_PKAS_FILE.name = }
+{OUT_FILES.CONF_COUNTS.name = }
+{OUT_FILES.RES_COUNTS.name = }
+{OUT_FILES.RUN_TIMES.name = }
+{OUT_FILES.CONFS_PER_RES.name = }
+{OUT_FILES.CONFS_THRUPUT.name = }\n{'-'*70}
+"""
+
+
+def Pathok(pathname:str, check_fn:str=None, raise_err=True) -> Union[Path, bool]:
+    """Return path if check passed, else raise error.
+    check_fn: one of 'exists', 'is_dir', 'is_file'.
+    if raise_err=False, return False instead of err.
     """
-    Config logger for displaying app info;
-    Log that info;
-    Reset the handlers formatters that the module loggers will use.
-    """
 
-    # Logging to file & stream - note 'user' param
-    HEADER = '%(asctime)s @%(user)s [%(levelname)s: %(name)s]: - %(message)s'
-    # initial formatter:
-    header_frmter = logging.Formatter(fmt=HEADER)
-    fh.setFormatter(header_frmter)
-    ch.setFormatter(header_frmter)
+    pathname = Path(pathname)
+    if check_fn not in ['exists', 'is_dir', 'is_file']:
+        check_fn = 'exists'
 
-    logger = logging.getLogger(__name__)
-    logger.addHandler(ch)
-    logger.addHandler(fh)
-    #logger.setLevel(logging.DEBUG)
-    logger = logging.LoggerAdapter(logger,{'user':USER})
+    if check_fn == 'exists':
+        msg = f"Path not found: {pathname}"
+    elif check_fn == 'is_dir':
+        msg = f"Directory not found: {pathname}"
+    elif check_fn == 'is_file':
+        msg = f"Path is not a file: {pathname}"
 
-    # output start msg and app defaults:
-    msg_body = f"""
-        Globals: {MCCE_EPS = }; {N_ACTIVE = }
-        Default resource names:
-        {DEFAULT_DIR = } : default benchmarking folder name
-        {BENCH.CLEAN_PDBS = } : fixed
-        {BENCH.Q_BOOK = } : jobs bookkeeping file
-        {BENCH.DEFAULT_JOB = } (-> {BENCH.DEFAULT_JOB}.sh script in clean_pdbs/)
-        {BENCH.BENCH_PARSE_E4 = } : Current reference set
-        {N_PDBS = } : number of pdbs in the dataset
-        Default analysis output file names (fixed):
-        {OUT_FILES.MATCHED_PKAS_FILE.name = }
-        {OUT_FILES.ALL_PKAS_FILE.name = }
-        {OUT_FILES.CONF_COUNTS.name = }
-        {OUT_FILES.RES_COUNTS.name = }
-        {OUT_FILES.RUN_TIMES.name = }
-        {OUT_FILES.CONFS_PER_RES.name = }
-        {OUT_FILES.CONFS_THRUPUT.name = }
-        User envir: {USER_ENV = }\n{'-'*70}
-    """
-    msg = f"START\n{'-'*70}\nAPP VER: {_version.version_tuple}\nAPP DEFAULTS:" \
-          + msg_body
-    logger.info(msg)
+    if not pathname.__getattribute__(check_fn)():
+        if not raise_err:
+            return False
 
-    # reset format:
-    body_frmter = logging.Formatter(fmt=BODY)
-    fh.setFormatter(body_frmter)
-    ch.setFormatter(body_frmter)
+        raise FileNotFoundError(msg)
+
+    return pathname
