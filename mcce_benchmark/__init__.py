@@ -54,8 +54,9 @@ ENTRY_POINTS = {"main":    "bench_expl_pkas",
 # output file names => <benchmarks_dir>/analysis/, except
 # ALL_PKAS_FILE: in <benchmarks_dir>
 class OUT_FILES(Enum):
-    ALL_PKAS_FILE = "all_pkas.out"
-    MATCHED_PKAS_FILE = "matched_pkas.csv"
+    ALL_PKAS = "all_pkas.out"
+    ALL_PKAS_OOB = "all_pkas_oob.tsv"
+    MATCHED_PKAS = "matched_pkas.csv"
     PKAS_STATS = "pkas_stats.csv"
     CONF_COUNTS = "conf_counts.tsv"
     RES_COUNTS = "res_counts.tsv"

@@ -25,7 +25,7 @@ Main functions:
              sentinel_file:str = "pK.out") -> None:
     Go to benchmarks_dir/clean_pdbs directory & call batch_run.
 
- * launch_cli(argv=None)
+* launch_cli(argv=None)
     Entry point function.
 
 
@@ -89,7 +89,9 @@ def get_running_jobs_dirs(job_name:str) -> list:
     """
 
     # get the process IDs that match job_name from the user's running processes
-    data = subprocess_run(f"pgrep -u {USER} {job_name}")
+    #test: only mcce appear in job list
+    alt_job_name = "mcce"
+    data = subprocess_run(f"pgrep -u {USER} {alt_job_name}")
     if data is subprocess.CalledProcessError:
         logger.error("Error with pgrep cmd.")
         raise data
@@ -134,7 +136,7 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
     logger.info(f"Running jobs: {n_jobs}")
 
     new_entries = []
-    logger.info("Launching script for unsubmitted entries")
+    #logger.info("Launching script for unsubmitted entries")
     for entry in entries:
         if entry.state == " ":  # unsubmitted
             n_jobs += 1

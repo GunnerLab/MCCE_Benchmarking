@@ -93,14 +93,14 @@ Notation remarks:
 
 
 [5. Manually launching a batch (in case the scheduler fails):
-    (mce) >python -m mcce_benchmark.batch_submit -benchmarks_dir <some dir> -n_active <n>   # n default: 10
+    (mce) >bench_launchjob -benchmarks_dir <some dir> [ -job_name <same job name given in setup_job> ]
 
- 6. Wait ~ 30 mins and repeat #5 to update clean_pdbs/book.txt
+ 6. Wait ~ 15 mins and repeat #5 to update clean_pdbs/book.txt
 
     You can find out out many jobs are left to be submitted with this command:
 
     (mce) >to_submit=$(grep -v -e 'r$' -e 'c$' -e 'e$' <some dir>/clean_pdbs/book.txt | wc -l)
-    (mce) >echo "$to_submit"
+    (mce) >echo $to_submit
 
     (If -n_active > the number of folders, the result should be 0.)
 ]

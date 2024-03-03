@@ -171,9 +171,10 @@ def bench_launch_batch(args:argNamespace) -> None:
     as previously created via 'bench_expl_pkas setup_job' command.
     """
 
-    #in_benchmarks = Path.cwd().name == args.benchmarks_dir.name
-    #if in_benchmarks:
-    #    args.benchmarks_dir = Path.cwd()
+    # needed?
+    in_benchmarks = Path.cwd().name == args.benchmarks_dir.name
+    if in_benchmarks:
+        args.benchmarks_dir = Path.cwd()
 
     logger.info(args_to_str(args))
     args.benchmarks_dir = Pathok(args.benchmarks_dir)
@@ -370,7 +371,7 @@ def bench_parser():
         default = 1,
         help="Number of processes to use; default: %(default)s."
     )
-    #should be --r:
+    #should be --r in step3.py:
     sub1.add_argument(
         "-r",
         default = False,

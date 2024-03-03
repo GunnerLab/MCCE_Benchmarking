@@ -45,6 +45,19 @@ RUN_SH_NORUN = """
 
 step1.py prot.pdb --norun
 """
+
+# pseudo default, bypassing delphi
+RUN_SH_PSEuDO = """
+#!/bin/bash
+
+step1.py prot.pdb --dry
+step2.py
+step3.py -r
+step4.py --xts
+
+sleep 10
+"""
+
 #...............................................................................
 # for custom script:
 SH_TEMPLATE = """

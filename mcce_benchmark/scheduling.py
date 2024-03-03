@@ -42,7 +42,7 @@ def subprocess_run(cmd:str,
     return data
 
 
-#DEPRECATE
+#DEPRECATE?
 def brc_conda_is_valid() -> bool:
     """Remove existing file if empty.
     Was used to test a SO recipe; see extract_conda_init.
@@ -59,10 +59,10 @@ def brc_conda_is_valid() -> bool:
 
 
 
-#DEPRECATE
+#DEPRECATE?
 def extract_conda_init(brc_file:str="~/.bashrc"):
     """Extract conda initialization snippet from ~/.bashrc into ~/.bashrc_conda
-    SO: 
+    SO:
     https://stackoverflow.com/questions/36365801/run-a-crontab-job-using-an-anaconda-env/60977676#60977676
     TEMP.
     """
@@ -70,7 +70,7 @@ def extract_conda_init(brc_file:str="~/.bashrc"):
     brc = Path(brc_file).expanduser()
     brc_conda = Path("~/.bashrc_conda").expanduser()
     if brc_conda.exists() and brc_conda_is_valid():
-        print("brc_conda exists")
+        #print("brc_conda exists")
         return
 
     #1. Copy the conda snippet from ~/.bashrc to ~/.bashrc_conda
@@ -94,7 +94,7 @@ def extract_conda_init(brc_file:str="~/.bashrc"):
     logger.info("Created ~/.bashrc_conda")
     return
 
-#extract_conda_init()
+extract_conda_init()
 
 
 def make_executable(sh_path:str) -> None:
@@ -128,7 +128,7 @@ BASH_ENV=~/.bashrc_conda
     prev_SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
 * * * * * conda run -n {}; {} -benchmarks_dir {} -job_name {} -n_active {} -sentinel_file {}"""
 
-    # Potential issue: is <job_name>.sh script listed in processes?
+    # Potential issue: is <job_name>.sh script listed in processes? -> 'mcce'
     SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
 * * * * * {}/conda run -n {} python -m mcce_benchmark.batch_submit -benchmarks_dir {} -job_name {} -n_active {} -sentinel_file {}"""
 

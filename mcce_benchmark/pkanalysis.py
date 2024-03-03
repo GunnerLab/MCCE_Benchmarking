@@ -33,7 +33,7 @@ Cli parser with 2 sub-commands:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
-from mcce_benchmark import BENCH, ENTRY_POINTS, OUT_FILES, ANALYZE_DIR, DEFAULT_DIR, N_PDBS
+from mcce_benchmark import BENCH, ENTRY_POINTS, OUT_FILES, ANALYZE_DIR, DEFAULT_DIR
 from mcce_benchmark import Pathok  #: fn
 from mcce_benchmark import plots
 from mcce_benchmark.scheduling import subprocess_run
@@ -49,23 +49,33 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def collate_all_pkas(benchmarks_dir:str) ->None:
+def collate_all_pkas(benchmarks_dir:str, titr_type:str="ph") ->None:
     """Collate all pK.out files from 'benchmarks_dir'/clean_pdbs
        (i.e. assume canonical naming), into a single file
-       in 'benchmarks_dir' named as per ALL_PKAS_FILE.
+       in 'benchmarks_dir' named as per ALL_PKAS.
        Retain the same fixed-witdth format => extension = ".out".
        This file can be loaded using either one of these functions:
          - pkanalysis.all_pkas_df(benchmarks_dir)
          - pkanalysis.pkout_df(pko_fp, collated=True)
+    titr_type (str, 'ph'): titration type, needed for formating; one of ['ph', 'eh']
     """
 
     bench = Pathok(benchmarks_dir)
     bench_s = str(bench)
     d = Pathok(bench.joinpath(BENCH.CLEAN_PDBS))
     dirpath = str(d)
-    all_out = OUT_FILES.ALL_PKAS_FILE.value
+    all_out = OUT_FILES.ALL_PKAS.value
 
-    pko_hdr = "PDB  resid@pH         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
+    titr = titr_type.lower()
+    if titr not in ["ph", "eh"]:
+        raise ValueError("titr_type must be one of ['ph', 'eh']")
+
+    if titr == "ph":
+        titr = "pH"
+    else:
+        titr = "Eh"
+
+    pko_hdr = f"PDB  resid@{titr}         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
 
     cmd = "awk '{out = substr(FILENAME, length(FILENAME)-10, 4); print out OFS $0}' "
     cmd = cmd + f"{dirpath}/*/pK.out | sed '/total$/d' > {dirpath}/all_pkas; "
@@ -82,6 +92,46 @@ def collate_all_pkas(benchmarks_dir:str) ->None:
     return
 
 
+def get_oob_mask(df):
+    """Create a mask on df for 'pKa/Em' values out of bound.
+    """
+    try:
+        msk = (abs(df["pKa/Em"]) == 8888.) | (df["pKa/Em"] == 9999.)
+        return msk
+    except KeyError as e:
+        raise e("Wrong dataframe: no 'pKa/Em' columns.")
+
+
+def extract_oob_pkas(benchmarks_dir:str):
+    """Load all_pkas.tsv into df;
+    Extract and save out of bound values.
+    Rewrite all_pkas.tsv without them.
+    """
+
+    # Load all_pkas file, all_pkas.out:
+    allout_df = all_pkas_df(benchmarks_dir)
+    # convert pK/Em vals to float:
+    allout_df["pKa/Em"] = allout_df["pKa/Em"].apply(pk_to_float)
+
+    #extract oob if any
+    msk = get_oob_mask(allout_df)
+    oob_df = allout_df[msk]
+    if oob_df.shape[0]:
+        oob_fp = Path(benchmarks_dir).joinpath(ANALYZE_DIR,
+                                               OUT_FILES.ALL_PKAS_OOB.value)
+        oob_df.to_csv(oob_fp, sep="\t")
+
+        # Reset all_pkas.out
+        allout_df = allout_df[~msk]
+        all_fp = Path(benchmarks_dir).joinpath(ANALYZE_DIR,
+                                               OUT_FILES.ALL_PKAS.value)
+        allout_df.to_csv(all_fp, sep="\t")
+    else:
+        logger.info(f"No out of bound pKa values in {OUT_FILES.ALL_PKAS.value}")
+
+    return
+
+
 def load_tsv(fpath:str, index_col:str=None) -> Union[pd.DataFrame, None]:
     """Read a tab-separated file into a pandas.DataFrame.
     Return None upon failure.
@@ -93,24 +143,43 @@ def load_tsv(fpath:str, index_col:str=None) -> Union[pd.DataFrame, None]:
     return pd.read_csv(fp, index_col=index_col, sep="\t")
 
 
-def get_col_specs(collated:bool=False) -> tuple:
-    """Return the columns spec for pd.fwf reader, and the header fields.
+def get_col_specs(collated:bool=False, titr_type:str='ph') -> tuple:
+    """Return the columns spec for pd.fwf reader to read a 'pK.out' or a
+    'all_pkas.out' file, and the header fields.
     The fields are returned so that they can be used for replacing some of the
     names that do not match the format width of the data.
+    Args:
+    collated (bool, False): Indicates whether the file is a collated pk.out file
+                            or a single one (default)
+    titr_type (str, 'ph'): titration type, needed for formating; one of ['ph', 'eh']
     """
 
-    hdr_collated = "PDB resid@pH pKa/Em n(slope) 1000*chi2 vdw0 vdw1 tors ebkb dsol offset pHpK0 EhEm0 -TS residues total"
-    fld_collated = hdr_collated.split()
+    titr = titr_type.lower()
+    if titr not in ["ph", "eh"]:
+        raise ValueError("titr_type must be one of ['ph', 'eh']")
 
-    # field width; no space between field of width 8:
+    if titr == "ph":
+        titr = "pH"
+    else:
+        titr = "Eh"
+
+    if collated:
+        pko_hdr = f"PDB  resid@{titr}         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
+    else:
+        pko_hdr = f" {titr}         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
+    fields = pko_hdr.strip().split()
+
+    # field width of collated; no space between fields of width 8:
+    #line_frmt = "{:<4s} {:<14s}{:9.3f} {:9.3f} {:9.3f}  {:8.2f}{:8.2f}{:8.2f}{:8.2f}{:8.2f}{:8.2f}{:8.2f}{:8.2f}{:8.2f}{:8.2f}{:10.2f}"
     fwd_collated = [4, 14, 9, 9, 9, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 10]
+
     if collated:
         wd = fwd_collated
-        flds = fld_collated
+        flds = fields
     else:
         wd = fwd_collated[1:]
-        flds = fld_collated[2:]
-        fld.insert(0, " pH ")
+        flds = fields[1:]
+        flds.insert(0, f" {titr} ")
 
     N = len(wd)
     cs = []
@@ -126,30 +195,60 @@ def get_col_specs(collated:bool=False) -> tuple:
     return cs, flds
 
 
-def pkout_df(pko_fp:str, collated:bool=False) -> Union[pd.DataFrame, None]:
-    """Load either the pK.out file from a single run, or a file that is 'all_pkas.out'
-    or has the same format, in which case, 'collated' must be True.
+def pk_to_float(value):
+    """Out of bound values become +/-8888 or 9999 (curve too sharp)
+    during conversion to float.
+    """
+    try:
+        v = float(value)
+    except ValueError:
+        if value.startswith("titra"): #tion curve too sharp"
+            return 9999.
+        oob = value[0]  # oob sign, > or <
+        if oob == "<":
+            v = -8888.
+        else:
+            v = 8888.
+
+    return v
+
+
+def pkout_df(pko_fp:str, collated:bool=False, titr_type:str='ph') -> Union[pd.DataFrame, None]:
+    """Load a file that has the same format as 'pK.out'; it can be either
+    a single 'pK.out' file or a file that is collation of many as with 'all_pkas.out',
+    in which case, 'collated' must be True.
     Args:
       pko_fp (str): file path to the pkout file
       collated (bool, False): Whether the file format is that of a single file or not.
-      Return a pandas.DataFrame or None upon failure.
+      titr_type (str, 'ph'): titration type, needed for formating; one of ['ph', 'eh']
+    Return a pandas.DataFrame or None upon failure.
+    Note: oob values: +/8888, 9999
     """
 
     fp = Pathok(pko_fp, raise_err=False)
     if not fp:
         logger.error(f"Not found: {fp}")
         return None
-    colspecs, cols = get_col_specs(collated=collated)
+
+    titr = titr_type.lower()
+    if titr not in ["ph", "eh"]:
+        raise ValueError("titr_type must be one of ['ph', 'eh']")
+
+    colspecs, cols = get_col_specs(collated=collated, titr_type=titr)
     df = pd.read_fwf(fp, colspecs=colspecs, index_col=0)
     # rm 1st col that became index:
     df.rename(columns=dict(zip(df.columns, cols[1:])), inplace=True)
+    # convert pK/Em vals to float:
+    df["pKa/Em"] = df["pKa/Em"].apply(pk_to_float)
 
     return df
 
 
-def all_pkas_df(benchmarks_dir:str) -> Union[pd.DataFrame, None]:
+def all_pkas_df(benchmarks_dir:str, titr_type:str="ph") -> Union[pd.DataFrame, None]:
     """Load <benchmarks_dir>/all_pkas.out into a pandas DataFrame;
     Return  a pandas.DataFrame or None upon failure.
+    Version of 'pkanalysis.pkout_df' with pre-set 'all_pkas.out' file
+    titr_type (str, 'ph'): titration type, needed for formating; one of ['ph', 'eh']
     """
 
     d = Pathok(benchmarks_dir, raise_err=False)
@@ -157,17 +256,16 @@ def all_pkas_df(benchmarks_dir:str) -> Union[pd.DataFrame, None]:
         logger.error(f"Not found: {d}")
         return None
 
-    allfp = d.joinpath(OUT_FILES.ALL_PKAS_FILE.value)
+    allfp = d.joinpath(OUT_FILES.ALL_PKAS.value)
     if not allfp.exists():
         logger.error(f"Not found: {allfp}; this file is created with pkanalysis.collate_all_pkas(benchmarks_dir).")
         return None
 
-    colspecs, cols = get_col_specs(collated=True)
-    df = pd.read_fwf(allfp, colspecs=colspecs, index_col=0)
-    # rm 1st col that became index:
-    df.rename(columns=dict(zip(df.columns, cols[1:])), inplace=True)
+    titr = titr_type.lower()
+    if titr not in ["ph", "eh"]:
+        raise ValueError("titr_type must be one of ['ph', 'eh']")
 
-    return df
+    return pkout_df(allfp, collated=True, titr_type=titr)
 
 
 def all_run_times_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
@@ -287,7 +385,6 @@ def confs_per_res_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
     df_confs = pd.read_csv(tsv_count, sep="\t")
     df_confs.set_index("PDB", inplace=True)
     df_confs.sort_index(inplace=True)
-    df_confs.head()
 
     df = df_confs.merge(df_res, on="PDB")
     df["confs_per_res"] = round(df.confs/df.res,2)
@@ -410,22 +507,19 @@ def job_pkas_to_dict(book_fpath:str) -> dict:
     completed_dirs = get_book_dirs_for_status(book_fp) # default 'c'
 
     calc_pkas = {}
-    # all pkas df:
+    # all pkas df: all 'in bound' pk values; floats
     allout_df = all_pkas_df(book_fp.parent.parent)
     c_resid, c_pk = allout_df.columns[:2]
 
     for dir in completed_dirs:
         pk_df = allout_df.loc[dir]      # filter for this dir
         for r, row in pk_df.iterrows():
-            try:
-                pka = float(row[c_pk])
-            except:
-                continue
-            resid = row[c_resid]
-            if resid.startswith("NTG"):
-                resid = "NTR" + resid[3:]
-            key = (dir, resid)
-            calc_pkas[key] = pka
+            for r, row in pk_df.iterrows():
+                resid = row[c_resid]
+                if resid.startswith("NTG"):
+                    resid = "NTR" + resid[3:]
+                key = (dir, resid)
+                calc_pkas[key] = row[c_pk]
 
     return calc_pkas
 
@@ -509,7 +603,7 @@ def matched_pkas_to_csv(benchmarks_dir:str, matched_pkas:list) -> None:
     """Write a list of 3-tuples (as in a matched pkas list) to a csv file."""
 
     fp = Path(benchmarks_dir).joinpath(ANALYZE_DIR,
-                                       OUT_FILES.MATCHED_PKAS_FILE.value)
+                                       OUT_FILES.MATCHED_PKAS.value)
     with open(fp, "w") as fh:
         fh.writelines("key,expl,mcce\n") # header
         fh.writelines("{},{},{}\n".format(*pka) for pka in matched_pkas)
@@ -617,6 +711,9 @@ def expl_pka_comparison(args):
     logger.info(f"Collating all completed pK.out files.")
     collate_all_pkas(bench_dir)
 
+    logger.info(f"Saving of bound pK values to tsv, if any.")
+    extract_oob_pkas(bench_dir)
+
     logger.info(f"Calculating conformers and residues counts into csv files.")
     all_counts_to_tsv(pdbs, kind="confs", overwrite=True)
     all_counts_to_tsv(pdbs, kind="res", overwrite=True)
@@ -635,8 +732,7 @@ def expl_pka_comparison(args):
     matched_pkas_to_csv(bench_dir, matched_pKas)
 
     logger.info(f"Calculating the matched pkas stats into dict.")
-    matched_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS_FILE.value)
-
+    matched_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS.value)
     matched_df = load_matched_pkas(matched_fp)
     d_stats = matched_pkas_stats(matched_df)
     txt, df = res_outlier_count(matched_fp)
@@ -753,17 +849,14 @@ def analyze_cli(argv=None):
     Command line interface for MCCE benchmarking analysis entry point.
     """
 
-
     cli_parser = analyze_parser()
 
     if argv is None or len(argv) <= 1:
         cli_parser.print_usage()
-        #cli_parser.exit()
         return
 
     if '-h' in argv or '--help' in argv:
         cli_parser.print_help()
-        #cli_parser.exit()
         return
 
     args = cli_parser.parse_args(argv)
@@ -774,5 +867,4 @@ def analyze_cli(argv=None):
 
 if __name__ == "__main__":
 
-    print("Changed to: analyze_cli(sys.argv[1:)")
     analyze_cli(sys.argv[1:])
