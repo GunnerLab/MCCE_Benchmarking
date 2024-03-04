@@ -42,7 +42,7 @@ Notation remarks:
   ```
 
 2. Create a dedicated environment for all things mcce, e.g. 'mce':
-   >conda create -n mce python 3.11
+   >conda create -n mce python=3.11
 
    - Activate the env:
      >conda activate mce  # -> new prompt: (mce) >
@@ -82,7 +82,7 @@ Notation remarks:
       >>~/miniconda3/envs/mce/bin/bench_analyze
 
   3.2 Check the online help, e.g.:
-      (mce) >bench_expl_pkas job_setup --help
+      (mce) >bench_expl_pkas setup_job --help
       (mce) >bench_analyze expl_pkas --help
 
 
