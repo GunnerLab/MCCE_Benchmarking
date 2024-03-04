@@ -52,7 +52,7 @@ ENTRY_POINTS = {"main":    "bench_expl_pkas",
 
 
 # output file names => <benchmarks_dir>/analysis/, except
-# ALL_PKAS_FILE: in <benchmarks_dir>
+# ALL_PKAS: in <benchmarks_dir>
 class OUT_FILES(Enum):
     ALL_PKAS = "all_pkas.out"
     ALL_PKAS_OOB = "all_pkas_oob.tsv"
@@ -209,8 +209,9 @@ Globals:
 {MCCE_EPS = }; {N_ACTIVE = }
 {N_PDBS = } : number of pdbs in the dataset
 Default analysis output file names (fixed):
-{OUT_FILES.MATCHED_PKAS_FILE.name = }
-{OUT_FILES.ALL_PKAS_FILE.name = }
+{OUT_FILES.ALL_PKAS.name = }
+{OUT_FILES.ALL_PKAS_OOB = }
+{OUT_FILES.MATCHED_PKAS.name = }
 {OUT_FILES.CONF_COUNTS.name = }
 {OUT_FILES.RES_COUNTS.name = }
 {OUT_FILES.RUN_TIMES.name = }
