@@ -39,6 +39,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "numpy",
+    "scipy",
     "pandas",
     "ipykernel",
     "matplotlib",
