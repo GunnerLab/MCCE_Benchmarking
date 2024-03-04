@@ -89,7 +89,10 @@ Notation remarks:
 4. Run the first sub-command, job setup (includes scheduling step when run this way):
    You can limit the number of curated proteins (folder) to setup using -n_pdbs: give
    a low number for testing (max=120):
-   (mce) >bench_expl_pkas setup_job -benchmarks_dir <some dir> -n_pdbs 2
+   (mce) >bench_expl_pkas setup_job -benchmarks_dir <some dir> -n_pdbs 2 -job_name foo
+
+4.5 Launch the automated scheduling for the job:
+   (mce) >bench_expl_pkas launch_job -benchmarks_dir <some dir> -job_name foo -n_active 4
 
 
 [5. Manually launching a batch (in case the scheduler fails):
