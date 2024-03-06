@@ -6,12 +6,11 @@ Cli end point for analysis. `analyze`
 Cli parser with 2 sub-commands:
 
  1. expl_pkas:
-   Options:
-   - "-benchmarks_dir"
-   - "-min_pct_complete"
+   Option: -benchmarks_dir <path/to/dir/of/completed runs>; must exists
 
-   Output in <benchmarks_dir>: MATCHED_PKAS_FILE
-   Outputs in <benchmarks_dir>/analysis:
+   Outputs: The Eum class `mcce_benchmark.OUT_FILES` holds all the file names.
+   In <benchmarks_dir>: MATCHED_PKAS_FILE
+   In <benchmarks_dir>/analysis:
      - residues & conformers count files;
      - plots saved as figures
 
@@ -629,13 +628,14 @@ def load_matched_pkas(matched_fp:str) -> pd.DataFrame:
 
 
 def matched_pkas_stats(matched_df:pd.DataFrame, prec:int=2) -> dict:
-    """Return a dictionary:
+    """Return a dictionnary:
        d_out = {"fit":(m, b),
                 "N":N,
                 "mean_delta": mean_delta,
                 "rmsd":rmsd,
                 "bounds":comp_bounds,
                 "text":pkas_stats}.
+    Save dict as json file: OUT_FILES.MATCHED_PKAS_STATS
     """
 
     N = matched_df.shape[0]
@@ -649,7 +649,7 @@ def matched_pkas_stats(matched_df:pd.DataFrame, prec:int=2) -> dict:
 Number of pKas matched with those in pKaDB: {N:,}
 Fit line: y = {m:.{prec}f}.x + {b:.{prec}f}
 Mean delta pKa: {mean_delta:.{prec}f}
-RMSD, calculated vs exprimental: {rmsd:.{prec}f}
+RMSD, calculated vs experimental: {rmsd:.{prec}f}
 """
 
     comp_bounds = [3., 2., 1.]
@@ -663,12 +663,15 @@ RMSD, calculated vs exprimental: {rmsd:.{prec}f}
              "bounds":comp_bounds,
              "txt":txt}
 
+    # TODO: save dict to json:
+    
     return d_out
 
 
-def res_outlier_count(matched_fp:str) -> tuple:
-    """Return counts per residue type for diff(mcce-expl) >3
-    and pKa values beyond titration bounds in text and df format
+def res_outlier_count(matched_fp:str, replace=False) -> tuple:
+    """Return counts per residue type for diff(mcce-expl) > 3,
+    and pKa values beyond titration bounds in text and df format.
+    Save text to "outlier_residues.tsv" (OUT_FILES.RES_OUTLIER).
     ASSUMED: bounds=(0,14)
     """
 
@@ -687,21 +690,20 @@ def res_outlier_count(matched_fp:str) -> tuple:
     out_df = gp_del3.merge(gp_oob, how='left', on="res").replace({np.nan:0}).astype(int)
     out_df.index.name = None
 
-    return out_df.to_string(), out_df
+    outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RES_OUTLIER.value)
+    if outlier_fp.exists() and replace:
+        outlier_fp.unlink()
+    out_df.to_csv(outlier_fp, sep="\t")
+    
+    return out_df
 
-#................................................................................
-def expl_pka_comparison(args):
-    """Processing tied to sub-command 'expl_pkas'."""
 
-    bench_dir = Path(args.benchmarks_dir)
+def analyze_expl_pkas(benchmarks_dir:Path):
+    """Create all analysis output files."""
+
+    bench_dir = Path(benchmarks_dir)
     pdbs = bench_dir.joinpath(BENCH.CLEAN_PDBS)
     book_fp = pdbs.joinpath(BENCH.Q_BOOK)
-
-    # OK to analyze?
-    pct = pct_completed(book_fp)
-    if pct < args.min_pct_complete:
-        logger.info(f"Completion threshold not met; completed = {pct:.2f}")
-        return
 
     analyze = bench_dir.joinpath(ANALYZE_DIR)
     if not analyze.exists():
@@ -710,16 +712,16 @@ def expl_pka_comparison(args):
     logger.info(f"Collating all completed pK.out files.")
     collate_all_pkas(bench_dir)
 
-    logger.info(f"Saving of bound pK values to tsv, if any.")
+    logger.info(f"Saving out of bounds pK values to tsv, if any.")
     extract_oob_pkas(bench_dir)
 
-    logger.info(f"Calculating conformers and residues counts into csv files.")
+    logger.info(f"Calculating conformers and residues counts into tsv files.")
     all_counts_to_tsv(pdbs, kind="confs", overwrite=True)
     all_counts_to_tsv(pdbs, kind="res", overwrite=True)
     all_run_times_to_tsv(pdbs, overwrite=True)
     confs_per_res_to_tsv(pdbs)
 
-    logger.info(f"Calculating conformers thoughput into csv files.")
+    logger.info(f"Calculating conformers thoughput into tsv files.")
     confs_throughput_to_tsv(pdbs)
 
     logger.info(f"Loading the experimental and calculated pKas to dict.")
@@ -733,24 +735,33 @@ def expl_pka_comparison(args):
     logger.info(f"Calculating the matched pkas stats into dict.")
     matched_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS.value)
     matched_df = load_matched_pkas(matched_fp)
+    #TODO: save stats to file
     d_stats = matched_pkas_stats(matched_df)
-    txt, df = res_outlier_count(matched_fp)
-    print(txt)
+    # no need for returned df here -> to tsv:
+    _ = res_outlier_count(matched_fp)
 
     #plots
-    logger.info(f"Plotting conformers throughput per step + pic.")
+    logger.info(f"Plotting conformers throughput per step -> pic.")
     tsv = matched_fp.parent.joinpath(OUT_FILES.CONFS_THRUPUT.value)
     thruput_df = load_tsv(tsv, index_col="step")
     save_to = matched_fp.parent.joinpath(OUT_FILES.CONFS_TP_PNG.value)
     plots.plot_conf_thrup(thruput_df, save_to)
 
-    logger.info(f"Plotting pkas fit + pic.")
+    logger.info(f"Plotting pkas fit -> pic.")
     save_to = matched_fp.parent.joinpath("pkas_fit")
     plots.plot_pkas_fit(matched_df, d_stats, save_to)
 
-    logger.info(f"Plotting residues analysis + pic.")
+    logger.info(f"Plotting residues analysis -> pic.")
     save_to = matched_fp.parent.joinpath("res_analysis")
     plots.plot_res_analysis(matched_pKas, save_to)
+
+    return
+
+#................................................................................
+def expl_pkas_comparison(args:argNamespace):
+    """Processing tied to sub-command 'expl_pkas'."""
+
+    
 
     return
 
@@ -831,14 +842,7 @@ def analyze_parser():
         help = """The user's directory where the "clean_pdbs" folder reside; default: %(default)s.
         """
     )
-    sub1.add_argument(
-        "-min_pct_complete",
-        default = 1.,
-        type = float,
-        help = """The minimal percentage of runs that must be completed before
-        launching the analysis; a number between 0 and 1; default: %(default)s."""
-    )
-    sub1.set_defaults(func=expl_pka_comparison)
+    sub1.set_defaults(func=expl_pkas_comparison)
 
     return p
 
@@ -859,6 +863,15 @@ def analyze_cli(argv=None):
         return
 
     args = cli_parser.parse_args(argv)
+
+    # OK to analyze?
+    bench_dir = Pathok(args.benchmarks_dir)
+    book_fp = bench_dir.joinpath(BENCH.CLEAN_PDBS, BENCH.Q_BOOK)
+    pct = pct_completed(book_fp)
+    if pct < 1.:
+        logger.info(f"Runs not 100% complete; completed = {pct:.2f}")
+        return
+
     args.func(args)
 
     return

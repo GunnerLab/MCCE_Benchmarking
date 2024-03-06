@@ -115,18 +115,15 @@ Notation remarks:
   ]
 
 6. Analyze:
-   The command line interface for analyzing a job setup via `bench_expl_pkas`, accepts two arguments:
-   -benchmarks_dir [ -min_pct_complete ]. Note: The default for 'min_pct_complete' is 1 (100%): do 
-   not modify until Issue 19 (https://github.com/GunnerLab/MCCE_Benchmarking/issues/19) is closed.
-
-   The first step of the analysis is to check that this threshold has been met. Incidentally, it's an
-   easy way to check for how far long the job is.
+   The command line interface for analyzing a job setup via `bench_expl_pkas`, requires 1 argument:
+   -benchmarks_dir.
+   The first step of the analysis checks that all the runs are completed. Incidentally, it's an
+   easy way to check for how far along the processing is.
 
    (mce) >bench_analyze expl_pkas -benchmarks_dir <some/dir>
 
-   Note: [FUTURE] bench_analyze will have a second subcommand, likely 'mcce_runs', when the benchmarking
+   Note: [FUTURE] bench_analyze will have a second sub-command, likely 'mcce_runs', when the benchmarking
          cli for benchmarking mcce runs is completed, likely 'bench_mcce_runs'.
-
 
 Please, open an issue with any problem installing or using the app at:
 https://github.com/GunnerLab/MCCE_Benchmarking/issues

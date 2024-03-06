@@ -46,7 +46,7 @@ ENTRY_POINTS = {"main":    "bench_expl_pkas",
                 "analyze": "bench_analyze"}
 
 #ENTRY_POINTS = {"main": "bench_expl_pkas",
-#                "launch": "bench_launchjob",
+#                "launch": "bench_launchjob", # used by crontab
 #                "mcruns": "bench_mcce_runs"  # new needed: TODO
 #                "analyze": "bench_analyze"}
 
@@ -55,11 +55,13 @@ ENTRY_POINTS = {"main":    "bench_expl_pkas",
 # ALL_PKAS: in <benchmarks_dir>
 class OUT_FILES(Enum):
     ALL_PKAS = "all_pkas.out"
-    ALL_PKAS_OOB = "all_pkas_oob.tsv"
+    ALL_PKAS_OOB = "all_pkas_oob.tsv" # out of bounds pKas
     MATCHED_PKAS = "matched_pkas.csv"
+    MATCHED_PKAS_STATS = "matched_pkas_stats.json" # from dict
     PKAS_STATS = "pkas_stats.csv"
     CONF_COUNTS = "conf_counts.tsv"
     RES_COUNTS = "res_counts.tsv"
+    RES_OUTLIER = "outlier_residues.tsv"
     RUN_TIMES = "run_times.tsv"
     CONFS_PER_RES = "confs_per_res.tsv"
     CONFS_THRUPUT = "confs_throughput.tsv"
