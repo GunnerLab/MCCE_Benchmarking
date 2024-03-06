@@ -3,6 +3,8 @@ Installing MCCE_Benchmarking for testing purposes:
 Notation remarks:
   ">" denotes the command line prompt (whatever it may be in your profile);
   ">>" denotes the output of a command.
+  On a command line, "<x>" is an example of an argument value.
+
 
 0. Preferably: cd $HOME
 
@@ -42,22 +44,23 @@ Notation remarks:
   ```
 
 2. Create a dedicated environment for all things mcce, e.g. 'mce':
-   >conda create -n mce python=3.11
+   >conda create -n mce python=3.11   # the version part (=3.11) is optional, but not python
 
    - Activate the env:
-     >conda activate mce  # -> new prompt: (mce) >
+     >conda activate mce  # => new prompt: (mce) >
 
    - Install mcce
      * For Gunner Lab members:
        [UPDATE, 03-01-2024:
-       This is a must: the packaged 'Stable-MCCE' is missing a fortran library;
+       This is a MUST: the packaged 'Stable-MCCE' is missing a fortran library;
        See Issue 282, https://github.com/GunnerLab/Stable-MCCE/issues/282
        ]
-       On the server, mcce is already installed, but it must be in your path
-       variable; Add this line in your .bashrc, save & close the file, then source it:
+       On the server, mcce is already installed, but it must be in your path variable; 
+       Add the following line in your .bashrc, save & close the file, then source it:
        ```
        export PATH="/home/mcce/Stable-MCCE/bin:$PATH"
        ```
+
        (mce) > . ~/.bashrc   # source or 'dot' the file
        (mce) >which mcce     # should return the added path
 
@@ -86,29 +89,32 @@ Notation remarks:
       (mce) >bench_analyze expl_pkas --help
 
 
-4. Run the first sub-command, job setup (includes scheduling step when run this way):
-   You can limit the number of curated proteins (folder) to setup using -n_pdbs: give
-   a low number for testing (max=120):
-   (mce) >bench_expl_pkas setup_job -benchmarks_dir <some dir> -n_pdbs 2 -job_name foo
-
-4.5 Launch the automated scheduling for the job:
-   (mce) >bench_expl_pkas launch_job -benchmarks_dir <some dir> -job_name foo -n_active 4
+4. Run the first sub-command, setup_job (includes the script creation step):
+   You can limit the number of curated proteins (folder) to setup using -n_pdbs.
+   Give a low number for testing (max is 120, default):
+   (mce) >bench_expl_pkas setup_job -benchmarks_dir <some/dir> -n_pdbs <2> -job_name <foo>
 
 
-[5. Manually launching a batch (in case the scheduler fails):
-    (mce) >bench_launchjob -benchmarks_dir <some dir> [ -job_name <same job name given in setup_job> ]
+5. Launch batches of jobs:
+   5.0 Preferred way: use the automated scheduling to process all the pdbs:
+       (mce) >bench_expl_pkas launch_job -benchmarks_dir <some/dir> -job_name <foo> -n_batch <4>
 
- 6. Wait ~ 15 mins and repeat #5 to update clean_pdbs/book.txt
+  [
+   5.1 Alternate way: launch a batch of size -n_batch (default: 10) at the command line:
+       (mce) >bench_launchjob -benchmarks_dir <some/dir> [ -job_name <same job name given in setup_job> ]
 
-    You can find out out many jobs are left to be submitted with this command:
+   5.2 Wait ~ 15 mins and repeat #5.1 to update clean_pdbs/book.txt
+       You will need to repeat #5.2 until all the entries in book.txt show a status of 'e' or 'c'.
 
-    (mce) >to_submit=$(grep -v -e 'r$' -e 'c$' -e 'e$' <some dir>/clean_pdbs/book.txt | wc -l)
-    (mce) >echo $to_submit
+       You can find out out many jobs are left to be submitted with this command:
 
-    (If -n_active > the number of folders, the result should be 0.)
-]
+       (mce) >to_submit=$(grep -v -e 'r$' -e 'c$' -e 'e$' <some/dir>/clean_pdbs/book.txt | wc -l)
+       (mce) >echo $to_submit
 
-7. Analyze:
+       (If -n_batch > the number of folders, the result should be 0.)
+  ]
+
+6. Analyze:
    The command line interface for analyzing a job setup via `bench_expl_pkas`, accepts two arguments:
    -benchmarks_dir [ -min_pct_complete ]. Note: The default for 'min_pct_complete' is 1 (100%): do 
    not modify until Issue 19 (https://github.com/GunnerLab/MCCE_Benchmarking/issues/19) is closed.
@@ -116,7 +122,10 @@ Notation remarks:
    The first step of the analysis is to check that this threshold has been met. Incidentally, it's an
    easy way to check for how far long the job is.
 
-   (mce) >bench_analyze expl_pkas -benchmarks_dir <some dir>
+   (mce) >bench_analyze expl_pkas -benchmarks_dir <some/dir>
+
+   Note: [FUTURE] bench_analyze will have a second subcommand, likely 'mcce_runs', when the benchmarking
+         cli for benchmarking mcce runs is completed, likely 'bench_mcce_runs'.
 
 
 Please, open an issue with any problem installing or using the app at:

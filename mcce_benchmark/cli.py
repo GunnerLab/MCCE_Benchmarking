@@ -17,7 +17,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as a
 # fns defined in init:
 from mcce_benchmark import Pathok
 # import class of files resources and constants:
-from mcce_benchmark import BENCH, LOG_HDR, DEFAULT_DIR, MCCE_EPS, N_ACTIVE, ENTRY_POINTS, N_PDBS
+from mcce_benchmark import BENCH, LOG_HDR, DEFAULT_DIR, MCCE_EPS, N_BATCH, ENTRY_POINTS, N_PDBS
 from mcce_benchmark.scheduling import subprocess_run
 # modules
 from mcce_benchmark import audit, job_setup, batch_submit, scheduling, custom_sh
@@ -30,7 +30,6 @@ from time import sleep
 from typing import Union
 
 
-#logger = logging.getLogger(__name__)
 logger = logging.Logger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -58,7 +57,7 @@ Sub-command for setting up <benchmarks_dir>/clean_pdbs folder & job_name_run.sh 
 
 SUB_CMD2 = "launch_job"
 HELP_2 = f"""Sub-command for launching a batch of jobs, e.g.:
->{CLI_NAME} {SUB_CMD2} -benchmarks_dir <folder name> -n_active 15
+>{CLI_NAME} {SUB_CMD2} -benchmarks_dir <folder name> -n_batch 15
 Note: if provided, the value for the -job_name option must match the one used in `setup_job`.
 """
 
@@ -91,7 +90,7 @@ Examples:
      >{CLI_NAME} {SUB_CMD2} -benchmarks_dir <folder name>
 
    - Using non-default option(s):
-     >{CLI_NAME} {SUB_CMD2} -benchmarks_dir <folder name> -n_active <jobs to maintain>
+     >{CLI_NAME} {SUB_CMD2} -benchmarks_dir <folder name> -n_batch <jobs to maintain>
      >{CLI_NAME} {SUB_CMD2} -benchmarks_dir <folder name> -job_name <my_job_name> -sentinel_file step2_out.pdb
 """
 
@@ -195,7 +194,7 @@ def bench_launch_batch(args:argNamespace) -> None:
         # temp: submit 1st with batch_submit.launch_job:
         #batch_submit.launch_job(args.benchmarks_dir,
         #                        args.job_name,
-        #                        args.n_active,
+        #                        args.n_batch,
         #                        args.sentinel_file)
 
         # with crontab; FIX: fails silently
@@ -436,9 +435,9 @@ def bench_parser():
         """
     )
     sub2.add_argument(
-        "-n_active",
+        "-n_batch",
         type = int,
-        default = N_ACTIVE,
+        default = N_BATCH,
         help = """The number of jobs to keep launching; default: %(default)s.
         """
     )
@@ -450,13 +449,6 @@ def bench_parser():
         this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
-    #TODO?
-    #sub3.add_argument(
-    #    "--do_not_schedule",
-    #    default = False,
-    #    help = "Do not schedule via crontab. Use for very small jobs, i.e. number of pdbs < N_ACTIVE.",
-    #    action="store_true"
-    #)
     sub2.set_defaults(func=bench_launch_batch)
 
     return p

@@ -56,12 +56,12 @@ in `proteins.tsv`, that is 'pdbid_use.pdb' is the new name, with 'use' being the
 
 
 ### Features - status:
- - Automated scheduling - testing, near completion
- - Inclusion of `pkanalysis.py` into the cli - TODO
+ - Automated scheduling : DONE
+ - Inclusion of `pkanalysis.py` into the cli : DONE
+ - Include the pKas from the "reference mcce run(s)", i.e. "parse.e4", "parse.e8" into the packaged data : DONE
  - Implement an analysis switch function depending on the reference set, i.e. "pKa DB" or one of the "reference mcce run(s)" - TODO
- - Include the pKas from the "reference mcce run(s)", i.e. "parse.e4", "parse.e8" into the packaged data - TODO
  - Implement formal testing - partial
 
 
 ### Discussion:
- - What should a "pKa analysis" include in addition to `matched_pka.csv`?
+ - [FUTURE] Analysis for bench_mcceruns: diff of pK.out and sum_crg.out for two runs.

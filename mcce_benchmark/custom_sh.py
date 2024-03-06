@@ -6,16 +6,16 @@ Module: custom_sh.py
 Functions for building a custom script when cli args are not all defaults.
 
 * Custom template (SH_TEMPLATE):
- ```
- #!/bin/bash
+```
+#!/bin/bash
 
- step1.py prot.pdb {wet}{noter}{d}{s1_norun}{u}
- step2.py {conf_making_level}{d}{s2_norun}{u}
- step3.py {c}{x}{f}{p}{r}{d}{s3_norun}{u}
- step4.py --xts {titr_type}{i}{interval}{n}{ms}{s4_norun}{u}
+step1.py prot.pdb {wet}{noter}{d}{s1_norun}{u}
+step2.py {conf_making_level}{d}{s2_norun}{u}
+step3.py {c}{x}{f}{p}{r}{d}{s3_norun}{u}
+step4.py --xts {titr_type}{i}{interval}{n}{ms}{s4_norun}{u}
 
- sleep 10
- ```
+sleep 10
+```
 => recovers the flexibility of each step<n>.py cli.
 """
 
@@ -33,22 +33,19 @@ logger.setLevel(logging.INFO)
 #.................................................................
 # For testing:
 # To check script is run inside a PDB folder:
-RUN_SH_TEST_ECHO = """
-#!/bin/bash
+RUN_SH_TEST_ECHO = """#!/bin/bash
 
 echo "Using RUN_SH_TEST_ECHO as script: $PWD"
 """
 
 # To test submit_script without running anything:
-RUN_SH_NORUN = """
-#!/bin/bash
+RUN_SH_NORUN = """#!/bin/bash
 
 step1.py prot.pdb --norun
 """
 
 # pseudo default, bypassing delphi
-RUN_SH_PSEuDO = """
-#!/bin/bash
+RUN_SH_PSEUDO = """#!/bin/bash
 
 step1.py prot.pdb --dry
 step2.py
@@ -60,15 +57,14 @@ sleep 10
 
 #...............................................................................
 # for custom script:
-SH_TEMPLATE = """
- #!/bin/bash
+SH_TEMPLATE = """#!/bin/bash
 
- step1.py prot.pdb {wet}{noter}{d}{s1_norun}{u}
- step2.py {conf_making_level}{d}{s2_norun}{u}
- step3.py {c}{x}{f}{p}{r}{d}{s3_norun}{u}
- step4.py --xts {titr_type}{i}{interval}{n}{ms}{s4_norun}{u}
+step1.py prot.pdb {wet}{noter}{d}{s1_norun}{u}
+step2.py {conf_making_level}{d}{s2_norun}{u}
+step3.py {c}{x}{f}{p}{r}{d}{s3_norun}{u}
+step4.py --xts {titr_type}{i}{interval}{n}{ms}{s4_norun}{u}
 
- sleep 10
+sleep 10
 """
 
 class ScriptChoices(str, Enum):
@@ -77,6 +73,7 @@ class ScriptChoices(str, Enum):
     CUSTOM = SH_TEMPLATE
 
 
+# maping of bench cli arg to mcce steps args:
 cli_to_mcce_opt = {"wet":"dry",
                    "conf_making_level":"l",
                    "interval":"d",
@@ -113,8 +110,9 @@ def cli_args_to_dict(sh_args:argNamespace) -> dict:
 
 def all_opts_are_defaults(sh_args:argNamespace) -> bool:
     """Return True if sh_args are default in all the steps,
-    else return False. Purpose: determine whether to write
-    a custom script or use the default one.
+    else return False.
+    Purpose: determine whether to write a custom script or
+             use the default one.
     """
 
     # holds mcce options only
@@ -136,10 +134,16 @@ def populate_custom_template(job_args:argNamespace) -> str:
     d_args = cli_args_to_dict(job_args)
     d_all = {}
     # note: trailing spaces needed:
+    # special cases:
     v = d_args.pop("wet")
     d_all["wet"] = "" if v else "--dry "
+
     v = d_args.pop("noter")
     d_all["noter"] = "--noter " if v else ""
+
+    v = d_args.pop("r")
+    d_all["r"] = "-r " if v else ""
+
     for s in ["s1_norun","s2_norun","s3_norun","s4_norun"]:
         v = d_args.pop(s)
         d_all[s] = "--norun " if v else ""
@@ -149,7 +153,7 @@ def populate_custom_template(job_args:argNamespace) -> str:
         if str(v) == str(all_default_opts[k]):
             d_all[k] = ""
         else:
-            d_all[k] = f"-{cli_to_mcce_opt.get(k, k) } {v }"
+            d_all[k] = f"-{cli_to_mcce_opt.get(k, k) } {v} "
 
     body = ScriptChoices.CUSTOM.value.format(**d_all)
 

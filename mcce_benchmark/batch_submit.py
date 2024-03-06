@@ -13,15 +13,15 @@ Main functions:
     Query shell for user's processes with job_name.
     Return a list of clean_pdbs sub-directories where the jobs are running.
 
-* batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
+* batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out") -> None:
     Update Q_BOOK according to user's running jobs' statuses.
     Launch new jobs inside clean_pdbs subfolders until the number of
-    job equals n_active.
+    job equals n_batch.
     To be run in /clean_pdbs folder, which is where Q_BOOK resides.
 
 * launch_job(benchmarks_dir:Path = Path(DEFAULT_DIR),
              job_name:str = None,
-             n_active:int = N_ACTIVE,
+             n_batch:int = N_BATCH,
              sentinel_file:str = "pK.out") -> None:
     Go to benchmarks_dir/clean_pdbs directory & call batch_run.
 
@@ -37,8 +37,10 @@ Q book status codes:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from mcce_benchmark import BENCH, N_ACTIVE, USER, DEFAULT_DIR, ENTRY_POINTS, Pathok
+from mcce_benchmark import BENCH, N_BATCH, USER, DEFAULT_DIR, ENTRY_POINTS, Pathok
 from mcce_benchmark.scheduling import subprocess_run
+from mcce_benchmark.pkanalysis import pct_completed
+
 import logging
 import os
 from pathlib import Path
@@ -89,9 +91,7 @@ def get_running_jobs_dirs(job_name:str) -> list:
     """
 
     # get the process IDs that match job_name from the user's running processes
-    #test: only mcce appear in job list
-    alt_job_name = "mcce"
-    data = subprocess_run(f"pgrep -u {USER} {alt_job_name}")
+    data = subprocess_run(f"pgrep -u {USER} {job_name}.sh")
     if data is subprocess.CalledProcessError:
         logger.error("Error with pgrep cmd.")
         raise data
@@ -110,16 +110,16 @@ def get_running_jobs_dirs(job_name:str) -> list:
     return dirs
 
 
-def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out") -> None:
+def batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out") -> None:
     """
     Update Q_BOOK according to user's running jobs' statuses.
     Launch new jobs inside clean_pdbs subfolders until the number of
-    job equals n_active.
+    job equals n_batch.
     To be run in /clean_pdbs folder, which is where Q_BOOK resides.
 
     Args:
     job_name (str): Name of the job and script to use in /clean_pdbs folder.
-    n_active (int, BENCH.N_ACTIVE=10): Number of jobs/processes to maintain.
+    n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
     sentinel_file (str, "pK.out"): File whose existence signals a completed job;
         When running all 4 MCCE steps (default), this file is 'pK.out', while
         when running only the first 2, this file is 'step2_out.pdb'.
@@ -140,7 +140,7 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
     for entry in entries:
         if entry.state == " ":  # unsubmitted
             n_jobs += 1
-            if n_jobs <= n_active:
+            if n_jobs <= n_batch:
                 os.chdir(entry.name)
                 subprocess.Popen(f"../{job_script}",
                                  shell=True,
@@ -170,7 +170,7 @@ def batch_run(job_name:str, n_active:int = N_ACTIVE, sentinel_file:str = "pK.out
 
 def launch_job(benchmarks_dir:str = DEFAULT_DIR,
                job_name:str = BENCH.DEFAULT_JOB,
-               n_active:int = N_ACTIVE,
+               n_batch:int = N_BATCH,
                sentinel_file:str = "pK.out") -> None:
     """
     Go to benchmarks_dir/clean_pdbs directory & call batch_run.
@@ -178,7 +178,7 @@ def launch_job(benchmarks_dir:str = DEFAULT_DIR,
     Args:
     benchmarks_dir (Path, None): Path of the folder containing the 'clean_pdbs' folder.
     job_name (str, None): Name of the job and script to use in 'clean_pdbs' folder.
-    n_active (int, BENCH.N_ACTIVE=10): Number of jobs/processes to maintain.
+    n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
     sentinel_file (str, "pK.out"): File whose existence signals a completed step;
         When running all 4 MCCE steps (default), this file is 'pK.out', while
         when running only the first 2, this file is 'step2_out.pdb'.
@@ -198,7 +198,7 @@ def launch_job(benchmarks_dir:str = DEFAULT_DIR,
 
     os.chdir(BENCH.CLEAN_PDBS)
 
-    batch_run(job_name, n_active=n_active, sentinel_file=sentinel_file)
+    batch_run(job_name, n_batch=n_batch, sentinel_file=sentinel_file)
 
     os.chdir("../")
 
@@ -241,9 +241,9 @@ def batch_parser():
         """
     )
     parser.add_argument(
-        "-n_active",
+        "-n_batch",
         type = int,
-        default = N_ACTIVE,
+        default = N_BATCH,
         help = """The number of jobs to keep launching; default: %(default)s.
         """
     )
@@ -273,8 +273,12 @@ def launch_cli(argv=None):
     else:
         launch_job(args.benchmarks_dir,
                    args.job_name,
-                   args.n_active,
+                   args.n_batch,
                    args.sentinel_file)
+
+    book_fp = Path(args.benchmarks_dir).joinpath(BENCH.CLEAN_PDBS, BENCH.Q_BOOK)
+    pct = pct_completed(book_fp)
+    logger.info(f"Percentage of jobs completed: {pct:.1%}")
 
     return
 

@@ -70,7 +70,7 @@ class OUT_FILES(Enum):
 DEFAULT_DIR = "mcce_benchmarks"
 ANALYZE_DIR = "analysis"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
-N_ACTIVE = 10  # number of active jobs to maintain in the process queue
+N_BATCH = 10   # number of jobs to maintain in the process queue
 N_PDBS = 120   # UPDATE if change in packaged data!
 
 MCCE_OUTPUTS = ["acc.atm", "acc.res", "entropy.out", "extra.tpl", "fort.38",
@@ -206,7 +206,7 @@ LOG_HDR = f"""
 START\n{'-'*70}\n{now} - {USER = } - User envir: {USER_ENV}
 APP VER: {_version.version_tuple}\nAPP DEFAULTS:
 Globals:
-{MCCE_EPS = }; {N_ACTIVE = }
+{MCCE_EPS = }; {N_BATCH = }
 {N_PDBS = } : number of pdbs in the dataset
 Default analysis output file names (fixed):
 {OUT_FILES.ALL_PKAS.name = }

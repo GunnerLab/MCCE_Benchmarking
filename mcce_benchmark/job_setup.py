@@ -43,7 +43,7 @@ Functions:
 """
 
 #...............................................................................
-from mcce_benchmark import BENCH, MCCE_EPS, N_ACTIVE, N_PDBS
+from mcce_benchmark import BENCH, MCCE_EPS, N_BATCH, N_PDBS
 from mcce_benchmark import audit, Pathok
 import logging
 import os
@@ -78,7 +78,6 @@ def setup_pdbs_folder(benchmarks_dir:str, n_pdbs:int) -> None:
     user_pdbs_folder = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
     if not user_pdbs_folder.exists():
         user_pdbs_folder.mkdir()
-    #logger.info(f"{user_pdbs_folder = }")
 
     valid, invalid = audit.list_all_valid_pdbs()
     for i, v in enumerate(valid):

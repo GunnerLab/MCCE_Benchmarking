@@ -488,7 +488,6 @@ def pct_completed(book_fpath:str) -> float:
 
     out = data.stdout.splitlines()
     pct = float(out[0])/float(out[1])
-    #print(f"{out[0]} completed out of {out[1]} ({pct:%}).")
 
     return pct
 

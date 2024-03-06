@@ -8,18 +8,24 @@ Main functions:
 --------------
 Note: proteins.tsv should be considered the ground truth.
 
-* proteins_df(prot_tsv_file:Path = BENCH.BENCH_PROTS, return_excluded:bool = None) -> pd.DataFrame:
-* valid_pdb(pdb_dir:Path, return_name:bool = False) -> Union[bool, Path, None]:
-* list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
-* list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
-* multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
-* reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> list:
-* update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
-* rewrite_book_file(book_file:Path) -> None:
-* pdb_list_from_book(book_file:Path = Path(BENCH.Q_BOOK)) -> list:
-* pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
-* same_pdbs_book_vs_clean() -> bool:
-* pdb_list_from_experimental_pkas(pkas_file:str) -> list:
+def list_complete_runs(benchmarks_dir:str, like_clean_pdbs:bool=False) -> list:
+def cp_completed_runs(src_dir:str, dest_dir:str) -> None:
+def proteins_df(prot_tsv_file:Path=BENCH.BENCH_PROTS, return_excluded:bool=None) -> pd.DataFrame:
+def get_usable_prots(prot_tsv_file:Path=BENCH.BENCH_PROTS) -> list:
+def valid_pdb(pdb_dir:str, return_name:bool = False) -> Union[bool, Path, None]:
+def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
+def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> list:
+def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
+def rewrite_book_file(book_file:Path) -> None:
+def pdb_list_from_book(book_file:Path = Path(BENCH.Q_BOOK)) -> list:
+def pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
+def prots_symdiff_clean(prot_tsv_file:Path=BENCH.BENCH_PROTS,
+def update_data(prot_tsv_file:Path=BENCH.BENCH_PROTS,
+def same_pdbs_book_vs_clean() -> bool:
+def pdb_list_from_experimental_pkas(pkas_file:Path=BENCH.BENCH_WT) -> list:
+def proteins_to_tsv(prot_file:str) -> list:
 """
 
 # import class of files resources and associated constants:

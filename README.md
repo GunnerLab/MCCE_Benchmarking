@@ -57,34 +57,37 @@ Launch a MCCE benchmarking job using curated structures from the pKa Database v1
 
 Entry points available at the command line:
  1. 'bench_expl_pkas' along with one of 2 sub-commands:
-  - Sub-command 1: 'job_setup': setup data folders & the run script to run mcce steps 1 through 4;
-  - Sub-command 2: 'job_launch': launch a batch of jobs;
-    - Note this entry point is for the job scheduler; Can be used via cli if scheduler fails.
- 2. 'bench_analyze' along with one of 1 sub-command:
+  - Sub-command 1: 'setup_job': setup data folders & the run script to run mcce steps 1 through 4;
+  - Sub-command 2: 'launch_job': launch a batch of jobs;
+ 2. 'bench_launchjob' used to lauch a batch of job as per n_batch
+    Note: This is a convenience entry point that is used in the crontab (scheduler);
+          It is the same as 'bench_expl_pkas launch_job -benchmarks_dir <dir> [+ args, e.g. n_batch 5]';
+          It can be used via cli if scheduler fails.
+ 3. 'bench_analyze' along with one of 1 sub-command:
   - Sub-command 1: 'expl_pkas': analyze conformers and residues in user's 'benchmarks_dir';
 ```
 
 #### Usage:
 ```
-bench_expl_pkas job_setup <related args>
+bench_expl_pkas setup_job <related args>
 
 Examples for current implementation (Beta):
 
 1. Job setup
  - Using defaults (benchmarks_dir= mcce_benchmarks):
-   >bench_expl_pkas job_setup
+   >bench_expl_pkas setup_job
 
  - Using non-default option(s):
-   >bench_expl_pkas job_setup -benchmarks_dir <different name>
-   >bench_expl_pkas job_setup -job_name <my_job_name>
-   >bench_expl_pkas job_setup -job_name <my_job_name> -d 8
+   >bench_expl_pkas setup_job -benchmarks_dir <different name>
+   >bench_expl_pkas setup_job -job_name <my_job_name>
+   >bench_expl_pkas setup_job -job_name <my_job_name> -d 8
 
 2. Submit batch of jobs (if done via the cli):
  - Using defaults (benchmarks_dir= mcce_benchmarks;
                    job_name= default_run;
-                   n_active= 10;
+                   n_batch= 10;
                    sentinel_file= pK.out):
-   >bench_expl_pkas job_launch
+   >bench_expl_pkas launch_job
 ```
 
 
