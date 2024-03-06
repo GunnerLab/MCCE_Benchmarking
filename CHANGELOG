@@ -1,4 +1,4 @@
-Cat Chenal (49):
+Cat Chenal (62):
       Wed, 27 Dec 2023 13:42:07 -0500 - Initial commit
       Wed, 3 Jan 2024 13:25:33 -0500 - chore: Initital upload - no data
       Thu, 4 Jan 2024 17:55:39 -0500 - feat: Update audit functions and sentinel files
@@ -48,4 +48,17 @@ Cat Chenal (49):
       Mon, 12 Feb 2024 19:45:27 -0500 - feat: Update cli to allow fully customized run script.
       Wed, 14 Feb 2024 16:15:53 -0500 - Add flowcharts notebook (mermaid not rendered in gh).
       Tue, 20 Feb 2024 13:42:45 -0500 - feat: New analysis entry point; parse.e4 reference set.
+      Tue, 20 Feb 2024 14:25:15 -0500 - Create python-publish.yml
+      Tue, 20 Feb 2024 17:08:07 -0500 - docs: Update README, installation file, changelog.
+      Tue, 20 Feb 2024 18:05:14 -0500 - Update python-publish.yml
+      Wed, 21 Feb 2024 09:40:11 -0500 - Delete .github/workflows directory
+      Wed, 21 Feb 2024 09:42:29 -0500 - Remove -e from pip install: no need.
+      Wed, 21 Feb 2024 15:03:51 -0500 - Update install docs; pyproject for deps
+      Fri, 1 Mar 2024 18:28:04 -0500 - fix: Issues 21-25; Update Install_and_Test.txt.
+      Sun, 3 Mar 2024 17:28:24 -0500 - chore: Add titr_type, pka->float in pkout.df; oob -> tsv
+      Mon, 4 Mar 2024 13:32:37 -0500 - chore: Output file names simplification, nbk for pkout as df.
+      Mon, 4 Mar 2024 14:39:08 -0500 - Update Install_and_Test
+      Mon, 4 Mar 2024 15:34:44 -0500 - Update Install_and_Test
+      Mon, 4 Mar 2024 15:39:37 -0500 - Add scipy as req
+      Tue, 5 Mar 2024 19:29:51 -0500 - fix: Automated scheduling via crontab creation; Change name n_active -> n_batch
 
