@@ -44,7 +44,8 @@ Functions:
 
 #...............................................................................
 from mcce_benchmark import BENCH, MCCE_EPS, N_BATCH, N_PDBS
-from mcce_benchmark import audit, Pathok
+from mcce_benchmark import audit
+from mcce_benchmark.io_utils import Pathok
 import logging
 import os
 from pathlib import Path

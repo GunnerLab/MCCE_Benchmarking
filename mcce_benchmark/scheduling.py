@@ -7,9 +7,7 @@ For automating the crontab creation for scheduling batch_submit every minute.
 """
 
 from argparse import Namespace as argNamespace
-# import class of files resources and constants:
 from mcce_benchmark import USER_MCCE, CONDA_PATH, USER_ENV
-from mcce_benchmark import Pathok
 import logging
 from pathlib import Path
 import subprocess
@@ -19,41 +17,6 @@ from typing import Union
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 #.......................................................................
-
-def subprocess_run(cmd:str,
-                   capture_output=True,
-                   check:bool=False,
-                   text=True,
-                   shell=True,
-                  ) -> Union[subprocess.CompletedProcess,
-                             subprocess.CalledProcessError]:
-    """Wraps subprocess.run. Return CompletedProcess or err obj."""
-
-    try:
-        data = subprocess.run(cmd,
-                              capture_output=capture_output,
-                              check=check,
-                              text=text,
-                              shell=shell
-                             )
-    except subprocess.CalledProcessError as e:
-        data = e
-
-    return data
-
-
-def make_executable(sh_path:str) -> None:
-    """Alternative to os.chmod(sh_path, stat.S_IXUSR): permission denied."""
-
-    sh_path = Pathok(sh_path)
-    cmd = f"chmod +x {str(sh_path)}"
-
-    p = subprocess_run(cmd,
-                       capture_output=False,
-                       check=True)
-    if isinstance(p, subprocess.CalledProcessError):
-        logger.exception(f"Error in subprocess cmd 'chmod +x':\nException: {p}")
-        raise p
 
 
 def create_single_crontab(benchmarks_dir:Path,

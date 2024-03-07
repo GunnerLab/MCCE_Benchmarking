@@ -37,10 +37,9 @@ Q book status codes:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from mcce_benchmark import BENCH, N_BATCH, USER, DEFAULT_DIR, ENTRY_POINTS, Pathok
-from mcce_benchmark.scheduling import subprocess_run
+from mcce_benchmark import BENCH, N_BATCH, USER, DEFAULT_DIR, ENTRY_POINTS
+from mcce_benchmark.io_utils import Pathok, subprocess_run
 from mcce_benchmark.pkanalysis import pct_completed
-
 import logging
 import os
 from pathlib import Path

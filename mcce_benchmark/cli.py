@@ -14,12 +14,9 @@ Then 2 sub-commands:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
-# fns defined in init:
-from mcce_benchmark import Pathok
 # import class of files resources and constants:
 from mcce_benchmark import BENCH, LOG_HDR, DEFAULT_DIR, MCCE_EPS, N_BATCH, ENTRY_POINTS, N_PDBS
-from mcce_benchmark.scheduling import subprocess_run
-# modules
+from mcce_benchmark.io_utils import Pathok, subprocess_run
 from mcce_benchmark import audit, job_setup, batch_submit, scheduling, custom_sh
 from IPython.core.formatters import format_display_data
 import logging
@@ -30,13 +27,13 @@ from time import sleep
 from typing import Union
 
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-fh = logging.FileHandler("benchmark.log")
-fh.name = "fh"
-fh.setLevel(logging.INFO)
-logger.addHandler(fh)
+#fh = logging.FileHandler("benchmark.log")
+#fh.name = "fh"
+#fh.setLevel(logging.INFO)
+#logger.addHandler(fh)
 
 info_fh = Path("benchmark.info")
 if not info_fh.exists():
@@ -201,7 +198,6 @@ def bench_launch_batch(args:argNamespace) -> None:
         scheduling.schedule_job(args)
 
     # finally, read run.log files for version(s):
-    # FIX: only works if scheduling works + needs delay: how much?; move to analysis?
     log_mcce_version(args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS))
 
     return

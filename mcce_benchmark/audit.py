@@ -29,14 +29,14 @@ def proteins_to_tsv(prot_file:str) -> list:
 """
 
 # import class of files resources and associated constants:
-from mcce_benchmark import BENCH, Pathok
+from mcce_benchmark import BENCH
+from mcce_benchmark.io_utils import Pathok
 from functools import cache
 import logging
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import shutil
-import subprocess
 from typing import Union
 
 

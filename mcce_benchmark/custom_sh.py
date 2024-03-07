@@ -21,10 +21,10 @@ sleep 10
 
 from argparse import Namespace as argNamespace
 from mcce_benchmark import BENCH
+from mcce_benchmark.io_utils import make_executable
 from enum import Enum
 import logging
 from pathlib import Path
-import subprocess
 
 
 logger = logging.getLogger(__name__)
@@ -207,15 +207,7 @@ def write_run_script_from_template(benchmarks_dir:str,
     with open(sh_path , "w") as fh:
         fh.write(sh_text)
 
-    # make script executable, permission denied w/ os.chmod(sh_path, stat.S_IXUSR)
-    try:
-        p = subprocess.run(f"chmod +x {sh_path}",
-                           capture_output=False,
-                           check=True,
-                           shell=True,
-                           )
-    except subprocess.CalledProcessError as e:
-        logger.exception(f"Error in subprocess cmd 'chmod +x':\nException: {e}")
-        raise
+    # make script executable:
+    make_executable(sh_path)
 
     return

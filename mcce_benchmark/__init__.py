@@ -21,6 +21,7 @@ if USER_MCCE is None:
     raise EnvironmentError(f"{APP_NAME}, __init__ :: mcce executable not found.")
 USER_MCCE = Path(USER_MCCE).parent
 
+
 def get_user_env() -> tuple:
     """Return the sys.prefix, env name."""
 
@@ -190,14 +191,10 @@ DT_FMT = "%Y-%m-%d %H:%M:%S"
 BODY = "[%(levelname)s]: %(name)s, %(funcName)s:\n\t%(message)s"
 logging.basicConfig(level=logging.INFO,
                     format=BODY,
-                    datefmt=DT_FMT
+                    datefmt=DT_FMT,
+                    filename="benchmark.log",
+                    encoding='utf-8',
                    )
-# file handler only
-fh = logging.FileHandler("benchmark.log")
-fh.name = "fh"
-fh.setLevel(logging.INFO)
-#logger = logging.Logger(APP_NAME)
-#logger.addHandler(fh)
 #................................................................................
 
 
@@ -220,29 +217,3 @@ Default analysis output file names (fixed):
 {OUT_FILES.CONFS_PER_RES.name = }
 {OUT_FILES.CONFS_THRUPUT.name = }\n{'-'*70}
 """
-
-
-def Pathok(pathname:str, check_fn:str=None, raise_err=True) -> Union[Path, bool]:
-    """Return path if check passed, else raise error.
-    check_fn: one of 'exists', 'is_dir', 'is_file'.
-    if raise_err=False, return False instead of err.
-    """
-
-    pathname = Path(pathname)
-    if check_fn not in ['exists', 'is_dir', 'is_file']:
-        check_fn = 'exists'
-
-    if check_fn == 'exists':
-        msg = f"Path not found: {pathname}"
-    elif check_fn == 'is_dir':
-        msg = f"Directory not found: {pathname}"
-    elif check_fn == 'is_file':
-        msg = f"Path is not a file: {pathname}"
-
-    if not pathname.__getattribute__(check_fn)():
-        if not raise_err:
-            return False
-
-        raise FileNotFoundError(msg)
-
-    return pathname
