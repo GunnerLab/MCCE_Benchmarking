@@ -6,7 +6,7 @@ Module: cleanup.py
 Contains functions to clear a folder, delete a folder, etc.
 """
 
-from mcce_benchmark import MCCE_OUTPUTS
+from mcce_benchmark import MCCE_OUTPUTS, RUNS_DIR
 from pathlib import Path
 import shutil
 
@@ -34,24 +34,24 @@ def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None) -> None:
         else:
             if fp.name in check_list:
                 fp.unlink()
-            else:
-                # delete original pdb file:
-                #if fp.name == f"{folder.name.lower()}.pdb":
-                #    fp.unlink()
+            #else:
+            #    # delete original pdb file:
+            #    if fp.name == f"{folder.name.lower()}.pdb":
+            #        fp.unlink()
 
     return
 
 
 def prep_refset(benchmarks_dir:str, keep_files:list=None) -> None:
     """
-    ASSUME 'standard' structure: <benchmarks_dir>/clean_pdbs
+    ASSUME 'standard' structure: <benchmarks_dir>/RUNS_DIR
     Delete all MCCE output files that are not in the 'keep_files' list.
     Delete all mcce subfolders,
-    which is a folder of folders named after the pdb id they contain, i.e. like 'clean_pdbs'.
+    which is a folder of folders named after the pdb id they contain, i.e. like RUNS/.
     ~ clean_job_folder()
     """
 
-    pdbs = Path(benchmarks_dir)/"clean_pdbs"
+    pdbs = Path(benchmarks_dir)/RUNS_DIR
     if not pdbs.exists():
         raise FileNotFoundError(f"Not found: {pdbs}")
 
@@ -66,7 +66,7 @@ def prep_refset(benchmarks_dir:str, keep_files:list=None) -> None:
 
 def clean_job_folder(job_dir:str) -> None:
     """Delete all MCCE output files and folders from a directory `job_dir`,
-    which is a folder of folders named after the pdb id they contain, i.e. like 'clean_pdbs'.
+    which is a folder of folders named after the pdb id they contain, i.e. like RUNS/.
     """
 
     pdbs_dir = Path(job_dir)

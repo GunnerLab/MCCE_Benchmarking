@@ -8,28 +8,28 @@ Main functions:
 --------------
 Note: proteins.tsv should be considered the ground truth.
 
-def list_complete_runs(benchmarks_dir:str, like_clean_pdbs:bool=False) -> list:
+def list_complete_runs(benchmarks_dir:str, like_runs:bool=False) -> list:
 def cp_completed_runs(src_dir:str, dest_dir:str) -> None:
 def proteins_df(prot_tsv_file:Path=BENCH.BENCH_PROTS, return_excluded:bool=None) -> pd.DataFrame:
 def get_usable_prots(prot_tsv_file:Path=BENCH.BENCH_PROTS) -> list:
 def valid_pdb(pdb_dir:str, return_name:bool = False) -> Union[bool, Path, None]:
-def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
-def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
-def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
+def list_all_valid_pdbs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+def list_all_valid_pdbs_dirs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+def multi_model_pdbs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
 def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> list:
 def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
 def rewrite_book_file(book_file:Path) -> None:
 def pdb_list_from_book(book_file:Path = Path(BENCH.Q_BOOK)) -> list:
-def pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
-def prots_symdiff_clean(prot_tsv_file:Path=BENCH.BENCH_PROTS,
+def pdb_list_from_runs_folder(pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
+def prots_symdiff_runs(prot_tsv_file:Path=BENCH.BENCH_PROTS,
 def update_data(prot_tsv_file:Path=BENCH.BENCH_PROTS,
-def same_pdbs_book_vs_clean() -> bool:
+def same_pdbs_book_vs_runs() -> bool:
 def pdb_list_from_experimental_pkas(pkas_file:Path=BENCH.BENCH_WT) -> list:
 def proteins_to_tsv(prot_file:str) -> list:
 """
 
 # import class of files resources and associated constants:
-from mcce_benchmark import BENCH
+from mcce_benchmark import BENCH, RUNS_DIR
 from mcce_benchmark.io_utils import Pathok
 from functools import cache
 import logging
@@ -53,15 +53,15 @@ The function audit.reset_multi_models() must be re-run to fix the problem.
 """
 
 
-def list_complete_runs(benchmarks_dir:str, like_clean_pdbs:bool=False) -> list:
+def list_complete_runs(benchmarks_dir:str, like_runs:bool=False) -> list:
     """Return a list of folders that contain pK.out.
-    like_clean_pdbs: benchmarks_dir ~ clean_pdbs, else search takes place in
-                     benchmarks_dir/clean_pdbs.
+    like_runs: benchmarks_dir ~ RUNS_DIR, else search takes place in
+               benchmarks_dir/RUNS_DIR.
     """
 
     search_dir = Path(benchmarks_dir)
-    if not like_clean_pdbs:
-        search_dir = search_dir.joinpath("clean_pdbs")
+    if not like_runs:
+        search_dir = search_dir.joinpath(RUNS_DIR)
     complete = list(fp.parent for fp in search_dir.glob("./*/pK.out"))
 
     return complete
@@ -70,7 +70,7 @@ def list_complete_runs(benchmarks_dir:str, like_clean_pdbs:bool=False) -> list:
 def cp_completed_runs(src_dir:str, dest_dir:str) -> None:
     complete = list_complete_runs(src_dir)
     for fp in complete:
-        dest = Path(dest_dir).joinpath("clean_pdbs", fp.name)
+        dest = Path(dest_dir).joinpath(RUNS_DIR, fp.name)
         if dest.exists():
             shutil.copytree(fp, dest, dirs_exist_ok=True, ignore=shutil.ignore_patterns("prot.pdb*"))
             logger.info("Copied:", dest)
@@ -79,7 +79,7 @@ def cp_completed_runs(src_dir:str, dest_dir:str) -> None:
 
 def proteins_df(prot_tsv_file:Path=BENCH.BENCH_PROTS, return_excluded:bool=None) -> pd.DataFrame:
     """
-    Load data/proteins.tsv into a pandas.DataFrame.
+    Load data/pkadbv1/proteins.tsv into a pandas.DataFrame.
     Args:
     return_excluded (bool, None): of None, return unfiltered df; if True: return
     df of commented out entries (and see the reasons), else return df of "got to go"
@@ -152,18 +152,18 @@ def valid_pdb(pdb_dir:str, return_name:bool = False) -> Union[bool, Path, None]:
 
 
 @cache
-def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+def list_all_valid_pdbs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Return a list ["PDB/pdb[_*].pdb", ..] of valid pdb.
     Return a 2-tuple of lists: (valid_folders, invalid_folders), with
     each list = ["PDB/pdb[_*].pdb", ..].
     For managing packaged data.
     """
 
-    clean_pdbs_dir = Pathok(clean_pdbs_dir, check_fn='is_dir')
+    pdbs_dir = Pathok(pdbs_dir, check_fn='is_dir')
 
     valid = []
     invalid = []
-    for fp in clean_pdbs_dir.glob("*"):
+    for fp in pdbs_dir.glob("*"):
         if fp.is_dir() and not fp.name.startswith("."):
             p = valid_pdb(fp, return_name=True)
             if p is None:
@@ -180,18 +180,18 @@ def list_all_valid_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
 
 
 @cache
-def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
-    """Check that all subfolders of 'clean_pdbs_dir' contain a pdb file with
+def list_all_valid_pdbs_dirs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+    """Check that all subfolders of RUNS_DIR contain a pdb file with
     the same name.
     Return a 2-tuple: (valid_folders, invalid_folders).
     For managing packaged data.
     """
 
-    clean_pdbs_dir = Pathok(clean_pdbs_dir, check_fn='is_dir')
+    pdbs_dir = Pathok(pdbs_dir, check_fn='is_dir')
 
     valid = []
     invalid = []
-    for fp in clean_pdbs_dir.glob("*"):
+    for fp in pdbs_dir.glob("*"):
         if fp.is_dir() and not fp.name.startswith("."):
             v = valid_pdb(fp)
             if v:
@@ -205,14 +205,14 @@ def list_all_valid_pdbs_dirs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     return valid, invalid
 
 
-def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
+def multi_model_pdbs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray, None]:
     """
-    Query `clean_pdbs_dir` for pdb with multiple models.
+    Query RUNS_DIR for pdb with multiple models.
     Return dir/pdb name in a numpy array or None.
     """
 
     multi_models = None
-    query_path = clean_pdbs_dir.joinpath("*/")
+    query_path = pdbs_dir.joinpath("*/")
     n_parts = len(query_path.parts) + 2
     f1 = n_parts - 2
     f2 = n_parts - 1
@@ -236,7 +236,7 @@ def multi_model_pdbs(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> Union[np.ndarray
 
 
 def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> list:
-    """Use multi model entries in 'data/proteins.tsv' to select the
+    """Use multi model entries in 'data/pkadbv1/proteins.tsv' to select the
     model<x>.pdbs corresponding to the proteins 'Use' column, if found.
 
     Rename pdbid.pdb -> pdbid.pdb.full
@@ -244,7 +244,7 @@ def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> 
     new_n = Use.replace(".",'')
     Rename model{n:02}.pdb -> pdbid_{new_n}.pdb
 
-    Should be re-run every time the 'Use' column in 'data/proteins.tsv' is
+    Should be re-run every time the 'Use' column in 'data/pkadbv1/proteins.tsv' is
     changed for one or more multi-model proteins.
     For managing packaged data.
     """
@@ -309,7 +309,7 @@ def reset_multi_models(pdbs_dir:Path = BENCH.BENCH_PDBS, debug:bool = False) -> 
 
 
 def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
-    """Update 'data/proteins.tsv' Model column from
+    """Update 'data/pkadbv1/proteins.tsv' Model column from
     list of multi-model proteins.
     For managing packaged data.
     """
@@ -332,7 +332,7 @@ def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
 
 
 def rewrite_book_file(book_file:Path) -> None:
-    """Re-write clean_pdbs/book file with valid entries."""
+    """Re-write BENCH.CLEAN_PDBS/book file with valid entries."""
 
     valid, invalid = list_all_valid_pdbs_dirs(book_file.parent)
     with open(book_file, "w") as book:
@@ -351,21 +351,21 @@ def pdb_list_from_book(book_file:Path = Path(BENCH.Q_BOOK)) -> list:
     return pdbs
 
 
-def pdb_list_from_clean_pdbs_folder(clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
-    """clean_dir: folder with one PDBID folder for each pdbid.pdb file"""
+def pdb_list_from_runs_folder(pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
+    """pdbs_dir: folder with one PDBID folder for each pdbid.pdb file"""
 
-    clean_pdbs_dirs = [fp.name for fp in clean_pdbs_dir.glob('*')
+    pdbs_dirs = [fp.name for fp in pdbs_dir.glob('*')
                        if fp.is_dir()
                        and not fp.name.startswith(".")]
-    clean_pdbs_dirs.sort()
+    pdbs_dirs.sort()
 
-    return clean_pdbs_dirs
+    return pdbs_dirs
 
 
-def prots_symdiff_clean(prot_tsv_file:Path=BENCH.BENCH_PROTS,
-                        clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
+def prots_symdiff_runs(prot_tsv_file:Path=BENCH.BENCH_PROTS,
+                       pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Get the symmetric difference btw the list of usable proteins
-    and the clean_pdbs/subfolders list.
+    and the RUNS/subfolders list.
     Return a tuple of lists: extra_dirs, missing_dirs.
     Package data management.
     """
@@ -375,10 +375,10 @@ def prots_symdiff_clean(prot_tsv_file:Path=BENCH.BENCH_PROTS,
 
     # list from folder setup: would differ if a change occured
     # without related change in proteins.tsv
-    clean_dir_list = pdb_list_from_clean_pdbs_folder(clean_pdbs_dir)
+    dir_list = pdb_list_from_runs_folder(pdbs_dir)
 
     s1 = set(curated_ok)
-    s2 = set(clean_dir_list)
+    s2 = set(dir_list)
 
     extra = s1.symmetric_difference(s2)
     extra_dirs = []
@@ -396,45 +396,45 @@ def prots_symdiff_clean(prot_tsv_file:Path=BENCH.BENCH_PROTS,
 
 
 def update_data(prot_tsv_file:Path=BENCH.BENCH_PROTS,
-                clean_pdbs_dir:Path = BENCH.BENCH_PDBS) -> None:
-    """Delete extra subfolders from clean_pdbs when corresponding pdb id not
+                pdbs_dir:Path = BENCH.BENCH_PDBS) -> None:
+    """Delete extra subfolders from RUNS when corresponding pdb is not
     in proteins.tsv.
     """
 
     # Note: if missing dirs: no pdb => will need to be downloaded again and
     # processed (mannually) as per jmao.
 
-    extra_dirs, missing_dirs = prots_symdiff_clean(prot_tsv_file, clean_pdbs_dir)
+    extra_dirs, missing_dirs = prots_symdiff_runs(prot_tsv_file, pdbs_dir)
     if not extra_dirs:
         logger.info("No extra dirs.")
     else:
         for x in extra_dirs:
-            dx = clean_pdbs_dir.joinpath(x)
+            dx = pdbs_dir.joinpath(x)
             shutil.rmtree(dx)
         logger.info("Removed extra dirs.")
 
-    book = clean_pdbs_dir.joinpath(BENCH.Q_BOOK)
+    book = pdbs_dir.joinpath(BENCH.Q_BOOK)
     rewrite_book_file(book)
     logger.info("Wrote fresh book file.")
 
     return
 
 
-def same_pdbs_book_vs_clean() -> bool:
+def same_pdbs_book_vs_runs() -> bool:
     """
     Compares the list of pdbs in the Q_BOOK with the list
-    obtained from the PDBS folder.
+    obtained from the RUNS folder.
     For managing packaged data.
     """
     book_pbs =  pdb_list_from_book()
-    clean_pdbs = pdb_list_from_clean_pdbs_folder()
-    same = len(book_pbs) == len(clean_pdbs)
+    pdbs = pdb_list_from_runs_folder()
+    same = len(book_pbs) == len(pdbs)
     if not same:
-        logger.warning(f"The lists differ in lengths:\n\t{len(book_pbs) = }; {len(clean_pdbs) = }")
+        logger.warning(f"The lists differ in lengths:\n\t{len(book_pbs) = }; {len(pdbs) = }")
         return same
 
-    df = pd.DataFrame(zip(book_pbs, clean_pdbs), columns=['book','clean_dir'])
-    comp = df[df.book != df.clean_dir]
+    df = pd.DataFrame(zip(book_pbs, pdbs), columns=['book','runs_dir'])
+    comp = df[df.book != df.runs_dir]
     same = len(comp) == 0
     if not same:
         logger.warning(f"The lists differ in data:\n{comp}")

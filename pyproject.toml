@@ -58,7 +58,6 @@ find = {}
 
 [project.scripts]
 bench_expl_pkas = "mcce_benchmark.cli:bench_cli"
-#TODO bench_mcceruns = "mcce_benchmark.mcceruns:mcceruns_cli"
 bench_analyze = "mcce_benchmark.pkanalysis:analyze_cli"
 # convenience endpoint used in crontab, submit 1 batch of size n_batch:
 bench_launchjob = "mcce_benchmark.batch_submit:launch_cli"

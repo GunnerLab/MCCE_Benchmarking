@@ -9,7 +9,6 @@ from mcce_benchmark import _version
 from pathlib import Path
 import shutil
 import sys
-from typing import Union
 
 
 #................................................................................
@@ -40,20 +39,19 @@ def get_user_env() -> tuple:
 # user envir:
 USER_PRFX, USER_ENV = get_user_env()
 CONDA_PATH = Path(shutil.which("conda")).parent
-#assert CONDA_PATH.name == "condabin"
+
 
 ENTRY_POINTS = {"main":    "bench_expl_pkas",
-                "launch":  "bench_launchjob",
+                "launch":  "bench_launchjob",  # used in crontab
                 "analyze": "bench_analyze"}
 
-#ENTRY_POINTS = {"main": "bench_expl_pkas",
-#                "launch": "bench_launchjob", # used by crontab
-#                "mcruns": "bench_mcce_runs"  # new needed: TODO
-#                "analyze": "bench_analyze"}
+#ENTRY_POINTS = {"main": "bench_setup",
+#                "launch": "bench_launch", # used by crontab
+#                "analyze": "bench_analyze"
+#                "compare": "bench_compare"}
 
 
-# output file names => <benchmarks_dir>/analysis/, except
-# ALL_PKAS: in <benchmarks_dir>
+# output file names => <benchmarks_dir>/analysis/:
 class OUT_FILES(Enum):
     ALL_PKAS = "all_pkas.out"
     ALL_PKAS_OOB = "all_pkas_oob.tsv" # out of bounds pKas
@@ -71,6 +69,7 @@ class OUT_FILES(Enum):
     FIG_FIT_PER_RES = "res_analysis.png"
 
 DEFAULT_DIR = "mcce_benchmarks"
+RUNS_DIR = "RUNS"
 ANALYZE_DIR = "analysis"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
 N_BATCH = 10   # number of jobs to maintain in the process queue
@@ -94,14 +93,13 @@ class Bench_Resources():
                  "_BENCH_DB",
                  "_BENCH_WT",
                  "_BENCH_PROTS",
-                 "_CLEAN_PDBS",
                  "_BENCH_PDBS",
                  "_DEFAULT_JOB",
                  "_DEFAULT_JOB_SH",
                  "_Q_BOOK",
                  "_BENCH_Q_BOOK",
-                 "_BENCH_REFS",
-                 "_BENCH_PARSE_E4",
+                 "_BENCH_PH_REFS",
+                 "_BENCH_PARSE_PHE4",
                 )
 
     def __init__(self, res_files=resources.files(f"{APP_NAME}.data")):
@@ -109,14 +107,13 @@ class Bench_Resources():
         self._BENCH_DB = self._BENCH_DATA.joinpath("pkadbv1")
         self._BENCH_WT = self._BENCH_DB.joinpath("WT_pkas.csv")
         self._BENCH_PROTS = self._BENCH_DB.joinpath("proteins.tsv")
-        self._CLEAN_PDBS = "clean_pdbs"
-        self._BENCH_PDBS = self._BENCH_DB.joinpath(self._CLEAN_PDBS)
+        self._BENCH_PDBS = self._BENCH_DB.joinpath(RUNS_DIR)
         self._DEFAULT_JOB = "default_run"
         self._DEFAULT_JOB_SH = self._BENCH_PDBS.joinpath(f"{self._DEFAULT_JOB}.sh")
         self._Q_BOOK = "book.txt"
         self._BENCH_Q_BOOK = self._BENCH_PDBS.joinpath(self._Q_BOOK)
-        self._BENCH_REFS = self._BENCH_DATA.joinpath("refsets")
-        self._BENCH_PARSE_E4 = self._BENCH_REFS.joinpath("parse.e4")
+        self._BENCH_PH_REFS = self._BENCH_DB.joinpath("refsets")
+        self._BENCH_PARSE_PHE4 = self._BENCH_PH_REFS.joinpath("parse.e4")
 
     @property
     def BENCH_DATA(self):
@@ -128,11 +125,11 @@ class Bench_Resources():
 
     @property
     def BENCH_REFS(self):
-        return self._BENCH_REFS
+        return self._BENCH_PH_REFS
 
     @property
     def BENCH_PARSE_E4(self):
-        return self._BENCH_PARSE_E4
+        return self._BENCH_PARSE_PHE4
 
     @property
     def BENCH_WT(self):
@@ -141,10 +138,6 @@ class Bench_Resources():
     @property
     def BENCH_PROTS(self):
         return self._BENCH_PROTS
-
-    @property
-    def CLEAN_PDBS(self):
-        return self._CLEAN_PDBS
 
     @property
     def BENCH_PDBS(self):
@@ -169,8 +162,8 @@ class Bench_Resources():
     def __str__(self):
         return f"""
         BENCH_DATA = {str(self.BENCH_DATA)}
-        BENCH_REFS = {str(self.BENCH_REFS)}
-        BENCH_PARSE_E4 = {str(self.BENCH_PARSE_E4)}
+        BENCH_PH_REFS = {str(self.BENCH_PH_REFS)}
+        BENCH_PARSE_PHE4 = {str(self.BENCH_PARSE_PHE4)}
         BENCH_DB = {str(self.BENCH_DB)}
         BENCH_WT = {str(self.BENCH_WT)}
         BENCH_PROTS = {str(self.BENCH_PROTS)}
@@ -178,9 +171,9 @@ class Bench_Resources():
         DEFAULT_JOB = {str(self.DEFAULT_JOB)}
         DEFAULT_JOB_SH = {str(self.DEFAULT_JOB_SH)}
         BENCH_Q_BOOK = {str(self.BENCH_Q_BOOK)}
-        CLEAN_PDBS = {str(self.CLEAN_PDBS)}
         Q_BOOK = {str(self.Q_BOOK)}
         """
+
 
 BENCH = Bench_Resources()
 

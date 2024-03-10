@@ -15,20 +15,6 @@ Cli parser with 2 sub-commands:
      - plots saved as figures
 
  [2. mcce_runs: FUTURE ]
-   REVISE
-   Options:
-   - "-new_calc_dir": path to a mcce output folder that will be compared
-   - "-reference_dir": path to a mcce output folder for use as reference; default=parse.e4 (when ready)
-   - "--plots": create & save plots
-   - [FUTURE] "-reference_subdir" (list): If reference_dir is the default one, the list enables subsetting;
-      e.g. if new_calc_dir was setup with only 2 pdbs found in parse.e4, then -reference_subdir=[1ANS,135L];
-      Each item is a folder name for the pdb of the same name.
-   - [FUTURE]: Add global list in __init__.py to read (virgin) book file (book.txt) as ALL_PDBS to facilitate subsetting of reference dataset.
-
-   Outputs in "-new_calc_dir":
-     - MATCHED_PKAS_FILE???????
-     - pK.out diff
-     - residues stats report
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
@@ -47,10 +33,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+# for multi-protein runs
 def collate_all_pkas(benchmarks_dir:str, titr_type:str="ph") ->None:
-    """Collate all pK.out files from 'benchmarks_dir'/clean_pdbs
-       (i.e. assume canonical naming), into a single file
-       in 'benchmarks_dir' named as per ALL_PKAS.
+    """Collate all pK.out files from 'benchmarks_dir'/RUNS, into analysis/ALL_PKAS.
        Retain the same fixed-witdth format => extension = ".out".
        This file can be loaded using either one of these functions:
          - pkanalysis.all_pkas_df(benchmarks_dir)
@@ -62,7 +47,14 @@ def collate_all_pkas(benchmarks_dir:str, titr_type:str="ph") ->None:
     bench_s = str(bench)
     d = Pathok(bench.joinpath(BENCH.CLEAN_PDBS))
     dirpath = str(d)
-    all_out = OUT_FILES.ALL_PKAS.value
+
+    # output dir
+    analyze = bench.joinpath(ANALYZE_DIR)
+    if not analyze.exists():
+        analyze.mkdir()
+    # out file
+    all_out = analyze.joinpath(OUT_FILES.ALL_PKAS.value)
+    all_out_s = str(all_out)
 
     titr = titr_type.lower()
     if titr not in ["ph", "eh"]:
@@ -77,7 +69,7 @@ def collate_all_pkas(benchmarks_dir:str, titr_type:str="ph") ->None:
 
     cmd = "awk '{out = substr(FILENAME, length(FILENAME)-10, 4); print out OFS $0}' "
     cmd = cmd + f"{dirpath}/*/pK.out | sed '/total$/d' > {dirpath}/all_pkas; "
-    cmd = cmd + f"sed '1 i\{pko_hdr}' {dirpath}/all_pkas > {bench_s}/{all_out};"  # add header back
+    cmd = cmd + f"sed '1 i\{pko_hdr}' {dirpath}/all_pkas > {all_out_s};"  # add header back
     cmd = cmd + f" /bin/rm {dirpath}/all_pkas"
     #print(f"cmd = \n{cmd}")
 
@@ -107,14 +99,14 @@ def all_pkas_df(benchmarks_dir:str, titr_type:str="ph") -> Union[pd.DataFrame, N
     titr_type (str, 'ph'): titration type, needed for formating; one of ['ph', 'eh']
     """
 
-    d = Pathok(benchmarks_dir, raise_err=False)
-    if not d:
-        logger.error(f"Not found: {d}")
+    bench = Pathok(benchmarks_dir, raise_err=False)
+    if not bench:
+        logger.error(f"Not found: {bench}")
         return None
 
-    allfp = d.joinpath(OUT_FILES.ALL_PKAS.value)
+    allfp = bench.joinpath(ANALYZE_DIR, OUT_FILES.ALL_PKAS.value)
     if not allfp.exists():
-        logger.error(f"Not found: {allfp}; this file is created with pkanalysis.collate_all_pkas(benchmarks_dir).")
+        logger.error(f"Not found: {allfp}; this file is created via pkanalysis.collate_all_pkas(benchmarks_dir).")
         return None
 
     titr = titr_type.lower()
@@ -139,14 +131,14 @@ def extract_oob_pkas(benchmarks_dir:str):
     msk = get_oob_mask(allout_df)
     oob_df = allout_df[msk]
     if oob_df.shape[0]:
-        oob_fp = Path(benchmarks_dir).joinpath(ANALYZE_DIR,
-                                               OUT_FILES.ALL_PKAS_OOB.value)
+        analyze = bench.joinpath(ANALYZE_DIR)
+
+        oob_fp = analyze.joinpath(OUT_FILES.ALL_PKAS_OOB.value)
         oob_df.to_csv(oob_fp, sep="\t")
 
         # Reset all_pkas.out
         allout_df = allout_df[~msk]
-        all_fp = Path(benchmarks_dir).joinpath(ANALYZE_DIR,
-                                               OUT_FILES.ALL_PKAS.value)
+        all_fp = analyze.joinpath(OUT_FILES.ALL_PKAS.value)
         allout_df.to_csv(all_fp, sep="\t")
     else:
         logger.info(f"No out of bound pKa values in {OUT_FILES.ALL_PKAS.value}")
@@ -385,8 +377,8 @@ def job_pkas_to_dict(book_fpath:str) -> dict:
     instead of iterating over subfolders (which may not be there.)
 
     Origin: pkanalysis.py/read_calculated_pkas
-    Canonical dir struc: book_fpath points to <benchmark_dir>/clean_pdbs/book.txt
-    Use: <benchmark_dir>/all_pkas.out
+    Canonical dir struc: book_fpath points to <benchmark_dir>/RUNS/book.txt
+    Uses <benchmark_dir>/analysis/all_pkas.out
     """
 
     book_fp = Pathok(book_fpath)
@@ -394,18 +386,18 @@ def job_pkas_to_dict(book_fpath:str) -> dict:
 
     calc_pkas = {}
     # all pkas df: all 'in bound' pk values; floats
-    allout_df = all_pkas_df(book_fp.parent.parent)
+    all_out_fp = book_fp.parent.parent.joinpath(ANALYZE_DIR)
+    allout_df = all_pkas_df(all_out_fp)
     c_resid, c_pk = allout_df.columns[:2]
 
     for dir in completed_dirs:
         pk_df = allout_df.loc[dir]      # filter for this dir
         for r, row in pk_df.iterrows():
-            for r, row in pk_df.iterrows():
-                resid = row[c_resid]
-                if resid.startswith("NTG"):
-                    resid = "NTR" + resid[3:]
-                key = (dir, resid)
-                calc_pkas[key] = row[c_pk]
+            resid = row[c_resid]
+            if resid.startswith("NTG"):
+                resid = "NTR" + resid[3:]
+            key = (dir, resid)
+            calc_pkas[key] = row[c_pk]
 
     return calc_pkas
 
@@ -585,19 +577,19 @@ def res_outlier_count(matched_fp:str, replace=False) -> tuple:
 def analyze_expl_pkas(benchmarks_dir:Path):
     """Create all analysis output files."""
 
-    bench_dir = Path(benchmarks_dir)
-    pdbs = bench_dir.joinpath(BENCH.CLEAN_PDBS)
+    bench = Path(benchmarks_dir)
+    pdbs = bench.joinpath(RUNS_DIR)
     book_fp = pdbs.joinpath(BENCH.Q_BOOK)
 
-    analyze = bench_dir.joinpath(ANALYZE_DIR)
+    analyze = bench.joinpath(ANALYZE_DIR)
     if not analyze.exists():
         analyze.mkdir()
 
     logger.info(f"Collating all completed pK.out files.")
-    collate_all_pkas(bench_dir)
+    collate_all_pkas(bench)
 
     logger.info(f"Saving out of bounds pK values to tsv, if any.")
-    extract_oob_pkas(bench_dir)
+    extract_oob_pkas(bench)
 
     logger.info(f"Calculating conformers and residues counts into tsv files.")
     all_counts_to_tsv(pdbs, kind="confs", overwrite=True)
@@ -614,7 +606,7 @@ def analyze_expl_pkas(benchmarks_dir:Path):
 
     logger.info(f"Matching the pkas and saving list to csv file.")
     matched_pkas = match_pkas(expl_pkas, calc_pkas)
-    matched_pkas_to_csv(bench_dir, matched_pkas)
+    matched_pkas_to_csv(bench, matched_pkas)
 
     logger.info(f"Calculating the matched pkas stats into dict.")
     matched_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS.value)
@@ -660,12 +652,12 @@ CLI_NAME = ENTRY_POINTS["analyze"] # as per pyproject.toml entry point
 
 SUB_CMD1 = "expl_pkas"
 HELP_1 = """Sub-command for analyzing a benchmarking job against the pKaDBv1
-using the same dataset and structure: <benchmarks_dir>/clean_pdbs folder."
+using the same dataset and structure: <benchmarks_dir>/RUNS folder."
 """
 
 #SUB_CMD2 = "mcce_runs"
 #HELP_2 = "NOT YET IMPLEMENTED."
-#- Sub-command 2: {SUB_CMD2!r}: setup the run script to run mcce steps 1 through 4;
+#- Sub-command 2: {SUB_CMD2!r}: Analyze two sets of mcce runs
 
 
 DESC = f"""
@@ -728,7 +720,7 @@ def analyze_parser():
         "-benchmarks_dir",
         default = str(Path(DEFAULT_DIR).resolve()),
         type = arg_valid_dirpath,
-        help = """The user's directory where the "clean_pdbs" folder reside; default: %(default)s.
+        help = """The user's directory where the RUNS folder reside; default: %(default)s.
         """
     )
     sub1.set_defaults(func=expl_pkas_analysis)
@@ -754,8 +746,8 @@ def analyze_cli(argv=None):
     args = cli_parser.parse_args(argv)
 
     # OK to analyze?
-    bench_dir = Pathok(args.benchmarks_dir)
-    book_fp = bench_dir.joinpath(BENCH.CLEAN_PDBS, BENCH.Q_BOOK)
+    bench = Pathok(args.benchmarks_dir)
+    book_fp = bench.joinpath(BENCH.CLEAN_PDBS, BENCH.Q_BOOK)
     pct = pct_completed(book_fp)
     if pct < 1.:
         logger.info(f"Runs not 100% complete, try again later; completed = {pct:.2f}")

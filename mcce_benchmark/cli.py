@@ -8,14 +8,14 @@ Main entry point: "bench_expl_pkas"
 
 Then 2 sub-commands:
  1. "setup_job"
-     Sub-command for setting up <benchmarks_dir>/clean_pdbs folder & job_name_run.sh script.
+     Sub-command for setting up <benchmarks_dir>/RUNS folder & job_name_run.sh script.
  2. "launch_job"
      Sub-command for launching a batch of jobs.
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 # import class of files resources and constants:
-from mcce_benchmark import BENCH, LOG_HDR, DEFAULT_DIR, MCCE_EPS, N_BATCH, ENTRY_POINTS, N_PDBS
+from mcce_benchmark import BENCH, RUNS_DIR, LOG_HDR, DEFAULT_DIR, MCCE_EPS, N_BATCH, ENTRY_POINTS, N_PDBS
 from mcce_benchmark.io_utils import Pathok, subprocess_run
 from mcce_benchmark import audit, job_setup, batch_submit, scheduling, custom_sh
 from IPython.core.formatters import format_display_data
@@ -30,11 +30,6 @@ from typing import Union
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-#fh = logging.FileHandler("benchmark.log")
-#fh.name = "fh"
-#fh.setLevel(logging.INFO)
-#logger.addHandler(fh)
-
 info_fh = Path("benchmark.info")
 if not info_fh.exists():
     with open(info_fh, "w") as fh:
@@ -48,7 +43,7 @@ bench_default_jobname = BENCH.DEFAULT_JOB
 
 SUB_CMD1 = "setup_job"
 HELP_1 = f"""
-Sub-command for setting up <benchmarks_dir>/clean_pdbs folder & job_name_run.sh script, e.g.:
+Sub-command for setting up <benchmarks_dir>/RUNS folder & job_name_run.sh script, e.g.:
 >{CLI_NAME} {SUB_CMD1} -benchmarks_dir <folder name>
 """
 
@@ -127,22 +122,19 @@ def log_mcce_version(pdbs_dir:str) -> None:
 def bench_job_setup(args:argNamespace) -> None:
     """Benchmark cli function for 'setup_job' sub-command.
     Processing steps:
-     - Create args.benchmarks_dir/clean_pdbs folders.
+     - Create args.benchmarks_dir/RUNS folders.
      - Write fresh book file
      - Write script for args.job_name
      - Delete all previous sentinel files, if any
     """
 
-    #in_benchmarks = Path.cwd().name == args.benchmarks_dir.name
-    #if in_benchmarks:
-    #    args.benchmarks_dir = Path.cwd()
     logger.info(args_to_str(args))
 
     ok = Pathok(args.benchmarks_dir, raise_err=False)
     if not ok:
         args.benchmarks_dir.mkdir()
 
-    job_setup.setup_pdbs_folder(args.benchmarks_dir,
+    job_setup.setup_expl_runs(args.benchmarks_dir,
                                 args.n_pdbs)
 
     # determine if args are all defaults
@@ -177,7 +169,7 @@ def bench_launch_batch(args:argNamespace) -> None:
 
     #log script text again in case it was manualy modified.
     sh_name = f"{args.job_name}.sh"
-    sh_path = Pathok(args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS, sh_name))
+    sh_path = Pathok(args.benchmarks_dir.joinpath(RUNS_DIR, sh_name))
     sh_msg = ("Script contents prior to launch:\n```\n"
               + f"{job_setup.get_script_contents(sh_path)}\n```\n"
              )
@@ -198,7 +190,7 @@ def bench_launch_batch(args:argNamespace) -> None:
         scheduling.schedule_job(args)
 
     # finally, read run.log files for version(s):
-    log_mcce_version(args.benchmarks_dir.joinpath(BENCH.CLEAN_PDBS))
+    log_mcce_version(args.benchmarks_dir.joinpath(RUNS_DIR))
 
     return
 
@@ -252,7 +244,7 @@ def bench_parser():
         required = True,
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
-        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
+        RUNS folder reside. The directory is created if it does not exists unless this cli is
         called within that directory.
         """
     )
@@ -269,7 +261,7 @@ def bench_parser():
         default = bench_default_jobname,
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
         This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
-        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
+        in 'benchmarks_dir'/RUNS_DIR subfolders; default: %(default)s.
         """
     )
     # sentinel_file (e.g. pK.out) is part of script setup to ensure it is deleted prior to using launch sub-command.
@@ -417,7 +409,7 @@ def bench_parser():
         required = True,
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
-        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
+        RUNS folder reside. The directory is created if it does not exists unless this cli is
         called within that directory.
         """
     )
@@ -427,7 +419,7 @@ def bench_parser():
         default = bench_default_jobname,
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
         This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
-        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
+        in 'benchmarks_dir'/RUNS_DIR subfolders; default: %(default)s.
         """
     )
     sub2.add_argument(

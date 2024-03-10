@@ -20,7 +20,7 @@ sleep 10
 """
 
 from argparse import Namespace as argNamespace
-from mcce_benchmark import BENCH
+from mcce_benchmark import BENCH, RUNS_DIR
 from mcce_benchmark.io_utils import make_executable
 from enum import Enum
 import logging
@@ -165,7 +165,7 @@ def write_run_script_from_template(benchmarks_dir:str,
                                    script_template:ScriptChoices = ScriptChoices.CUSTOM,
                                    job_args:argNamespace = None) -> None:
     """
-    Write a custom shell script in <benchmarks_dir>/clean_pdbs/ to submit steps 1-4 when
+    Write a custom shell script in <benchmarks_dir>/RUNS/ to submit steps 1-4 when
     script_template is CUSTOM, or perform tests otherwise. job_args can be None for
     templates other than CUSTOM.
     Delete a pre-exisitng script with the same name.
@@ -175,9 +175,9 @@ def write_run_script_from_template(benchmarks_dir:str,
     """
 
     benchmarks_dir = Path(benchmarks_dir)
-    user_pdbs = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
+    user_pdbs = benchmarks_dir.joinpath(RUNS_DIR)
     if not user_pdbs.exists():
-        msg = f"{benchmarks_dir} does not have a 'clean_pdbs' subfolder: rerun `setup_pdbs_folder` maybe?"
+        msg = f"{benchmarks_dir} does not have a RUNS subfolder: rerun `setup_pdbs_folder` maybe?"
         logger.error(msg)
         raise FileNotFoundError(msg)
 

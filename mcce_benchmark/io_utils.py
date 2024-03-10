@@ -20,7 +20,7 @@ def json_to_dict(json_fp:str) -> dict:
 def dict_to_json(d:dict, json_fp:str) -> None:
 """
 
-from mcce_benchmark import BENCH, ENTRY_POINTS, OUT_FILES, ANALYZE_DIR, DEFAULT_DIR
+from mcce_benchmark import ENTRY_POINTS, OUT_FILES, ANALYZE_DIR, DEFAULT_DIR
 import json
 import logging
 import numpy as np

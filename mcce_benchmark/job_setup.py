@@ -9,8 +9,8 @@ Functions:
 ----------
 * setup_pdbs_folder(benchmarks_dir:str) -> None:
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `benchmarks_dir/clean_pdbs`,
-      or in user_pdbs_folder = `./clean_pdbs` if called from within `benchmarks_dir`;
+    - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `benchmarks_dir`/RUNS,
+      or in user_pdbs_folder = `./RUNS` if called from within `benchmarks_dir`;
     - Soft-link the relevant pdb as "prot.pdb";
     - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
       in `user_pdbs_folder`;
@@ -18,7 +18,7 @@ Functions:
 
 * delete_sentinel(benchmarks_dir:str, sentinel_file:str) -> None:
     Part of the job preparation for each new script.
-    Delete sentinel_file from 'benchmarks_dir/clean_pdbs' subfolders.
+    Delete sentinel_file from 'benchmarks_dir'/RUNS subfolders.
 
 * write_run_script(job_name, steps_options_dict)
     Beta Phase : job_name = "default_run" (or soft link to 'default_run.sh' if different).
@@ -35,35 +35,40 @@ Functions:
 
      sleep 10
      ```
-     Beta Phase: Only the above default script is used; it is soft-linked as job_name.sh if job_name
-     is different from "default_run" (i.e the string stored in BENCH.DEFAULT_JOB).
-     Future: The script will be name as per args.job_name and its contents will differ depending on the
-     options/values passed via the cli.
-
 """
 
 #...............................................................................
-from mcce_benchmark import BENCH, MCCE_EPS, N_BATCH, N_PDBS
+from mcce_benchmark import BENCH, RUNS_DIR, MCCE_EPS, N_BATCH, N_PDBS
 from mcce_benchmark import audit
 from mcce_benchmark.io_utils import Pathok
 import logging
 import os
 from pathlib import Path
 import shutil
-
+from typing import Union
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def setup_pdbs_folder(benchmarks_dir:str, n_pdbs:int) -> None:
+
+def setup_mcce_runs(pdbs_list:str, benchmarks_dir:str) -> None:
+    """
+    - Create subfolders for the pdbs found in 'pdbs_list', which is a file or dir path,
+      in <benchmarks_dir>/RUNS;
+    - Soft-link the relevant pdb as "prot.pdb";
+    - Create a "queue book" and default script files in <benchmarks_dir>/RUNS;
+    """
+
+
+def setup_expl_runs(benchmarks_dir:str, n_pdbs:int) -> None:
     """
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (packaged data) in <benchmarks_dir>/clean_pdbs, or a subset
+    - Create a copy of BENCH_PDBS (packaged data) in <benchmarks_dir>/RUNS, or a subset
       of size (1, n_pdbs) if n_pdbs < 120.
     - Soft-link the relevant pdb as "prot.pdb";
     - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH)
-      in `user_pdbs_folder`;
+      in <benchmarks_dir>/RUNS;
     """
 
     benchmarks_dir = Path(benchmarks_dir)
@@ -76,7 +81,7 @@ def setup_pdbs_folder(benchmarks_dir:str, n_pdbs:int) -> None:
         if not benchmarks_dir.exists():
             benchmarks_dir.mkdir()
 
-    user_pdbs_folder = benchmarks_dir.joinpath(BENCH.CLEAN_PDBS)
+    user_pdbs_folder = benchmarks_dir.joinpath(RUNS_DIR)
     if not user_pdbs_folder.exists():
         user_pdbs_folder.mkdir()
 
@@ -134,11 +139,11 @@ def setup_pdbs_folder(benchmarks_dir:str, n_pdbs:int) -> None:
 
 def delete_sentinel(benchmarks_dir:str, sentinel_file:str) -> None:
     """Part of the job preparation for each new script.
-    Delete sentinel_file from 'benchmarks_dir/clean_pdbs' subfolders.
+    Delete sentinel_file from 'benchmarks_dir'/RUNS subfolders.
     """
 
     benchmarks_dir = Path(benchmarks_dir)
-    fl = list(benchmarks_dir.joinpath(BENCH.CLEAN_PDBS).glob("./*/"+sentinel_file))
+    fl = list(benchmarks_dir.joinpath(RUNS_DIR).glob("./*/"+sentinel_file))
     for f in fl:
         f.unlink()
     logger.info(f"{len(fl)} {sentinel_file!r} file(s) deleted.")
@@ -180,7 +185,7 @@ def write_default_run_script(benchmarks_dir:str,
     if in_benchmarks:
         benchmarks_dir = curr
 
-    user_pdbs = Pathok(benchmarks_dir.joinpath(BENCH.CLEAN_PDBS))
+    user_pdbs = Pathok(benchmarks_dir.joinpath(RUNS_DIR))
 
     # reinstall the default script if not found:
     default_sh = get_default_script(user_pdbs)

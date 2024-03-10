@@ -11,19 +11,19 @@ Main functions:
 
 * get_running_jobs_dirs(job_name:str) -> list:
     Query shell for user's processes with job_name.
-    Return a list of clean_pdbs sub-directories where the jobs are running.
+    Return a list of RUNS/ sub-directories where the jobs are running.
 
 * batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out") -> None:
     Update Q_BOOK according to user's running jobs' statuses.
-    Launch new jobs inside clean_pdbs subfolders until the number of
+    Launch new jobs inside RUNS subfolders until the number of
     job equals n_batch.
-    To be run in /clean_pdbs folder, which is where Q_BOOK resides.
+    To be run in /RUNS subfolder, which is where Q_BOOK resides.
 
 * launch_job(benchmarks_dir:Path = Path(DEFAULT_DIR),
              job_name:str = None,
              n_batch:int = N_BATCH,
              sentinel_file:str = "pK.out") -> None:
-    Go to benchmarks_dir/clean_pdbs directory & call batch_run.
+    Go to benchmarks_dir/RUNS directory & call batch_run.
 
 * launch_cli(argv=None)
     Entry point function.
@@ -37,7 +37,7 @@ Q book status codes:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from mcce_benchmark import BENCH, N_BATCH, USER, DEFAULT_DIR, ENTRY_POINTS
+from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, DEFAULT_DIR, ENTRY_POINTS
 from mcce_benchmark.io_utils import Pathok, subprocess_run
 from mcce_benchmark.pkanalysis import pct_completed
 import logging
@@ -86,7 +86,7 @@ def read_book_entries(book:str = BENCH.Q_BOOK) -> list:
 def get_running_jobs_dirs(job_name:str) -> list:
     """
     Query shell for user's processes with job_name.
-    Return a list of clean_pdbs sub-directories where the jobs are running.
+    Return a list of RUNS/ sub-directories where the jobs are running.
     """
 
     # get the process IDs that match job_name from the user's running processes
@@ -112,12 +112,12 @@ def get_running_jobs_dirs(job_name:str) -> list:
 def batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out") -> None:
     """
     Update Q_BOOK according to user's running jobs' statuses.
-    Launch new jobs inside clean_pdbs subfolders until the number of
+    Launch new jobs inside the RUNS subfolders until the number of
     job equals n_batch.
-    To be run in /clean_pdbs folder, which is where Q_BOOK resides.
+    To be run in /RUNS folder, which is where Q_BOOK resides.
 
     Args:
-    job_name (str): Name of the job and script to use in /clean_pdbs folder.
+    job_name (str): Name of the job and script to use in /RUNS folder.
     n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
     sentinel_file (str, "pK.out"): File whose existence signals a completed job;
         When running all 4 MCCE steps (default), this file is 'pK.out', while
@@ -172,11 +172,11 @@ def launch_job(benchmarks_dir:str = DEFAULT_DIR,
                n_batch:int = N_BATCH,
                sentinel_file:str = "pK.out") -> None:
     """
-    Go to benchmarks_dir/clean_pdbs directory & call batch_run.
+    Go to benchmarks_dir/RUNS directory & call batch_run.
 
     Args:
-    benchmarks_dir (Path, None): Path of the folder containing the 'clean_pdbs' folder.
-    job_name (str, None): Name of the job and script to use in 'clean_pdbs' folder.
+    benchmarks_dir (Path, None): Path of the folder containing the 'RUNS' folder.
+    job_name (str, None): Name of the job and script to use in 'RUNS' folder.
     n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
     sentinel_file (str, "pK.out"): File whose existence signals a completed step;
         When running all 4 MCCE steps (default), this file is 'pK.out', while
@@ -195,7 +195,7 @@ def launch_job(benchmarks_dir:str = DEFAULT_DIR,
     if Path.cwd().name != benchmarks_dir.name:
         os.chdir(benchmarks_dir)
 
-    os.chdir(BENCH.CLEAN_PDBS)
+    os.chdir(RUNS_DIR)
 
     batch_run(job_name, n_batch=n_batch, sentinel_file=sentinel_file)
 
@@ -225,8 +225,8 @@ def batch_parser():
         "-benchmarks_dir",
         default = str(Path(DEFAULT_DIR).resolve()),
         type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
-        "clean_pdbs" folder reside. The directory is created if it does not exists unless this cli is
+        help = """The user's choice of directory for setting up the benchmarking run(s); this is where the
+        RUNS folder reside. The directory is created if it does not exists unless this cli is
         called within that directory; default: mcce_benchmarks.
         """
     )
@@ -236,7 +236,7 @@ def batch_parser():
         default = BENCH.DEFAULT_JOB,
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
         This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
-        in 'benchmarks_dir/clean_pdbs' subfolders; default: %(default)s.
+        in 'benchmarks_dir/RUNS' subfolders; default: %(default)s.
         """
     )
     parser.add_argument(

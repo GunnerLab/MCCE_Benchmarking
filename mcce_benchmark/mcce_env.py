@@ -1,0 +1,222 @@
+#!/usr/bin/env python
+
+"""
+Module: mcce_env.py
+
+Modified version of ENV class from Stable-MCCE/bin/pdbio.py:
+  - Simplified: Only 3 methods: load_runprm, load_tpl,  __str__;
+    FUTURE: load_tpl could be used to compare extra.tpl
+  - Needs "rundir_path" Path as class parameter
+  - Attributes:
+    self.runprm: dict
+    self.rundir: Path
+    self.tpl: dict (unused)
+"""
+
+from mcce_benchmark import BENCH, MCCE_RUNS_DIR
+from mcce_benchmark.io_utils import Pathok
+import logging
+from pathlib import Path
+from typing import Union
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
+
+
+class ENV:
+    def __init__(self, rundir_path:str) -> dict:
+        self.rundir = Pathok(rundir_path)
+        self.runprm = {}
+        # run.prm parameters key:value
+        self.tpl = {}
+
+        self.load_runprm()
+
+    def load_runprm(self):
+        # Only run.prm.record is a valid file for comparing two runs!
+        try:
+            fp = Pathok(self.rundir.joinpath("run.prm.record"))
+        except FileNotFoundError as e:
+            logger.error(f"Not found: run.prm.record in {self.rundir}")
+            raise e(f"Not found: run.prm.record in {self.rundir}")
+
+        with open(fp) as fin:
+            lines = fin.readlines()
+
+        for line in lines:
+            entry_str = line.strip().split("#")[0]
+            fields = entry_str.split()
+            if len(fields) > 1:
+                key_str = fields[-1]
+                if key_str[0] == "(" and key_str[-1] == ")":
+                    key = key_str.strip("()").strip()
+                    # inconsistant output in run.prm.record:
+                    if key == "EPSILON_PROT":
+                        value = round(float(fields[0]),1)
+                    else:
+                        value = fields[0]
+                self.runprm[key] = value
+
+        return
+
+    def load_tpl(self, fname):
+        """Load a tpl file. From data.py."""
+
+        with open(self.rundir.joinpath(fname)) as fp:
+            lines = fp.readlines()
+        for line in lines:
+            line = line.split("#")[0]
+            fields = line.split(":")
+            if len(fields) != 2:
+                continue
+
+            key_string = fields[0].strip()
+            keys = key_string.split(",")
+            keys = [x.strip().strip("\"") for x in keys]
+            keys = [x for x in keys if x]
+            keys = tuple(keys)
+
+            value_string = fields[1].strip()
+            if keys[0] in float_values:
+                self.tpl[keys] = float(value_string)
+            elif keys[0] in int_values:
+                self.tpl[keys] = int(value_string)
+            else:
+                self.tpl[keys] = value_string
+
+        return
+
+    def __str__(self):
+        out = f"rundir: {self.rundir}\nrunprm_file: {self.runprm_file}\nrunprm dict:\n"
+        for k in self.runprm:
+            out = out + f"{k} : {self.runprm[k]}\n"
+        return out
+
+
+def valid_envs(env1:ENV, env2:ENV) -> tuple:
+    """
+    Return a 2-tuple:
+        (bool, # True: valid,
+         error message if bool is False).
+    Step 6 params: excluded from diffing: run1 and run2 are still comparable if only one has run step 6
+    """
+
+    s6_keys = {'GET_HBOND_MATRIX',
+               'GET_HBOND_NETWORK',
+               'HBOND_ANG_CUTOFF',
+               'HBOND_LOWER_LIMIT',
+               'HBOND_UPPER_LIMIT',
+               'MS_OUT', # set in step4 if step6 has run
+              }
+    # For warning:
+    path_keys = {"DELPHI_EXE", "MCCE_HOME"}
+    delta = {}
+    all_keys = set(env1.runprm).union(set(env2.runprm))
+    # not always there:
+    all_keys.remove("EXTRA")
+    all_keys.remove("RENAME_RULES")
+
+    # populate diff dict:
+    for k in all_keys:
+        if not k in s6_keys:
+            v1 = env1.runprm.get(k, None)
+            v2 = env2.runprm.get(k, None)
+            if v1 is None or v2 is None or v1 != v2:
+                delta[k] = [('env1', v1), ('env2', v2)]
+    if len(delta) == 0:
+        return True, None
+
+    if len(delta) > 1:
+        if set(delta.keys()) == path_keys:
+            msg = "These path keys differ between the two run sets.\n"
+            for k in delta:
+                msg += f"{k}\t:\t{delta[k]}\n"
+            return True, msg
+        else:
+            msg = "A valid comparison requires only one differing parameter between the two run sets.\n"
+            msg = msg + f"{len(delta)} were found:\n"
+            for k in delta:
+                msg += f"{k}\t:\t{delta[k]}\n"
+            #msg = msg + d
+            return False, msg
+
+    # len == 1: check value of TITR_TYPE
+    if delta.get("TITR_TYPE", None) is not None:
+        msg = "A valid comparison requires the two run sets to have the same TITR_TYPE.\n"
+        msg = msg + f"TITR_TYPE found: {delta}\n."
+        return False, msg, delta
+
+
+def get_ref_set(refset_name:str) -> Path:
+    fp = Pathok(BENCH.BENCH_REFS.joinpath(refset_name))
+    return fp
+
+
+def get_mcce_env_dir(benchmarks_dir:str,
+                     caller_subcmd:str = "expl_pkas",
+                     pre_existing:bool=False,
+                     is_refset:bool = False) -> Path:
+    """Return a path where to get run.prm.record."""
+
+    if is_refset and caller_subcmd != "expl_pkas":
+        raise ValueError(f"The reference dataset {benchmarks_dir} is only available via 'expl_pkas'.")
+
+    if is_refset:
+        # then benchmarks_dir is the name of a reference dataset
+        bench_dir = get_ref_set(benchmarks_dir)
+        pdbs_dir = bench_dir.joinpath(BENCH.CLEAN_PDBS)
+    else:
+        bench_dir = Pathok(benchmarks_dir)
+        # get run_dir:
+        if caller_subcmd == "expl_pkas":
+            pdbs_dir = bench_dir.joinpath(BENCH.CLEAN_PDBS)
+        else:
+            if not pre_existing:
+                pdbs_dir = bench_dir.joinpath(MCCE_RUNS_DIR)
+            else:
+                return bench_dir
+
+    for fp in pdbs_dir.iterdir():
+        if fp.is_dir and fp.name.isupper():
+            run_dir = fp
+            break
+
+    return run_dir
+
+
+def get_run_env(benchmarks_dir:str,
+                caller_subcmd:str = "expl_pkas",
+                pre_existing:bool=False,
+                is_refset:bool = False)-> ENV:
+
+    bench_dir = Pathok(benchmarks_dir)
+    run_dir = get_mcce_env_dir(bench_dir,
+                               caller_subcmd=caller_subcmd,
+                               pre_existing=pre_existing,
+                               is_refset=is_refset)
+    env = ENV(run_dir)
+    return env
+
+
+def validate_envs(bench_dir1:str, bench_dir2:str,
+                  caller_subcmd:str = "expl_pkas",
+                  pre_existing:bool = False,
+                  dir2_is_refset:bool = False) -> Union[True, ValueError]:
+    """Wrapper for fetching a run dir, instanciating the envs, and validating them."""
+
+    env_dir1 = get_mcce_env_dir(bench_dir1, caller_subcmd=caller_subcmd, pre_existing=pre_existing)
+    env1 = get_run_env(env_dir1)
+    env_dir2 = get_mcce_env_dir(bench_dir2,
+                                caller_subcmd=caller_subcmd,
+                                pre_existing=pre_existing,
+                                is_refset=dir2_is_refset)
+    env2 = get_run_env(env_dir2)
+
+    result = valid_envs(env1, env2)
+    if result[0]:
+        return True
+    else:
+        logger.error(result[1])
+        raise ValueError(result[1])
+
