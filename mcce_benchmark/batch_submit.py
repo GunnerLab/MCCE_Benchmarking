@@ -19,7 +19,7 @@ Main functions:
     job equals n_batch.
     To be run in /RUNS subfolder, which is where Q_BOOK resides.
 
-* launch_job(bench_dir:Path = Path(DEFAULT_DIR),
+* launch_job(bench_dir:str),
              job_name:str = None,
              n_batch:int = N_BATCH,
              sentinel_file:str = "pK.out") -> None:
@@ -37,7 +37,7 @@ Q book status codes:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, DEFAULT_DIR, ENTRY_POINTS
+from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, ENTRY_POINTS
 from mcce_benchmark.io_utils import Pathok, subprocess_run
 from mcce_benchmark.pkanalysis import pct_completed
 import logging
@@ -167,7 +167,7 @@ def batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out")
     return
 
 
-def launch_job(bench_dir:str = DEFAULT_DIR,
+def launch_job(bench_dir:str,
                job_name:str = BENCH.DEFAULT_JOB,
                n_batch:int = N_BATCH,
                sentinel_file:str = "pK.out") -> None:
@@ -223,7 +223,6 @@ def batch_parser():
 
     parser.add_argument(
         "-bench_dir",
-        default = str(Path(DEFAULT_DIR).resolve()),
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking run(s); this is where the
         RUNS folder reside. The directory is created if it does not exists unless this cli is
