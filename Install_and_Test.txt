@@ -1,4 +1,4 @@
-Installing MCCE_Benchmarking for testing purposes:
+nstalling MCCE_Benchmarking for testing purposes:
 
 Notation remarks:
   ">" denotes the command line prompt (whatever it may be in your profile);
@@ -157,11 +157,11 @@ Notation remarks:
 
 7. Compare two sets of runs, i.e. A/B testing (convention: B is reference):
    To compare two (completed) sets of runs, use `bench_compare`:
-   Options: -di1, -dir2, and two flags:
+   Options: -di1, -dir2 -o (output folder), and two flags:
             --pkdb_pdbs      # absence means 'user_pdbs'
             --dir2_is_refset # if used, --pkdb_pdbs must also be present
 
-   (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset
+   (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset -o <d1/comp>
 
 
 Please, open an issue with any problem installing or using the app at:

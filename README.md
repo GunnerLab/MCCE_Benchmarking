@@ -66,7 +66,8 @@ Entry points available at the command line:
  3. `bench_analyze` along with one of 2 sub-commands:
   - Sub-command 1: 'pkdb_pdbs': analyze conformers and residues in user's 'benchmarks_dir'; get stats viz experiemntal pKas;
   - Sub-command 2: 'user_pdbs': analyze conformers and residues in user's 'benchmarks_dir';
- 4. `bench_compare`: compare to sets of runs
+ 4. `bench_compare`: compare two sets of runs
+
 ```
 
 #### Usage:
@@ -97,6 +98,7 @@ Examples:
     Note: if changing the default sentinel_file="pk.out" to, e.g. step2_out.pdb,
         then the 'norun' script parameters for step 3 & 4 must be set accordingly:
         >bench_setup launch -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun
+
 ```
 
 
