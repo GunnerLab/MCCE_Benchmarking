@@ -109,7 +109,6 @@ def get_diff(fp1, fp2, save_to_tsv:str=None):
     if save_to_tsv is not None:
         delta.to_tsv(save_to_tsv)
         return
-    else:
-	delta.printme()
+    delta.printme()
 
     return

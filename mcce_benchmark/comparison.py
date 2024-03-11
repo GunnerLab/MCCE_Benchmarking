@@ -51,7 +51,7 @@ def compare_runs(args:argNamespace):
     out_dir = Path(args.o)
 
     # 0. validate
-    mcce_env.validate_envs(args.dir1, args.dir2, subcmd=kind)
+    mcce_env.validate_envs(args.dir1, args.dir2, subcmd=kind,
                            dir2_is_refset=args.dir2_is_refset)
 
     # 1. get collated sum_crg.out diff:
@@ -160,7 +160,7 @@ def compare_parser():
     p.add_argument(
         "--dir2_is_refset",
         default = False,
-        action = "store_true"
+        action = "store_true",
         help = """
         Flag presence indicate dir2 holds the NAME of a reference dataset, currently 'parse.e4'.
         """
