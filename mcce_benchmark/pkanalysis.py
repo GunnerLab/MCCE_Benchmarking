@@ -60,8 +60,10 @@ def collate_all_sumcrg(bench_dir:str, titr_type:str="ph") ->None:
 
     # sumcrg_hdr : TODO
     hdr = f"  {titr}           0     1     2     3     4     5     6     7     8     9    10    11    12    13    14"
-    cmd = f"awk -v OFS=":" '{out = substr(FILENAME, length(FILENAME)-15, 4); print out,$0}' "
-    cmd = cmd + f"{d}/*/sum_crg.out| sed -e '/----------/d' -e '/  {titr}/d' > {d}/all_out |"
+
+    ofs = '":"'
+    cmd = "awk 'BEGIN{OFS=" + ofs + "}{out = substr(FILENAME, length(FILENAME)-15, 4); print out, $0}' "
+    cmd = cmd + f"{d}/*/sum_crg.out | sed -e '/----------/d' -e '/  {titr}/d' > {d}/all_out; "
     cmd = cmd + f"sed '1 i\{hdr}' {d}/all_out > {all_out_s};"  # add header back
     cmd = cmd + f" /bin/rm {d}/all_out"
 
@@ -110,7 +112,8 @@ def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
 
     pko_hdr = f"PDB  resid@{titr}         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
     # offset = len("pk.out") + 4 = 10
-    cmd = "awk -v OFS=':' '{out = substr(FILENAME, length(FILENAME)-10, 4); print out, $0}' "
+    ofs = '":"'
+    cmd = "awk 'BEGIN{OFS=" + ofs + "}{out = substr(FILENAME, length(FILENAME)-10, 4); print out, $0}' "
     cmd = cmd + f"{dirpath}/*/pK.out | sed '/total$/d' > {dirpath}/all_pkas; "
     cmd = cmd + f"sed '1 i\{pko_hdr}' {dirpath}/all_pkas > {all_out_s};"  # add header back
     cmd = cmd + f" /bin/rm {dirpath}/all_pkas"
