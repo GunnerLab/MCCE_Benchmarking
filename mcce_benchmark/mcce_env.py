@@ -13,7 +13,7 @@ Modified version of ENV class from Stable-MCCE/bin/pdbio.py:
     self.tpl: dict (unused)
 """
 
-from mcce_benchmark import BENCH, MCCE_RUNS_DIR, SUB1, SUB2
+from mcce_benchmark import BENCH, RUNS_DIR, SUB1
 from mcce_benchmark.io_utils import Pathok
 import logging
 from pathlib import Path
@@ -149,13 +149,12 @@ def valid_envs(env1:ENV, env2:ENV) -> tuple:
 
 
 def get_ref_set(refset_name:str) -> Path:
-    fp = Pathok(BENCH.BENCH_REFS.joinpath(refset_name))
+    fp = Pathok(BENCH.BENCH_PH_REFS.joinpath(refset_name))
     return fp
 
 
 def get_mcce_env_dir(bench_dir:str,
                      subcmd:str = SUB1,
-                     pre_existing:bool=False,
                      is_refset:bool = False) -> Path:
     """Return a path where to get run.prm.record."""
 
@@ -165,18 +164,10 @@ def get_mcce_env_dir(bench_dir:str,
     if is_refset:
         # then bench_dir is the name of a reference dataset
         bench_dir = get_ref_set(bench_dir)
-        pdbs_dir = bench_dir.joinpath(BENCH.RUNS_DIR)
     else:
         bench_dir = Pathok(bench_dir)
-        # get run_dir:
-        if caller_subcmd == "expl_pkas":
-            pdbs_dir = bench_dir.joinpath(BENCH.RUNS_DIR)
-        else:
-            if not pre_existing:
-                pdbs_dir = bench_dir.joinpath(MCCE_RUNS_DIR)
-            else:
-                return bench_dir
 
+    pdbs_dir = bench_dir.joinpath(RUNS_DIR)
     for fp in pdbs_dir.iterdir():
         if fp.is_dir and fp.name.isupper():
             run_dir = fp
@@ -186,30 +177,26 @@ def get_mcce_env_dir(bench_dir:str,
 
 
 def get_run_env(bench_dir:str,
-                caller_subcmd:str = "expl_pkas",
-                pre_existing:bool=False,
+                subcmd:str = SUB1,
                 is_refset:bool = False)-> ENV:
 
     bench_dir = Pathok(bench_dir)
     run_dir = get_mcce_env_dir(bench_dir,
-                               caller_subcmd=caller_subcmd,
-                               pre_existing=pre_existing,
+                               subcmd=subcmd,
                                is_refset=is_refset)
     env = ENV(run_dir)
     return env
 
 
 def validate_envs(bench_dir1:str, bench_dir2:str,
-                  caller_subcmd:str = "expl_pkas",
-                  pre_existing:bool = False,
+                  subcmd:str = SUB1,
                   dir2_is_refset:bool = False) -> Union[True, ValueError]:
     """Wrapper for fetching a run dir, instanciating the envs, and validating them."""
 
-    env_dir1 = get_mcce_env_dir(bench_dir1, caller_subcmd=caller_subcmd, pre_existing=pre_existing)
+    env_dir1 = get_mcce_env_dir(bench_dir1, subcmd=subcmd)
     env1 = get_run_env(env_dir1)
     env_dir2 = get_mcce_env_dir(bench_dir2,
-                                caller_subcmd=caller_subcmd,
-                                pre_existing=pre_existing,
+                                subcmd=subcmd,
                                 is_refset=dir2_is_refset)
     env2 = get_run_env(env_dir2)
 

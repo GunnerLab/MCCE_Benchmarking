@@ -16,7 +16,7 @@ Cli parser with options:
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
 from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
-from mcce_benchmark import analysis, diff_mc, plots
+from mcce_benchmark import analysis, diff_mc, mcce_env, plots
 
 from mcce_benchmark.io_utils import Pathok, subprocess_run
 from mcce_benchmark.io_utils import get_book_dirs_for_status, load_tsv, fout_df, pk_to_float
@@ -47,6 +47,10 @@ def compare_runs(args:argNamespace):
         analysis.analyze_runs(args.dir2, kind)
 
     out_dir = Path(args.o)
+
+    # 0. validate
+    mcce_env.validate_envs(args.dir1, args.dir2, subcmd=kind)
+                           #dir2_is_refset:bool = False)
 
     # 1. get collated sum_crg.out diff:
     sc1 = analyze1.joinpath(OUT_FILES.ALL_SUMCRG.value)
