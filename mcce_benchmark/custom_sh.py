@@ -103,7 +103,9 @@ def cli_args_to_dict(sh_args:argNamespace) -> dict:
     """Only return mcce steps args."""
 
     excluded_keys = ["subparser_name", "bench_dir", "n_pdbs",
-                     "sentinel_file", "job_name", "func"]
+                     "sentinel_file", "job_name", "launch",
+                     "func", "help",
+                    ]
     d_args = {k:v for k, v in vars(sh_args).items() if k not in excluded_keys}
     return d_args
 

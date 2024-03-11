@@ -154,8 +154,7 @@ def bench_job_setup(args:argNamespace) -> None:
     if in_benchmarks:
         args.bench_dir = Path.cwd()
 
-    ok = Pathok(args.bench_dir, raise_err=False)
-    if not ok:
+    if not args.bench_dir.exists():
         args.bench_dir.mkdir()
 
     logger.info(args_to_str(args))
@@ -530,4 +529,4 @@ def bench_cli(argv=None):
 
 if __name__ == "__main__":
 
-    bench_cli(sys.argv[1:])
+    bench_cli(sys.argv[:1])
