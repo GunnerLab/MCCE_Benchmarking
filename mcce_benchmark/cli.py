@@ -429,7 +429,7 @@ def bench_parser():
     sub1 = subparsers.add_parser(SUB1,
                                  help=HELP_1,
                                  formatter_class = RawDescriptionHelpFormatter,
-                                 parent=[cp]
+                                 parents=[cp]
                                  )
     sub1.add_argument(
         "-bench_dir",
@@ -453,7 +453,7 @@ def bench_parser():
     sub2 = subparsers.add_parser(SUB2,
                                  help=HELP_2,
                                  formatter_class = RawDescriptionHelpFormatter,
-                                 parent=[cp]
+                                 parents=[cp]
                                  )
     sub2.add_argument(
         "-bench_dir",

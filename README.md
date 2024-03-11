@@ -71,36 +71,32 @@ Entry points available at the command line:
 
 #### Usage:
 ```
-Examples for bench_setup:
-
-#FIX: cli name needed?
-
-CLI_NAME bench_setup <+ 1 sub-command: pkdb_pdbs or user_pdbs or launch > <related args>\n
+Examples for bench_setup: <+ 1 sub-command: pkdb_pdbs or user_pdbs or launch > <related args>\n
 
 Examples:
 1. pkdb_pdbs: Data & script setup using pkDBv1 pdbs:
    - Minimal input: value for -bench_dir option:
-     >CLI_NAME pkdb_pdbs -bench_dir <folder path>
+     >bench_setup pkdb_pdbs -bench_dir <folder path>
 
    - Using non-default option(s) (then job_name is required!):
-     >{CLI_NAME} {pkdb_pdbs} -bench_dir <folder path> -d 8 -job_name <job_e8>
+     >bench_setup pkdb_pdbs -bench_dir <folder path> -d 8 -job_name <job_e8>
 
-2. {user_pdbs}: Data & script setup using user's pdb list:
+2. user_pdbs: Data & script setup using user's pdb list:
    - Minimal input: value for -bench_dir option, -pdb_list:
-     >{CLI_NAME} {user_pdbs} -bench_dir <folder path> -pdb_list <path to dir with pdb files OR file listing pdbs paths>
+     >bench_setup user_pdbs -bench_dir <folder path> -pdb_list <path to dir with pdb files OR file listing pdbs paths>
 
    - Using non-default option(s) (then job_name is required! ):
-     >{CLI_NAME} {user_pdbs} -bench_dir <folder path> -pdb_list <path> -d 8 -job_name <job_e8>
+     >bench_setup user_pdbs -bench_dir <folder path> -pdb_list <path> -d 8 -job_name <job_e8>
 
 3. {launch}: Launch runs:
    - Minimal input: value for -bench_dir option: IFF no non-default job_name & sentinel_file were passed in {pkdb_pdbs}
-     >{CLI_NAME} {launch} -bench_dir <folder path>
+     >bench_setup launch -bench_dir <folder path>
 
    - Using non-default option(s):
-     >{CLI_NAME} {launch} -bench_dir <folder path> -n_batch <jobs to maintain>
+     >bench_setup launch -bench_dir <folder path> -n_batch <jobs to maintain>
     Note: if changing the default sentinel_file="pk.out" to, e.g. step2_out.pdb,
         then the 'norun' script parameters for step 3 & 4 must be set accordingly:
-        >{CLI_NAME} {launch} -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun
+        >bench_setup launch -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun
 ```
 
 
