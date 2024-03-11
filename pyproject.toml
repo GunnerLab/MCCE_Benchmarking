@@ -58,8 +58,8 @@ find = {}
 
 [project.scripts]
 bench_setup = "mcce_benchmark.cli:bench_cli"
-# used in crontab, submits 1 batch of size n_batch:
-bench_launch = "mcce_benchmark.batch_submit:launch_cli"
+# launchjob used in crontab, submits 1 batch of size n_batch:
+bench_launchjob = "mcce_benchmark.batch_submit:launch_cli"
 bench_analyze = "mcce_benchmark.pkanalysis:analyze_cli"
 bench_compare = "mcce_benchmark.comparison:compare_cli"
 

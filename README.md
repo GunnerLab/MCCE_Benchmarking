@@ -9,13 +9,14 @@ _beta version_
   │   ├── WT_pkas.csv
   │   ├── metadata.md
   │   ├── proteins.tsv
-  │   └── clean_pdbs/
-  └── refsets
-      └── parse.e4/
-          ├── analysis/
-          ├── clean_pdbs/
-          └── all_pkas.out
+  │   ├── RUNS/
+  │   └── refsets/
+  │       └── parse.e4/
+  │           ├── analysis/
+  │           └── RUNS/
+
 ```
+
 
 ## Experimental pKas data source
 The original data comes from [Dr. Emil Axelov's pKa Database (1)](http://compbio.clemson.edu/lab/software/5/). The list for wild types and mutants alike was further curated by Dr. Junjun Mao at the Gunner Lab at CCNY to
@@ -31,10 +32,10 @@ Comments out the excluded pdbs and gives the reason. Column 'Model' identifies s
 ### File `metadata.md`:
 Experimental data source details; to be kept in data folder.
 
-### Folder `clean_pdbs`:
+### Folder `RUNS`:
 Holds the prepared pdb files, which reside inside a folder with the same pdbid in upper case.
 ```
-	data/pkadbv1/clean_pdbs/
+	data/pkadbv1/RUNS/
 	├── book.txt		# Q_BOOK in the code
 	├── default_run.sh
 	├── 135L
@@ -56,38 +57,50 @@ Description:
 Launch a MCCE benchmarking job using curated structures from the pKa Database v1.
 
 Entry points available at the command line:
- 1. 'bench_expl_pkas' along with one of 2 sub-commands:
-  - Sub-command 1: 'setup_job': setup data folders & the run script to run mcce steps 1 through 4;
-  - Sub-command 2: 'launch_job': launch a batch of jobs;
- 2. 'bench_launchjob' used to lauch a batch of job as per n_batch
+ 1. `bench_setup` along with one of 3 sub-commands:
+  - Sub-command 1: 'pkdb_pdbs': setup data folders using the pdbs from pkadbv1 & the run script to run mcce steps 1 through 4;
+  - Sub-command 2: 'user_pdbs': setup data folders using the pdbs provided via -pdbs_list option
+  - Sub-command 3: 'launch': launch all the jobs via automated scheduling (crontab);
+ 2. `bench_launchjob` used to launch a batch of size n_batch
     Note: This is a convenience entry point that is used in the crontab (scheduler);
-          It is the same as 'bench_expl_pkas launch_job -benchmarks_dir <dir> [+ args, e.g. n_batch 5]';
-          It can be used via cli if scheduler fails.
- 3. 'bench_analyze' along with one of 1 sub-command:
-  - Sub-command 1: 'expl_pkas': analyze conformers and residues in user's 'benchmarks_dir';
+ 3. `bench_analyze` along with one of 2 sub-commands:
+  - Sub-command 1: 'pkdb_pdbs': analyze conformers and residues in user's 'benchmarks_dir'; get stats viz experiemntal pKas;
+  - Sub-command 2: 'user_pdbs': analyze conformers and residues in user's 'benchmarks_dir';
+ 4. `bench_compare`: compare to sets of runs
 ```
 
 #### Usage:
 ```
-bench_expl_pkas setup_job <related args>
+Examples for bench_setup:
 
-Examples for current implementation (Beta):
+#FIX: cli name needed?
 
-1. Job setup
- - Using defaults (benchmarks_dir= mcce_benchmarks):
-   >bench_expl_pkas setup_job
+CLI_NAME bench_setup <+ 1 sub-command: pkdb_pdbs or user_pdbs or launch > <related args>\n
 
- - Using non-default option(s):
-   >bench_expl_pkas setup_job -benchmarks_dir <different name>
-   >bench_expl_pkas setup_job -job_name <my_job_name>
-   >bench_expl_pkas setup_job -job_name <my_job_name> -d 8
+Examples:
+1. pkdb_pdbs: Data & script setup using pkDBv1 pdbs:
+   - Minimal input: value for -bench_dir option:
+     >CLI_NAME pkdb_pdbs -bench_dir <folder path>
 
-2. Submit batch of jobs (if done via the cli):
- - Using defaults (benchmarks_dir= mcce_benchmarks;
-                   job_name= default_run;
-                   n_batch= 10;
-                   sentinel_file= pK.out):
-   >bench_expl_pkas launch_job
+   - Using non-default option(s) (then job_name is required!):
+     >{CLI_NAME} {pkdb_pdbs} -bench_dir <folder path> -d 8 -job_name <job_e8>
+
+2. {user_pdbs}: Data & script setup using user's pdb list:
+   - Minimal input: value for -bench_dir option, -pdb_list:
+     >{CLI_NAME} {user_pdbs} -bench_dir <folder path> -pdb_list <path to dir with pdb files OR file listing pdbs paths>
+
+   - Using non-default option(s) (then job_name is required! ):
+     >{CLI_NAME} {user_pdbs} -bench_dir <folder path> -pdb_list <path> -d 8 -job_name <job_e8>
+
+3. {launch}: Launch runs:
+   - Minimal input: value for -bench_dir option: IFF no non-default job_name & sentinel_file were passed in {pkdb_pdbs}
+     >{CLI_NAME} {launch} -bench_dir <folder path>
+
+   - Using non-default option(s):
+     >{CLI_NAME} {launch} -bench_dir <folder path> -n_batch <jobs to maintain>
+    Note: if changing the default sentinel_file="pk.out" to, e.g. step2_out.pdb,
+        then the 'norun' script parameters for step 3 & 4 must be set accordingly:
+        >{CLI_NAME} {launch} -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun
 ```
 
 

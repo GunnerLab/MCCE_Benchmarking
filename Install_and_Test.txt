@@ -71,11 +71,11 @@ Notation remarks:
 3. Install mcce_benchmark (right now from GitHub, not yet published on pypa):
    (mce) >pip install git+https://github.com/GunnerLab/MCCE_Benchmarking.git#egg=mcce_benchmark
 
-  3.1 Check that the installation created the cli commands:
+  3.1 Check that the installation created the 4 cli commands:
       (The commands will NOT be available outside your environment.)
 
-      (mce) >which bench_expl_pkas
-      >>~/miniconda3/envs/mce/bin/bench_expl_pkas
+      (mce) >which bench_setup
+      >>~/miniconda3/envs/mce/bin/bench_setup
    
       The other ones are:
       (mce) >which bench_launchjob
@@ -84,46 +84,85 @@ Notation remarks:
       (mce) >which bench_analyze
       >>~/miniconda3/envs/mce/bin/bench_analyze
 
+      (mce) >which bench_compare
+      >>~/miniconda3/envs/mce/bin/bench_compare
+
+
   3.2 Check the online help, e.g.:
-      (mce) >bench_expl_pkas setup_job --help
-      (mce) >bench_analyze expl_pkas --help
+      (mce) >bench_setup pkdb_pdbs --help
+      (mce) >bench_setup user_pdbs --help
 
 
-4. Run the first sub-command, setup_job (includes the script creation step):
+4. Use the setup command `bench_setup pkdb_pdbs` to create a set using the pdbs from pKaDBv1.
+   Note: bench_setup creates the run script with the command line options.
    You can limit the number of curated proteins (folder) to setup using -n_pdbs.
    Give a low number for testing (max is 120, default):
-   (mce) >bench_expl_pkas setup_job -benchmarks_dir <some/dir> -n_pdbs <2> -job_name <foo>
+
+   (mce) >bench_setup pkdb_pdbs -bench_dir <some/dir> -n_pdbs <2>
+
+   * Job name:
+   If you pass one or more non-default mcce steps parameters, then you must have a job name:
+
+   (mce) >bench_setup pkdb_pdbs -bench_dir <some/dir> -n_pdbs <2> -d 8 -job_name <foo_e8>
+
+   * Sentinel file:
+   The default sentinel_file is pK.out (means the run completed Step 4)). It is part of script setup
+   to ensure it is deleted prior to launching. You need to include it if you are not running all
+   4 steps. Example running only steps 1 & 2:
+
+   (mce) >bench_setup [pkdb_pdbs or user_pdbs] -bench_dir <some/dir> --s3_norun  --s4_norun -job_name <up_to_s2> -sentinel_file step2_out.pdb
+   
+
+   * Launch job right after setup:
+   Launching a job with `bench_setup` is possible with the --launch flag:
+
+   (mce) >bench_setup [pkdb_pdbs or user_pdbs] -bench_dir <some/dir> -d 8 -job_name <foo_e8> --launch
+
+   In this case, you CANNOT review or amend the run script. You would not launch the job
+   this way if, for instance, you want to add Step 6.
+   TODO: Step 6 will be part of the script once a hydrogen-bond network comparison procedure is finalized.
 
 
 5. Launch batches of jobs:
-   5.0 Preferred way: use the automated scheduling to process all the pdbs:
-       (mce) >bench_expl_pkas launch_job -benchmarks_dir <some/dir> -job_name <foo> -n_batch <4>
+   5.0 Preferred way: use the automated scheduling to process all the pdbs in batches of size n_batch (default 10):
+       (mce) >bench_setup launch -bench_dir <some/dir> -job_name <foo> -n_batch <4> [-sentinel_file x]  # needed if used in setup
 
   [
    5.1 Alternate way: launch a batch of size -n_batch (default: 10) at the command line:
-       (mce) >bench_launchjob -benchmarks_dir <some/dir> [ -job_name <same job name given in setup_job> ]
+       (mce) >bench_launchjob -bench_dir <some/dir> [ -job_name <same job name given in setup_job> ]
 
    5.2 Wait ~ 15 mins and repeat #5.1 to update clean_pdbs/book.txt
        You will need to repeat #5.2 until all the entries in book.txt show a status of 'e' or 'c'.
 
        You can find out out many jobs are left to be submitted with this command:
 
-       (mce) >to_submit=$(grep -v -e 'r$' -e 'c$' -e 'e$' <some/dir>/clean_pdbs/book.txt | wc -l)
+       (mce) >to_submit=$(grep -v -e 'r$' -e 'c$' -e 'e$' <some/dir>/RUNS/book.txt | wc -l)
        (mce) >echo $to_submit
 
        (If -n_batch > the number of folders, the result should be 0.)
   ]
 
-6. Analyze:
-   The command line interface for analyzing a job setup via `bench_expl_pkas`, requires 1 argument:
-   -benchmarks_dir.
+
+6. Analyze (one set):
+   The command line interface for analyzing a job setup via `bench_analyze [pkdb_pdbs or user_pdbs]`;
+   requires 1 argument:  -bench_dir.
    The first step of the analysis checks that all the runs are completed. Incidentally, it's an
    easy way to check for how far along the processing is.
 
-   (mce) >bench_analyze expl_pkas -benchmarks_dir <some/dir>
+   * Output files & sub-commands:
+    - user_pdbs: Collated pK.out and sum_crg.out, res and confs count files & related figures
+    - pkdb_pdbs: Analysis additionally includes res and confs stats viz experimental pKa values
+                 and related figures.
 
-   Note: [FUTURE] bench_analyze will have a second sub-command, likely 'mcce_runs', when the benchmarking
-         cli for benchmarking mcce runs is completed, likely 'bench_mcce_runs'.
+
+7. Compare two sets of runs, i.e. A/B testing (convention: B is reference):
+   To compare two (completed) sets of runs, use `bench_compare`:
+   Options: -di1, -dir2, and two flags:
+            --pkdb_pdbs      # absence means 'user_pdbs'
+            --dir2_is_refset # if used, --pkdb_pdbs must also be present
+
+   (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset
+
 
 Please, open an issue with any problem installing or using the app at:
 https://github.com/GunnerLab/MCCE_Benchmarking/issues

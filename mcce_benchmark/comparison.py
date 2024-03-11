@@ -6,10 +6,12 @@ Cli end point for comparison of two sets of runs. `compare`
 Cli parser with options:
   -dir1: path to run set 1
   -dir2: path to run set 2
-  --pkdb_pdbs: flag enabling the creation of the analysis output files
+  --pkdb_pdbs: Flag enabling the creation of the analysis output files
                in each of the sets if analysis folder not found.
                Thus, this switch enables the by-passing of the
                bench_analyze <sub-command> step.
+  --dir2_is_refset: Flag presence indicate dir2 holds the NAME of a reference dataset, 
+               currently 'parse.e4' for pH titrations.
 """
 
 
@@ -50,7 +52,7 @@ def compare_runs(args:argNamespace):
 
     # 0. validate
     mcce_env.validate_envs(args.dir1, args.dir2, subcmd=kind)
-                           #dir2_is_refset:bool = False)
+                           dir2_is_refset=args.dir2_is_refset)
 
     # 1. get collated sum_crg.out diff:
     sc1 = analyze1.joinpath(OUT_FILES.ALL_SUMCRG.value)
@@ -107,7 +109,6 @@ Options:
 Post an issue for all errors and feature requests at:
 https://github.com/GunnerLab/MCCE_Benchmarking/issues
 """
-
 USAGE = f"""
 1. Without flag --pkdb_pdbs means the 2 sets were created with user_pdbs
    >{CLI_NAME} -dir1 <path to set 1> -dir2 <path to set 2>
@@ -140,14 +141,15 @@ def compare_parser():
         help = """Path to run set 1."""
     )
     p.add_argument(
-        "-dir2",
+         "-dir2",
         required=True,
         type = arg_valid_dirpath,
         help = """Path to run set 1."""
     )
     p.add_argument(
         "--pkdb_pdbs",
-        type = arg_valid_dirpath,
+        default = False,
+        action = "store_true",
         help = """
         Flag enabling the creation of the analysis output files
         in each of the sets if analysis folder not found.
@@ -155,6 +157,15 @@ def compare_parser():
         bench_analyze <sub-command> step.
         """
     )
+    p.add_argument(
+        "--dir2_is_refset",
+        default = False,
+        action = "store_true"
+        help = """
+        Flag presence indicate dir2 holds the NAME of a reference dataset, currently 'parse.e4'.
+        """
+    )
+
     return p
 
 

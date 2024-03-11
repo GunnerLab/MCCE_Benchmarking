@@ -30,7 +30,7 @@ def create_single_crontab(bench_dir:Path,
     """
 
     SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
-* * * * * {}/conda activate {}; bench_launch -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
+* * * * * {}/conda activate {}; bench_launchjob -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
 
     bdir = str(bench_dir)
     ct_text = SINGLE_CRONTAB_fstr.format(CONDA_PATH,

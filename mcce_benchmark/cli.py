@@ -4,7 +4,7 @@
 Module: cli.py
 
 Command line interface for MCCE benchmarking.
-Main entry point: "setup"
+Main entry point: "bench_setup"
 
 Then 3 sub-commands:
  1. "pkdb_pdbs"
@@ -58,7 +58,7 @@ Sub-command for setting up <bench_dir>/RUNS folder using user's pdb_list
 >{CLI_NAME} {SUB2} -bench_dir <folder name>
 """
 
-HELP_3 = f"""Sub-command for launching a batch of jobs, e.g.:
+HELP_3 = f"""Sub-command for launching the automated scheduling of runs in batches; e.g.:
 >{CLI_NAME} {SUB3} -bench_dir <folder name> -n_batch 15
 Note: if provided, the value for the -job_name option must match the one used in `setup_job`.
 """
@@ -71,7 +71,7 @@ or the user's pdbs list.
 The main command is {CLI_NAME} along with one of 2 sub-commands:
 - Sub-command 1: {SUB1}: setup the dataset and run script to run mcce steps 1 through 4;
 - Sub-command 2: {SUB2}: setup the user dataset and run script to run mcce steps 1 through 4;
-- Sub-command 3: {SUB3}: launch a batch of jobs;
+- Sub-command 3: {SUB3}: launch the automated scheduling of runs in batchs ;
 """
 
 EPI = f"""
@@ -405,7 +405,7 @@ def bench_parser():
         "--ms",
         default = False,
         help = "Enable microstate output",
-        action="store_true"
+        action = "store_true"
     )
     cp.add_argument(
         "--launch",

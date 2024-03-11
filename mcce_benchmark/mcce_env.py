@@ -148,8 +148,14 @@ def valid_envs(env1:ENV, env2:ENV) -> tuple:
         return False, msg, delta
 
 
-def get_ref_set(refset_name:str) -> Path:
+def get_ref_set(refset_name:str, subcmd:str = SUB1) -> Path:
+    if subcmd != SUB1:
+        msg = "'parse.e4' is the only reference available & applies to pH titrations setup with `bench_setup pkdb_pdbs"
+        logger.error(msg)
+        raise ValueError(msg)
+
     fp = Pathok(BENCH.BENCH_PH_REFS.joinpath(refset_name))
+
     return fp
 
 
@@ -163,7 +169,7 @@ def get_mcce_env_dir(bench_dir:str,
 
     if is_refset:
         # then bench_dir is the name of a reference dataset
-        bench_dir = get_ref_set(bench_dir)
+        bench_dir = get_ref_set(bench_dir, subcmd=subcmd)
     else:
         bench_dir = Pathok(bench_dir)
 
