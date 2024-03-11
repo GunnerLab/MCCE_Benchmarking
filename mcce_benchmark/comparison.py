@@ -6,6 +6,7 @@ Cli end point for comparison of two sets of runs. `compare`
 Cli parser with options:
   -dir1: path to run set 1
   -dir2: path to run set 2
+  -o: path of output folder
   --pkdb_pdbs: Flag enabling the creation of the analysis output files
                in each of the sets if analysis folder not found.
                Thus, this switch enables the by-passing of the
@@ -50,7 +51,7 @@ def compare_runs(args:argNamespace):
 
     out_dir = Path(args.o)
 
-    # 0. validate
+    logger.info(f"Validate")
     mcce_env.validate_envs(args.dir1, args.dir2, subcmd=kind,
                            dir2_is_refset=args.dir2_is_refset)
 
@@ -97,23 +98,38 @@ CLI_NAME = ENTRY_POINTS["compare"] # as per pyproject.toml entry point
 
 DESC = f"""
 Description:
-compare the pkas from two sets of mcce calculations.
+Compare two sets of runs, ~ A/B testing
+(convention: B is 'reference', whether it actually is a reference set or not, i.e.: A - B):
+
 Options:
   -dir1: path to run set 1
   -dir2: path to run set 2
-  --pkdb_pdbs: flag enabling the creation of the analysis output files
+  --pkdb_pdbs: Absence means 'user_pdbs'
+               Flag enabling the creation of the analysis output files
                in each of the sets if analysis folder not found.
                Thus, this switch enables the by-passing of the
                bench_analyze <sub-command> step.
 
+  --dir2_is_refset: Flag presence indicates that dir2 value is a refset name;
+                    If used, --pkdb_pdbs must also be present.
+
+  (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset
+
+
 Post an issue for all errors and feature requests at:
 https://github.com/GunnerLab/MCCE_Benchmarking/issues
 """
-USAGE = f"""
+USAGE = f""" >{CLI_NAME} -dir1 <d1> -dir2 <d2> [+ 2 flags]
+
 1. Without flag --pkdb_pdbs means the 2 sets were created with user_pdbs
    >{CLI_NAME} -dir1 <path to set 1> -dir2 <path to set 2>
+
 2. With flag --pkdb_pdbs means the 2 sets were created with pkdb_pdbs_pdbs:
    >{CLI_NAME} -dir1 <path to set 1> -dir2 <path to set 2>
+
+3. With flag --dir2_is_refset: indicates that dir2 is a refset name;
+   If used, --pkdb_pdbs must also be present.
+   >{CLI_NAME} -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset
 """
 
 
@@ -145,6 +161,13 @@ def compare_parser():
         required=True,
         type = arg_valid_dirpath,
         help = """Path to run set 1."""
+    )
+    p.add_argument(
+         "-o",
+        meta = "output",
+        required=True,
+        type = arg_valid_dirpath,
+        help = """Path to comparison results."""
     )
     p.add_argument(
         "--pkdb_pdbs",
