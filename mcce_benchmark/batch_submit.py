@@ -19,11 +19,11 @@ Main functions:
     job equals n_batch.
     To be run in /RUNS subfolder, which is where Q_BOOK resides.
 
-* launch_job(benchmarks_dir:Path = Path(DEFAULT_DIR),
+* launch_job(bench_dir:Path = Path(DEFAULT_DIR),
              job_name:str = None,
              n_batch:int = N_BATCH,
              sentinel_file:str = "pK.out") -> None:
-    Go to benchmarks_dir/RUNS directory & call batch_run.
+    Go to bench_dir/RUNS directory & call batch_run.
 
 * launch_cli(argv=None)
     Entry point function.
@@ -167,15 +167,15 @@ def batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out")
     return
 
 
-def launch_job(benchmarks_dir:str = DEFAULT_DIR,
+def launch_job(bench_dir:str = DEFAULT_DIR,
                job_name:str = BENCH.DEFAULT_JOB,
                n_batch:int = N_BATCH,
                sentinel_file:str = "pK.out") -> None:
     """
-    Go to benchmarks_dir/RUNS directory & call batch_run.
+    Go to bench_dir/RUNS directory & call batch_run.
 
     Args:
-    benchmarks_dir (Path, None): Path of the folder containing the 'RUNS' folder.
+    bench_dir (Path, None): Path of the folder containing the 'RUNS' folder.
     job_name (str, None): Name of the job and script to use in 'RUNS' folder.
     n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
     sentinel_file (str, "pK.out"): File whose existence signals a completed step;
@@ -183,17 +183,17 @@ def launch_job(benchmarks_dir:str = DEFAULT_DIR,
         when running only the first 2, this file is 'step2_out.pdb'.
     """
 
-    if benchmarks_dir is None or not benchmarks_dir:
-        logger.error("Argument not set: benchmarks_dir.")
-        raise ValueError("Argument not set: benchmarks_dir.")
+    if bench_dir is None or not bench_dir:
+        logger.error("Argument not set: bench_dir.")
+        raise ValueError("Argument not set: bench_dir.")
 
     if job_name is None or not job_name:
         logger.error("Argument not set: job_name.")
         raise ValueError("Argument not set: job_name.")
 
-    benchmarks_dir = Path(benchmarks_dir)
-    if Path.cwd().name != benchmarks_dir.name:
-        os.chdir(benchmarks_dir)
+    bench_dir = Path(bench_dir)
+    if Path.cwd().name != bench_dir.name:
+        os.chdir(bench_dir)
 
     os.chdir(RUNS_DIR)
 
@@ -222,7 +222,7 @@ def batch_parser():
     )
 
     parser.add_argument(
-        "-benchmarks_dir",
+        "-bench_dir",
         default = str(Path(DEFAULT_DIR).resolve()),
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking run(s); this is where the
@@ -235,8 +235,8 @@ def batch_parser():
         type = str,
         default = BENCH.DEFAULT_JOB,
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
-        This job_name is used to identify the shell script in 'benchmarks_dir' that launches the MCCE simulation
-        in 'benchmarks_dir/RUNS' subfolders; default: %(default)s.
+        This job_name is used to identify the shell script in 'bench_dir' that launches the MCCE simulation
+        in 'bench_dir/RUNS' subfolders; default: %(default)s.
         """
     )
     parser.add_argument(
@@ -270,12 +270,12 @@ def launch_cli(argv=None):
         logger.info("Using default args for launch_job")
         launch_job()
     else:
-        launch_job(args.benchmarks_dir,
+        launch_job(args.bench_dir,
                    args.job_name,
                    args.n_batch,
                    args.sentinel_file)
 
-    book_fp = Path(args.benchmarks_dir).joinpath(BENCH.CLEAN_PDBS, BENCH.Q_BOOK)
+    book_fp = Path(args.bench_dir).joinpath(BENCH.RUNS_DIR, BENCH.Q_BOOK)
     pct = pct_completed(book_fp)
     logger.info(f"Percentage of jobs completed: {pct:.1%}")
 

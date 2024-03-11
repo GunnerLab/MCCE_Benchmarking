@@ -42,16 +42,16 @@ def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None) -> None:
     return
 
 
-def prep_refset(benchmarks_dir:str, keep_files:list=None) -> None:
+def prep_refset(bench_dir:str, keep_files:list=None) -> None:
     """
-    ASSUME 'standard' structure: <benchmarks_dir>/RUNS_DIR
+    ASSUME 'standard' structure: <bench_dir>/RUNS_DIR
     Delete all MCCE output files that are not in the 'keep_files' list.
     Delete all mcce subfolders,
     which is a folder of folders named after the pdb id they contain, i.e. like RUNS/.
     ~ clean_job_folder()
     """
 
-    pdbs = Path(benchmarks_dir)/RUNS_DIR
+    pdbs = Path(bench_dir)/RUNS_DIR
     if not pdbs.exists():
         raise FileNotFoundError(f"Not found: {pdbs}")
 

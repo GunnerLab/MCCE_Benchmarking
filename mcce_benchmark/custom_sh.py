@@ -102,8 +102,8 @@ for S in defaults_per_step:
 def cli_args_to_dict(sh_args:argNamespace) -> dict:
     """Only return mcce steps args."""
 
-    excluded_keys = ["subparser_name", "benchmarks_dir", "n_pdbs",
-                     "sentinel_file", "job_name","func"]
+    excluded_keys = ["subparser_name", "bench_dir", "n_pdbs",
+                     "sentinel_file", "job_name", "func"]
     d_args = {k:v for k, v in vars(sh_args).items() if k not in excluded_keys}
     return d_args
 
@@ -160,12 +160,12 @@ def populate_custom_template(job_args:argNamespace) -> str:
     return body
 
 
-def write_run_script_from_template(benchmarks_dir:str,
+def write_run_script_from_template(bench_dir:str,
                                    job_name:str,
                                    script_template:ScriptChoices = ScriptChoices.CUSTOM,
                                    job_args:argNamespace = None) -> None:
     """
-    Write a custom shell script in <benchmarks_dir>/RUNS/ to submit steps 1-4 when
+    Write a custom shell script in <bench_dir>/RUNS/ to submit steps 1-4 when
     script_template is CUSTOM, or perform tests otherwise. job_args can be None for
     templates other than CUSTOM.
     Delete a pre-exisitng script with the same name.
@@ -174,10 +174,10 @@ def write_run_script_from_template(benchmarks_dir:str,
     script_template (ScriptChoices enum): one of TEST_ECHO, NORUN, CUSTOM (default)
     """
 
-    benchmarks_dir = Path(benchmarks_dir)
-    user_pdbs = benchmarks_dir.joinpath(RUNS_DIR)
+    bench_dir = Path(bench_dir)
+    user_pdbs = bench_dir.joinpath(RUNS_DIR)
     if not user_pdbs.exists():
-        msg = f"{benchmarks_dir} does not have a RUNS subfolder: rerun `setup_pdbs_folder` maybe?"
+        msg = f"{bench_dir} does not have a RUNS subfolder: rerun `setup_pdbs_folder` maybe?"
         logger.error(msg)
         raise FileNotFoundError(msg)
 

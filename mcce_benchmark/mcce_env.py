@@ -13,7 +13,7 @@ Modified version of ENV class from Stable-MCCE/bin/pdbio.py:
     self.tpl: dict (unused)
 """
 
-from mcce_benchmark import BENCH, MCCE_RUNS_DIR
+from mcce_benchmark import BENCH, MCCE_RUNS_DIR, SUB1, SUB2
 from mcce_benchmark.io_utils import Pathok
 import logging
 from pathlib import Path
@@ -153,24 +153,24 @@ def get_ref_set(refset_name:str) -> Path:
     return fp
 
 
-def get_mcce_env_dir(benchmarks_dir:str,
-                     caller_subcmd:str = "expl_pkas",
+def get_mcce_env_dir(bench_dir:str,
+                     subcmd:str = SUB1,
                      pre_existing:bool=False,
                      is_refset:bool = False) -> Path:
     """Return a path where to get run.prm.record."""
 
-    if is_refset and caller_subcmd != "expl_pkas":
-        raise ValueError(f"The reference dataset {benchmarks_dir} is only available via 'expl_pkas'.")
+    if is_refset and subcmd != SUB1:
+        raise ValueError(f"The reference dataset {bench_dir} is only available via {SUB1}.")
 
     if is_refset:
-        # then benchmarks_dir is the name of a reference dataset
-        bench_dir = get_ref_set(benchmarks_dir)
-        pdbs_dir = bench_dir.joinpath(BENCH.CLEAN_PDBS)
+        # then bench_dir is the name of a reference dataset
+        bench_dir = get_ref_set(bench_dir)
+        pdbs_dir = bench_dir.joinpath(BENCH.RUNS_DIR)
     else:
-        bench_dir = Pathok(benchmarks_dir)
+        bench_dir = Pathok(bench_dir)
         # get run_dir:
         if caller_subcmd == "expl_pkas":
-            pdbs_dir = bench_dir.joinpath(BENCH.CLEAN_PDBS)
+            pdbs_dir = bench_dir.joinpath(BENCH.RUNS_DIR)
         else:
             if not pre_existing:
                 pdbs_dir = bench_dir.joinpath(MCCE_RUNS_DIR)
@@ -185,12 +185,12 @@ def get_mcce_env_dir(benchmarks_dir:str,
     return run_dir
 
 
-def get_run_env(benchmarks_dir:str,
+def get_run_env(bench_dir:str,
                 caller_subcmd:str = "expl_pkas",
                 pre_existing:bool=False,
                 is_refset:bool = False)-> ENV:
 
-    bench_dir = Pathok(benchmarks_dir)
+    bench_dir = Pathok(bench_dir)
     run_dir = get_mcce_env_dir(bench_dir,
                                caller_subcmd=caller_subcmd,
                                pre_existing=pre_existing,

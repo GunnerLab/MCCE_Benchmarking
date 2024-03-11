@@ -57,10 +57,11 @@ find = {}
 "mcce_benchmark.data" = ["*.txt", "*.tsv", "*.csv", "*.pdb", "*.sh"]
 
 [project.scripts]
-bench_expl_pkas = "mcce_benchmark.cli:bench_cli"
+bench_setup = "mcce_benchmark.cli:bench_cli"
+# used in crontab, submits 1 batch of size n_batch:
+bench_launch = "mcce_benchmark.batch_submit:launch_cli"
 bench_analyze = "mcce_benchmark.pkanalysis:analyze_cli"
-# convenience endpoint used in crontab, submit 1 batch of size n_batch:
-bench_launchjob = "mcce_benchmark.batch_submit:launch_cli"
+bench_compare = "mcce_benchmark.comparison:compare_cli"
 
 [tool.setuptools_scm]
 version_file = "mcce_benchmark/_version.py"

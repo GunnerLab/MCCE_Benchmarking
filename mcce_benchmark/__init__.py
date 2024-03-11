@@ -40,35 +40,37 @@ def get_user_env() -> tuple:
 USER_PRFX, USER_ENV = get_user_env()
 CONDA_PATH = Path(shutil.which("conda")).parent
 
+ENTRY_POINTS = {"setup": "bench_setup",
+                "launch": "bench_launch", # used by crontab
+                "analyze": "bench_analyze",
+                "compare": "bench_compare"}
 
-ENTRY_POINTS = {"main":    "bench_expl_pkas",
-                "launch":  "bench_launchjob",  # used in crontab
-                "analyze": "bench_analyze"}
-
-#ENTRY_POINTS = {"main": "bench_setup",
-#                "launch": "bench_launch", # used by crontab
-#                "analyze": "bench_analyze"
-#                "compare": "bench_compare"}
-
+#sub-commands
+SUB1 = "pkdb_pdbs"
+SUB2 = "user_pdbs"
+SUB3 = "launch"
 
 # output file names => <benchmarks_dir>/analysis/:
 class OUT_FILES(Enum):
     ALL_PKAS = "all_pkas.out"
-    ALL_PKAS_OOB = "all_pkas_oob.tsv" # out of bounds pKas
-    MATCHED_PKAS = "matched_pkas.csv"
-    MATCHED_PKAS_STATS = "matched_pkas_stats.json" # from dict
-    PKAS_STATS = "pkas_stats.csv"
+    ALL_SUMCRG = "all_sumcrg.out"
+    ALL_SUMCRG_DIFF = "all_smcrg_diff.tsv"
+    ALL_PKAS_OOB = "all_pkas_oob.tsv"    # out of bounds pKas
+    JOB_PKAS = "job_pkas.json"                    # from dict
     CONF_COUNTS = "conf_counts.tsv"
     RES_COUNTS = "res_counts.tsv"
-    RES_OUTLIER = "outlier_residues.tsv"
     RUN_TIMES = "run_times.tsv"
     CONFS_PER_RES = "confs_per_res.tsv"
     CONFS_THRUPUT = "confs_throughput.tsv"
     FIG_CONFS_TP = "confs_throughput.png"
+    # only with SUB1:
+    MATCHED_PKAS = "matched_pkas.csv"
+    MATCHED_PKAS_STATS = "matched_pkas_stats.json" # from dict
+    PKAS_STATS = "pkas_stats.csv"
+    RES_OUTLIER = "outlier_residues.tsv"
     FIG_FIT_ALLPKS = "pkas_fit.png"
     FIG_FIT_PER_RES = "res_analysis.png"
 
-DEFAULT_DIR = "mcce_benchmarks"
 RUNS_DIR = "RUNS"
 ANALYZE_DIR = "analysis"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
@@ -200,13 +202,24 @@ APP VER: {_version.version_tuple}\nAPP DEFAULTS:
 Globals:
 {MCCE_EPS = }; {N_BATCH = }
 {N_PDBS = } : number of pdbs in the dataset
+
 Default analysis output file names (fixed):
-{OUT_FILES.ALL_PKAS.name = }
-{OUT_FILES.ALL_PKAS_OOB = }
-{OUT_FILES.MATCHED_PKAS.name = }
-{OUT_FILES.CONF_COUNTS.name = }
-{OUT_FILES.RES_COUNTS.name = }
-{OUT_FILES.RUN_TIMES.name = }
-{OUT_FILES.CONFS_PER_RES.name = }
-{OUT_FILES.CONFS_THRUPUT.name = }\n{'-'*70}
+  ALL_PKAS: {OUT_FILES.ALL_PKAS.value}
+  ALL_SUMCRG: {OUT_FILES.ALL_SUMCRG.value}
+  ALL_SUMCRG_DIFF: {OUT_FILES.ALL_SUMCRG_DIFF.value}
+  ALL_PKAS_OOB: {OUT_FILES.ALL_PKAS_OOB.value}
+  JOB_PKAS: {OUT_FILES.JOB_PKAS.value}
+  CONF_COUNTS: {OUT_FILES.CONF_COUNTS.value}
+  RES_COUNTS: {OUT_FILES.RES_COUNTS.value}
+  RUN_TIMES: {OUT_FILES.RUN_TIMES.value}
+  CONFS_PER_RES: {OUT_FILES.CONFS_PER_RES.value}
+  CONFS_THRUPUT: {OUT_FILES.CONFS_THRUPUT.value}
+  FIG_CONFS_TP: {OUT_FILES.FIG_CONFS_TP.value}
+Additionally, with with SUB1:
+  MATCHED_PKAS: {OUT_FILES.MATCHED_PKAS.value}
+  MATCHED_PKAS_STATS: {OUT_FILES.MATCHED_PKAS_STATS.value}
+  RES_OUTLIER = {OUT_FILES.RES_OUTLIER.value}
+  FIG_FIT_ALLPKS = {OUT_FILES.FIG_FIT_ALLPKS .value}
+  FIG_FIT_PER_RES = {OUT_FILES.FIG_FIT_PER_RES.value}
+\n{'-'*70}
 """

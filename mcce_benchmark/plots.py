@@ -47,13 +47,13 @@ def plot_pkas_fit(matched_df:pd.DataFrame, pks_stats:dict, outfp:str=None) -> No
     pks_stats = pkanalysis.matched_pkas_stats(matched_fp)
     """
 
-    X = matched_df.expl
-    Y = matched_df.mcce
+    X = matched_df.loc[:,1]
+    Y = matched_df.loc[:,2]
 
     sns.set_style("whitegrid")
     ax = sns.scatterplot(x=X, y=Y, alpha=0.4);
-    ax.set_xlabel(f"Experimental pKas; N matched = {pks_stats['N']:,}");
-    ax.set_ylabel("MCCE pKas");
+    ax.set_xlabel(f"{X.name} pKas; N matched = {pks_stats['N']:,}");
+    ax.set_ylabel(f"{Y.name} pKas");
     sns.despine();
 
     cm = plt.get_cmap('tab20')
