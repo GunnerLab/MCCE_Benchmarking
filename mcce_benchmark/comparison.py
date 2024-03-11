@@ -18,7 +18,7 @@ Cli parser with options:
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
 from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
-from mcce_benchmark import analysis, diff_mc, mcce_env, plots
+from mcce_benchmark import pkanalysis, diff_mc, mcce_env, plots
 
 from mcce_benchmark.io_utils import Pathok, subprocess_run
 from mcce_benchmark.io_utils import get_book_dirs_for_status, load_tsv, fout_df, pk_to_float
@@ -42,11 +42,11 @@ def compare_runs(args:argNamespace):
 
     analyze1 = args.dir1.joinpath(ANALYZE_DIR)
     if not analyze1.exists():
-        analysis.analyze_runs(args.dir1, kind)
+        pkanalysis.analyze_runs(args.dir1, kind)
 
     analyze2 = args.dir2.joinpath(ANALYZE_DIR)
     if not analyze2.exists():
-        analysis.analyze_runs(args.dir2, kind)
+        pkanalysis.analyze_runs(args.dir2, kind)
 
     out_dir = Path(args.o)
 
@@ -65,22 +65,22 @@ def compare_runs(args:argNamespace):
     d1 = json_to_dict(analyze1.joinpath(OUT_FILES.JOB_PKAS.value))
     d2 = json_to_dict(analyze2.joinpath(OUT_FILES.JOB_PKAS.value))
 
-    matched_pkas = analysis.match_pkas(d1, d2)
+    matched_pkas = pkanalysis.match_pkas(d1, d2)
 
     logger.info(f"Plotting residues analysis -> pic.")
     save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_PER_RES.value)
     plots.plot_res_analysis(matched_pkas, save_to)
 
     matched_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS.value)
-    analysis.matched_pkas_to_csv(matched_fp, matched_pkas, kind=kind)
+    pkanalysis.matched_pkas_to_csv(matched_fp, matched_pkas, kind=kind)
 
     logger.info(f"Calculating the matched pkas stats into dict.")
     outlier_fp = out_dir.joinpath(OUT_FILES.RES_OUTLIER.value)
-    _ = analysis.res_outlier_count(matched_fp, save_to=outlier_fp)
+    _ = pkanalysis.res_outlier_count(matched_fp, save_to=outlier_fp)
 
     # matched_df: for matched_pkas_stats and plots.plot_pkas_fit
-    matched_df = analysis.load_matched_pkas(matched_fp)
-    d_stats = analysis.matched_pkas_stats(matched_df, subcmd=kind)
+    matched_df = pkanalysis.load_matched_pkas(matched_fp)
+    d_stats = pkanalysis.matched_pkas_stats(matched_df, subcmd=kind)
     print(d_stats["report"])
     json_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
     dict_to_json(d_stats, json_fp)
@@ -190,7 +190,7 @@ def compare_cli(argv=None):
     for d in [args.dir1, args.dir2]:
         bench = Pathok(d)
         book_fp = bench.joinpath(BENCH.RUNS_DIR, BENCH.Q_BOOK)
-        pct = analysis.pct_completed(book_fp)
+        pct = pkanalysis.pct_completed(book_fp)
         if pct < 1.:
             logger.info(f"Runs not 100% complete in {d}, try again later; completed = {pct:.2f}")
             return
