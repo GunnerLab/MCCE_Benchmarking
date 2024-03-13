@@ -7,7 +7,7 @@ For automating the crontab creation for scheduling batch_submit every minute.
 """
 
 from argparse import Namespace as argNamespace
-from mcce_benchmark import USER_MCCE, CONDA_PATH, USER_ENV
+from mcce_benchmark import ENTRY_POINTS, USER_MCCE, CONDA_PATH, USER_ENV
 import logging
 from pathlib import Path
 import subprocess
@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 #.......................................................................
 
+EP = ENTRY_POINTS["launch"]
 
 def create_single_crontab(bench_dir:Path,
                           job_name:str,
@@ -30,13 +31,14 @@ def create_single_crontab(bench_dir:Path,
     """
 
     SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
-* * * * * {}/conda activate {}; bench_launchjob -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
+* * * * * {}/conda activate {}; {} -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
 
     bdir = str(bench_dir)
     ct_text = SINGLE_CRONTAB_fstr.format(CONDA_PATH,
                                          USER_MCCE,
                                          CONDA_PATH,
                                          USER_ENV,
+                                         EP,
                                          bdir,
                                          job_name,
                                          n_batch,

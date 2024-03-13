@@ -21,10 +21,9 @@ from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
 from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
 from mcce_benchmark import pkanalysis, diff_mc, mcce_env, plots
 
-from mcce_benchmark.io_utils import Pathok, subprocess_run
+from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
 from mcce_benchmark.io_utils import get_book_dirs_for_status, load_tsv, fout_df, pk_to_float
-from mcce_benchmark.io_utils import dict_to_json, json_to_dict
-import subprocess
+from mcce_benchmark.io_utils import get_sumcrg_col_specs, get_sumcrg_hdr, to_pickle, from_pickle
 import logging
 import numpy as np
 import pandas as pd
@@ -82,9 +81,9 @@ def compare_runs(args:argNamespace):
     # matched_df: for matched_pkas_stats and plots.plot_pkas_fit
     matched_df = pkanalysis.load_matched_pkas(matched_fp)
     d_stats = pkanalysis.matched_pkas_stats(matched_df, subcmd=kind)
-    print(d_stats["report"])
-    json_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
-    dict_to_json(d_stats, json_fp)
+    logger.info(d_stats["report"])
+    pickle_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
+    to_pickle(d_stats, pickle_fp)
 
     logger.info(f"Plotting pkas fit -> pic.")
     save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_ALLPKS.value)
@@ -160,7 +159,7 @@ def compare_parser():
          "-dir2",
         required=True,
         type = arg_valid_dirpath,
-        help = """Path to run set 1."""
+        help = """Path to run set 2."""
     )
     p.add_argument(
          "-o",
@@ -198,21 +197,12 @@ def compare_cli(argv=None):
     """
 
     cli_parser = compare_parser()
-
-    if argv is None or len(argv) <= 1:
-        cli_parser.print_usage()
-        return
-
-    if '-h' in argv or '--help' in argv:
-        cli_parser.print_help()
-        return
-
     args = cli_parser.parse_args(argv)
 
     # OK to compare?
     for d in [args.dir1, args.dir2]:
         bench = Pathok(d)
-        book_fp = bench.joinpath(BENCH.RUNS_DIR, BENCH.Q_BOOK)
+        book_fp = bench.joinpath(RUNS_DIR, BENCH.Q_BOOK)
         pct = pkanalysis.pct_completed(book_fp)
         if pct < 1.:
             logger.info(f"Runs not 100% complete in {d}, try again later; completed = {pct:.2f}")

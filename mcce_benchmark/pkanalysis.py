@@ -14,10 +14,11 @@ Cli parser with 2 sub-commands with same options:
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
 from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
+from mcce_benchmark.mcce_env import ENV, get_run_env
 from mcce_benchmark import plots
-from mcce_benchmark.io_utils import Pathok, subprocess_run
-from mcce_benchmark.io_utils import get_book_dirs_for_status, load_tsv, fout_df, pk_to_float, dict_to_json
-import subprocess
+from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
+from mcce_benchmark.io_utils import get_book_dirs_for_status, load_tsv, fout_df, pk_to_float
+from mcce_benchmark.io_utils import get_sumcrg_col_specs, get_sumcrg_hdr, to_pickle, from_pickle
 import logging
 import numpy as np
 import pandas as pd
@@ -31,12 +32,10 @@ logger.setLevel(logging.INFO)
 
 
 # for multi-protein runs
-def collate_all_sumcrg(bench_dir:str, titr_type:str="ph") ->None:
-    # TODO: Obtain header dynamically
+def collate_all_sumcrg(bench_dir:str, run_env:ENV, titr_type:str="ph") ->None:
 
     bench = Pathok(bench_dir)
-    bench_s = str(bench)
-    dirpath = Pathok(bench.joinpath(RUNS_DIR))
+    dirpath = bench.joinpath(RUNS_DIR)
     d = str(dirpath)
 
     # output dir
@@ -47,19 +46,8 @@ def collate_all_sumcrg(bench_dir:str, titr_type:str="ph") ->None:
     all_out = analyze.joinpath(OUT_FILES.ALL_SUMCRG.value)
     all_out_s = str(all_out)
 
-    titr = titr_type.lower()
-    if titr not in ["ph", "eh", "ch"]:
-        raise ValueError("titr_type must be one of ['ph', 'eh', 'ch']")
-
-    if titr == "eh":
-        titr = "Eh"
-    elif titr == "ph":
-        titr = "pH"
-    else:
-        titr == "Ch"
-
-    # sumcrg_hdr : TODO
-    hdr = f"  {titr}           0     1     2     3     4     5     6     7     8     9    10    11    12    13    14"
+    hdr = get_sumcrg_hdr(bench)
+    titr = hdr.strip().split()[0]
 
     ofs = '":"'
     cmd = "awk 'BEGIN{OFS=" + ofs + "}{out = substr(FILENAME, length(FILENAME)-15, 4); print out, $0}' "
@@ -88,7 +76,7 @@ def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
 
     bench = Pathok(bench_dir)
     bench_s = str(bench)
-    d = Pathok(bench.joinpath(BENCH.RUNS_DIR))
+    d = Pathok(bench.joinpath(RUNS_DIR))
     dirpath = str(d)
 
     # output dir
@@ -102,13 +90,7 @@ def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
     titr = titr_type.lower()
     if titr not in ["ph", "eh", "ch"]:
         raise ValueError("titr_type must be one of ['ph', 'eh', 'ch']")
-
-    if titr == "eh":
-        titr = "Eh"
-    elif titr == "ph":
-        titr = "pH"
-    else:
-        titr == "Ch"
+    titr = titr.upper()
 
     pko_hdr = f"PDB  resid@{titr}         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
     # offset = len("pk.out") + 4 = 10
@@ -117,11 +99,10 @@ def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
     cmd = cmd + f"{dirpath}/*/pK.out | sed '/total$/d' > {dirpath}/all_pkas; "
     cmd = cmd + f"sed '1 i\{pko_hdr}' {dirpath}/all_pkas > {all_out_s};"  # add header back
     cmd = cmd + f" /bin/rm {dirpath}/all_pkas"
-    #print(f"cmd = \n{cmd}")
 
     data = subprocess_run(cmd, capture_output=False) #check=True)
     if isinstance(data, subprocess.CompletedProcess):
-        logger.info(f"Created {all_out!r}; Can be loaded using pkanalysis.fout_df(allfp, collated=True, titr_type='ph').")
+        logger.info(f"Created {all_out!r};\n\tCan be loaded using pkanalysis.fout_df(allfp, collated=True, titr_type='ph').")
     else:
         logger.exception(f"Subprocess error")
         raise data # data holds the error obj
@@ -138,19 +119,29 @@ def get_oob_mask(df):
         raise e("Wrong dataframe: no 'pKa/Em' columns.")
 
 
-def all_pkas_df(bench_dir:str, titr_type:str="ph") -> Union[pd.DataFrame, None]:
-    """Load <bench_dir>/all_pkas.out into a pandas DataFrame;
+def all_pkas_df(path:str, titr_type:str="ph", reduced_ok=True) -> Union[pd.DataFrame, None]:
+    """Load <bench_dir>/analysis/all_pkas.out into a pandas DataFrame;
     Return  a pandas.DataFrame or None upon failure.
-    Version of 'pkanalysis.fout_df' with pre-set 'all_pkas.out' file
+    Version of 'pkanalysis.fout_df' with pre-set 'all_pkas.out' file.
+
+    Args:
+    path (str): Can be bench_dir or a file path.
     titr_type (str, 'ph'): titration type, needed for formating; one of ['ph', 'eh', 'ch']
+    reduced_ok (bool, True): Load ALL_PKAS_TSV (with oob pkas processed out) if found, else
+                         load all_pkas.out (complete file)
     """
 
-    bench = Pathok(bench_dir, raise_err=False)
-    if not bench:
-        logger.error(f"Not found: {bench}")
+    p = Pathok(path, raise_err=False)
+    if not p:
+        logger.error(f"Not found: {p}")
         return None
 
-    allfp = bench.joinpath(ANALYZE_DIR, OUT_FILES.ALL_PKAS.value)
+    if p.is_file(): # and p.name == OUT_FILES.ALL_PKAS.value:
+        allfp = p
+    else:
+        # bench_dir
+        allfp = p.joinpath(ANALYZE_DIR, OUT_FILES.ALL_PKAS.value)
+
     if not allfp.exists():
         logger.error(f"Not found: {allfp}; this file is created via pkanalysis.collate_all_pkas(bench_dir).")
         return None
@@ -158,6 +149,13 @@ def all_pkas_df(bench_dir:str, titr_type:str="ph") -> Union[pd.DataFrame, None]:
     titr = titr_type.lower()
     if titr not in ["ph", "eh", "ch"]:
         raise ValueError("titr_type must be one of ['ph', 'eh', 'ch']")
+
+    if reduced_ok:
+        # load tsv file if found (created by extract_oob_pkas):
+        all_tsv = allfp.parent.joinpath(OUT_FILES.ALL_PKAS_TSV.value)
+        if all_tsv.exists():
+            logger.info("Loading OUT_FILES.ALL_PKAS_TSV")
+            return load_tsv(all_tsv, index_col=0) #collated=True, titr_type=titr)
 
     return fout_df(allfp, collated=True, titr_type=titr)
 
@@ -185,7 +183,7 @@ def extract_oob_pkas(bench_dir:str):
 
         # Reset all_pkas.out
         allout_df = allout_df[~msk]
-        all_fp = analyze.joinpath(OUT_FILES.ALL_PKAS.value)
+        all_fp = analyze.joinpath(OUT_FILES.ALL_PKAS_TSV.value)
         allout_df.to_csv(all_fp, sep="\t")
     else:
         logger.info(f"No out of bound pKa values in {OUT_FILES.ALL_PKAS.value}")
@@ -400,15 +398,16 @@ def job_pkas_to_dict(book_fpath:str) -> dict:
 
     Origin: pkanalysis.py/read_calculated_pkas
     Canonical dir struc: book_fpath points to <benchmark_dir>/RUNS/book.txt
-    Uses <benchmark_dir>/analysis/all_pkas.out
+    Uses <bench_dir>/analysis/all_pkas.out
     """
 
     book_fp = Pathok(book_fpath)
     completed_dirs = get_book_dirs_for_status(book_fp) # default 'c'
 
     calc_pkas = {}
-    # all pkas df: all 'in bound' pk values; floats
-    all_out_fp = book_fp.parent.parent.joinpath(ANALYZE_DIR)
+    all_out_fp = book_fp.parent.parent.joinpath(ANALYZE_DIR, OUT_FILES.ALL_PKAS.value)
+
+    # all pkas df: all 'in bounds' pk values if tsv version exists; floats
     allout_df = all_pkas_df(all_out_fp)
     c_resid, c_pk = allout_df.columns[:2]
 
@@ -501,10 +500,9 @@ def match_pkas(calc_pkas:dict, expl_pkas:dict) -> list:
 
 
 def matched_pkas_to_csv(fpath:str, matched_pkas:list, kind:str=SUB1) -> None:
-    """Write a list of 3-tuples (as in a matched pkas list) to a csv file."""
+    """Write a list of 3-tuples (as in a matched pkas list) to a txt file."""
 
     fp = Path(fpath)
-
     if kind == SUB1:
         hdr = "key,mcce,expl\n"
     else:
@@ -518,8 +516,8 @@ def matched_pkas_to_csv(fpath:str, matched_pkas:list, kind:str=SUB1) -> None:
 
 def load_matched_pkas(matched_fp:str) -> pd.DataFrame:
     """
-    Load MATCHED_PKA_FILE csv file into a pandas DataFrame.
-    PRE: file MATCHED_PKA_FILE csv file created via mcce_benchmark.pkanalysis.
+    Load MATCHED_PKAS csv file into a pandas DataFrame.
+    PRE: file MATCHED_PKAS csv file created via mcce_benchmark.pkanalysis.
     """
 
     fh = Path(matched_fp)
@@ -532,7 +530,7 @@ def load_matched_pkas(matched_fp:str) -> pd.DataFrame:
     df.drop(columns=["PDB","key"], inplace=True)
 
     try:
-        df = df[["resid",  "mcce", "expl"]]
+        df = df[["resid", "mcce", "expl"]]
     except KeyError:
         df = df[["resid", "set1", "set2"]]
 
@@ -552,31 +550,53 @@ def matched_pkas_stats(matched_df:pd.DataFrame,
     """
 
     N = matched_df.shape[0]
+    converged = True
+    try:
+        m, b = np.polyfit(matched_df.mcce, matched_df.expl, 1)
+    except Exception as e:
+        #(np.linalg.LinAlgError, RuntimeWarning, FloatingPointError, RankWarning) as e:
+        #RankWarning: Polyfit may be poorly conditioned
+        #RuntimeWarning: invalid value encountered in divide
+        #("SVD did not converge in Linear Least Squares")
+        converged = False
+        m, b = 0,0
 
-    m, b = np.polyfit(matched_df.expl, matched_df.mcce, 1)
     delta = abs(matched_df.mcce - matched_df.expl)
     mean_delta = delta.mean(axis=None)
     rmsd = np.sqrt(np.mean(delta**2))
 
     if subcmd == SUB1:
         txt = f"""Residues stats:
-Number of pKas matched with those in pKDB: {N:,}
-Fit line: y = {m:.{prec}f}.x + {b:.{prec}f}
+Number of pKas matched with those in pKDB: {N:,}"""
+        if converged:
+            txt = txt + f"""
+Fit line: y = {m:.{prec}f}.x + {b:.{prec}f}"""
+        else:
+            txt = txt + f"""
+Fit line: None ({str(e)})"""
+        txt = txt + f"""
 Mean delta pKa: {mean_delta:.{prec}f}
 RMSD, calculated vs experimental: {rmsd:.{prec}f}
 """
     else:
         txt = f"""Residues stats:
-Number of pKas matched with those in set 2: {N:,}
-Fit line: y = {m:.{prec}f}.x + {b:.{prec}f}
+Number of pKas matched with those in set 2: {N:,}"""
+        if converged:
+            txt = txt + f"""
+Fit line: y = {m:.{prec}f}.x + {b:.{prec}f}"""
+        else:
+            txt = txt + f"""
+Fit line: None (Failed LLS fit)"""
+        txt = txt + f"""
 Mean delta pKa: {mean_delta:.{prec}f}
 RMSD, set 1 vs set 2: {rmsd:.{prec}f}
 """
+
     comp_bounds = [3., 2., 1.]
     for b in comp_bounds:
         txt = txt + f"Proportion within {b} titr units: {delta[delta.le(b)].count()/N:.{prec}%}\n"
 
-    d_out = {"fit":(m, b),
+    d_out = {"fit":(m, b) if converged else f"None: {str(e)}",
              "N":N,
              "mean_delta": mean_delta,
              "rmsd":rmsd,
@@ -586,41 +606,73 @@ RMSD, set 1 vs set 2: {rmsd:.{prec}f}
     return d_out
 
 
-def res_outlier_count(matched_fp:str, save_to:str=None, replace=False) -> tuple:
+def res_outlier_count(matched_fp:str,
+                      grp_by:str="res",
+                      save_to:str=None,
+                      replace:bool=False,
+                      bounds:tuple=(0,14)) -> pd.DataFrame:
     """Return counts per residue type for diff(col1-col2) > 3,
-    and pKa values beyond titration bounds in text and df format.
-    Save text to "outlier_residues.tsv" (OUT_FILES.RES_OUTLIER).
-    ASSUMED: bounds=(0,14)
+    and pKa values beyond titration bounds in a df.
+    Save df to "outlier_residues.tsv" (OUT_FILES.RES_OUTLIER) in the parent folder
+    of matched_fp.
+    Args:
+    matched_fp (str): file path of matched pkas file;
+    grp_by (str, "res"): one of ["res", "resid"];
+    save_to (str, None): DEPRECATE?
+    replace (bool, False): To overwrite existing file;
+    bounds (tuple, (0,14)): Default titration bounds.
     """
 
-    matched_df = load_matched_pkas(matched_fp)
-    matched_df[["res", "resi"]] = matched_df.resid.str.split("[-|+]", expand=True)
-    matched_df.drop(columns=["resi", "resid"], inplace=True)
+    if grp_by not in ["res", "resid"]:
+        logger.error(f"grp_by not in ['res','resid']: {grp_by}")
+        raise ValueError(f"grp_by not in ['res','resid']: {grp_by}")
 
-    set1 = matched_df.loc[:,1]
-    set2 = matched_df.loc[:,2]
+    matched_df = load_matched_pkas(matched_fp)
+    N = matched_df.shape[0]
+
+    if grp_by == "res":
+        matched_df[["res", "resi"]] = matched_df.resid.str.split("[-|+]", expand=True)
+        matched_df.drop(columns=["resi", "resid"], inplace=True)
+        matched_df = matched_df[["res","mcce","expl"]]
+
+    set1 = matched_df.iloc[:,1]
+    set2 = matched_df.iloc[:,2]
+    idx_name = f"{grp_by.upper()} | {set1.name} v. {set2.name}"
 
     matched_df["delta"] = abs(set1 - set2)
     matched_df["Delta over 3"] = matched_df.delta > 3.0
-    matched_df["Out of bounds"] = (abs(set1) < 0.01) | (abs(set1 - 14.0) < 0.01)
+    matched_df["Out of bounds"] = (abs(set1 - bounds[0]) < 0.01) | (abs(set1 - bounds[1]) < 0.01)
     matched_df.drop(columns=[set1.name, set2.name, "delta"], inplace=True)
 
-    gp_oob = matched_df[matched_df["Out of bounds"]==True].groupby("res").count()
+    gp_oob = matched_df[matched_df["Out of bounds"]==True].groupby(grp_by).count()
     gp_oob.drop(columns="Delta over 3", inplace=True)
-    gp_del3 = matched_df[matched_df["Delta over 3"]==True].groupby("res").count()
-    gp_del3.drop(columns="Out of bounds", inplace=True)
-    out_df = gp_del3.merge(gp_oob, how='left', on="res").replace({np.nan:0}).astype(int)
-    out_df.index.name = None
+    N_over = gp_oob.shape[0]
 
-    if save_to is None:
-        # when analyzing a single set:
+    gp_del3 = matched_df[matched_df["Delta over 3"]==True].groupby(grp_by).count()
+    gp_del3.drop(columns="Out of bounds", inplace=True)
+    N_del3 = gp_del3.shape[0]
+
+    out_df = gp_oob.merge(gp_del3, how='left', on=grp_by).replace({np.nan:0}).astype(int)
+    oob_name = f"Out of bounds {bounds}"
+    out_df.rename(columns={"Out of bounds": oob_name}, inplace=True)
+    out_df.index.name = idx_name
+    pcts = [f"{s/N:.0%}" for s in out_df.sum()]
+    out_df.loc["pct"] = pcts
+
+    # needed? if matched_fp < matching set1, set2, then it resides in -o folder
+    #if save_to is None:
+    #    # when analyzing over a single set:
+    #    outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RES_OUTLIER.value)
+    #else:
+    #    outlier_fp = Path(save_to)
+
+    if grp_by == "res":
         outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RES_OUTLIER.value)
     else:
-        outlier_fp = Path(save_to)
+        outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RESID_OUTLIER.value)
 
     if outlier_fp.exists() and replace:
         outlier_fp.unlink()
-
     out_df.to_csv(outlier_fp, sep="\t")
 
     return out_df
@@ -629,7 +681,11 @@ def res_outlier_count(matched_fp:str, save_to:str=None, replace=False) -> tuple:
 def analyze_runs(bench_dir:Path, subcmd:str):
     """Create all analysis output files."""
 
-    bench = Path(bench_dir)
+    bench = Pathok(bench_dir)
+    # Get current set env; may need more than titr:
+    env = get_run_env(bench, subcmd=subcmd)
+    titr = env.runprm["TITR_TYPE"]
+
     pdbs = bench.joinpath(RUNS_DIR)
     book_fp = pdbs.joinpath(BENCH.Q_BOOK)
 
@@ -637,14 +693,8 @@ def analyze_runs(bench_dir:Path, subcmd:str):
     if not analyze.exists():
         analyze.mkdir()
 
-    if subcmd == SUB1:
-        titr = "ph"
-    else:
-        #TODO: get the correct titr
-        titr = "ph"
-
     logger.info(f"Collating pK.out and sum_crg.out files.")
-    collate_all_sumcrg(bench, titr_type=titr)
+    collate_all_sumcrg(bench, env, titr_type=titr )
     collate_all_pkas(bench, titr_type=titr)
 
     logger.info(f"Saving out of bounds pK values to tsv, if any.")
@@ -658,13 +708,16 @@ def analyze_runs(bench_dir:Path, subcmd:str):
 
     logger.info(f"Calculating conformers thoughput into tsv files.")
     confs_throughput_to_tsv(pdbs)
+
+    logger.info(f"Getting calculated pKas to dict.")
     # effective calculated pkas for all completed runs:
     calc_pkas = job_pkas_to_dict(book_fp)
-    calcpk_fp = analyze.joinpath(OUT_FILES.JOB_PKAS.name)
-    dict_to_json(calc_pkas, calcpk_fp)
+
+    calcpk_fp = analyze.joinpath(OUT_FILES.JOB_PKAS.value)
+    to_pickle(calc_pkas, calcpk_fp)
 
     if subcmd == SUB1:
-        logger.info(f"Loading the experimental and calculated pKas to dict.")
+        logger.info(f"Getting experimental pKas to dict.")
         expl_pkas = experimental_pkas_to_dict()
         #calc_pkas: done
 
@@ -680,25 +733,29 @@ def analyze_runs(bench_dir:Path, subcmd:str):
         # matched_df: used by matched_pkas_stats and plots.plot_pkas_fit
         matched_df = load_matched_pkas(matched_fp)
         d_stats = matched_pkas_stats(matched_df)
-        print(d_stats["report"])
-        json_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
-        dict_to_json(d_stats,json_fp)
+        logger.info(d_stats["report"])
+        pkl_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
+        to_pickle(d_stats, pkl_fp)
 
     # plots
     logger.info(f"Plotting conformers throughput per step -> pic.")
     tsv = analyze.joinpath(OUT_FILES.CONFS_THRUPUT.value)
     thruput_df = load_tsv(tsv, index_col="step")
-    save_to = analyze.parent.joinpath(OUT_FILES.CONFS_TP_PNG.value)
+    save_to = analyze.parent.joinpath(OUT_FILES.FIG_CONFS_TP.value)
     plots.plot_conf_thrup(thruput_df, save_to)
 
     if subcmd == SUB1:
-        logger.info(f"Plotting pkas fit -> pic.")
-        save_to = matched_fp.parent.joinpath(OUT_FILES.FIG_FIT_ALLPKS.value)
-        plots.plot_pkas_fit(matched_df, d_stats, save_to)
-
         logger.info(f"Plotting residues analysis -> pic.")
         save_to = matched_fp.parent.joinpath(OUT_FILES.FIG_FIT_PER_RES.value)
         plots.plot_res_analysis(matched_pkas, save_to)
+
+        if isinstance(d_stats["fit"], str):
+            logger.info("Data could not be fitted: no plot generated.")
+        return
+
+        logger.info(f"Plotting pkas fit -> pic.")
+        save_to = matched_fp.parent.joinpath(OUT_FILES.FIG_FIT_ALLPKS.value)
+        plots.plot_pkas_fit(matched_df, d_stats, save_to)
 
     return
 
@@ -728,6 +785,11 @@ HELP_2 = f"""
 Sub-command for analyzing a benchmarking set of user's pdbs.
 """
 
+EPI = """
+Post an issue for all errors and feature requests at:
+https://github.com/GunnerLab/MCCE_Benchmarking/issues
+"""
+
 DESC = f"""
 Description:
 Create analysis output files for a set of runs in <bench_dir>/analysis.
@@ -740,7 +802,12 @@ Output files:
     ALL_PKAS = "all_pkas.out"
     ALL_SUMCRG = "all_sumcrg.out"
     ALL_PKAS_OOB = "all_pkas_oob.tsv"    # out of bounds pKas
-    JOB_PKAS = "job_pkas.json"                    # from dict
+    JOB_PKAS = "job_pkas.pickle"                    # from dict
+
+# needed?
+# Same outputs created with sub-command {SUB1}, but for
+# USER_ ? or same names but will reside in -o folder?
+
     CONF_COUNTS = "conf_counts.tsv"
     RES_COUNTS = "res_counts.tsv"
     RUN_TIMES = "run_times.tsv"
@@ -750,14 +817,11 @@ Output files:
 
     Also created with sub-command {SUB1}:
     MATCHED_PKAS = "matched_pkas.csv"
-    MATCHED_PKAS_STATS = "matched_pkas_stats.json" # from dict
+    MATCHED_PKAS_STATS = "matched_pkas_stats.pickle" # from dict
     PKAS_STATS = "pkas_stats.csv"
     RES_OUTLIER = "outlier_residues.tsv"
     FIG_FIT_ALLPKS = "pkas_fit.png"
     FIG_FIT_PER_RES = "res_analysis.png"
-
-Post an issue for all errors and feature requests at:
-https://github.com/GunnerLab/MCCE_Benchmarking/issues
 """
 
 USAGE = f"""
@@ -783,7 +847,7 @@ def analyze_parser():
         description = DESC,
         usage = USAGE,
         formatter_class = RawDescriptionHelpFormatter,
-        epilog = ">>> END of %(prog)s",
+        epilog = EPI,
     )
 
     subparsers = p.add_subparsers(required = True,
@@ -827,20 +891,11 @@ def analyze_cli(argv=None):
     """
 
     cli_parser = analyze_parser()
-
-    if argv is None or len(argv) <= 1:
-        cli_parser.print_usage()
-        return
-
-    if '-h' in argv or '--help' in argv:
-        cli_parser.print_help()
-        return
-
     args = cli_parser.parse_args(argv)
 
     # OK to analyze?
     bench = Pathok(args.bench_dir)
-    book_fp = bench.joinpath(BENCH.RUNS_DIR, BENCH.Q_BOOK)
+    book_fp = bench.joinpath(RUNS_DIR, BENCH.Q_BOOK)
     pct = pct_completed(book_fp)
     if pct < 1.:
         logger.info(f"Runs not 100% complete, try again later; completed = {pct:.2f}")

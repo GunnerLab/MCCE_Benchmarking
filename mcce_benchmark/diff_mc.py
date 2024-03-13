@@ -41,10 +41,10 @@ class MCfile:
                 fo.writeline("%-14s %s\n" % (name, "\t".join(["%6s" % self.values[(name, ph)] for ph in self.pHs])))
 
 
-    def printme(self):
-        print("%-14s %s" % (self.type, " ".join(self.pHs)))
+    def __str__(self):
+        out = "%-14s %s" % (self.type, " ".join(self.pHs))
         for name in self.names:
-            print("%-14s %s" % (name, " ".join(["%6s" % self.values[(name, ph)] for ph in self.pHs])))
+            out = out + "%-14s %s" % (name, " ".join(["%6s" % self.values[(name, ph)] for ph in self.pHs]))
 
 
 def merge_lists(list1, list2):
@@ -109,6 +109,6 @@ def get_diff(fp1, fp2, save_to_tsv:str=None):
     if save_to_tsv is not None:
         delta.to_tsv(save_to_tsv)
         return
-    delta.printme()
+    print(delta)
 
     return

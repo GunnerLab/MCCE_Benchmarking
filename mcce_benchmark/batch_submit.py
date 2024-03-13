@@ -38,12 +38,11 @@ Q book status codes:
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, ENTRY_POINTS
-from mcce_benchmark.io_utils import Pathok, subprocess_run
+from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
 from mcce_benchmark.pkanalysis import pct_completed
 import logging
 import os
 from pathlib import Path
-import subprocess
 import sys
 
 
@@ -274,7 +273,7 @@ def launch_cli(argv=None):
                    args.n_batch,
                    args.sentinel_file)
 
-    book_fp = Path(args.bench_dir).joinpath(BENCH.RUNS_DIR, BENCH.Q_BOOK)
+    book_fp = Path(args.bench_dir).joinpath(RUNS_DIR, BENCH.Q_BOOK)
     pct = pct_completed(book_fp)
     logger.info(f"Percentage of jobs completed: {pct:.1%}")
 

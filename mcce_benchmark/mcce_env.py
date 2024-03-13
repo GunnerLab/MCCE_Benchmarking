@@ -4,19 +4,17 @@
 Module: mcce_env.py
 
 Modified version of ENV class from Stable-MCCE/bin/pdbio.py:
-  - Simplified: Only 3 methods: load_runprm, load_tpl,  __str__;
-    FUTURE: load_tpl could be used to compare extra.tpl
+  - Simplified: Only 2 methods: load_runprm,  __str__;
   - Needs "rundir_path" Path as class parameter
   - Attributes:
     self.runprm: dict
     self.rundir: Path
-    self.tpl: dict (unused)
 """
 
 from mcce_benchmark import BENCH, RUNS_DIR, SUB1
-from mcce_benchmark.io_utils import Pathok
 import logging
 from pathlib import Path
+import subprocess
 from typing import Union
 
 
@@ -26,8 +24,9 @@ logger.setLevel(logging.ERROR)
 
 class ENV:
     def __init__(self, rundir_path:str) -> dict:
-        self.rundir = Pathok(rundir_path)
+        self.rundir = Path(rundir_path)
         self.runprm = {}
+        self.sumcrg_hdr = ""
         # run.prm parameters key:value
         self.tpl = {}
 
@@ -35,9 +34,8 @@ class ENV:
 
     def load_runprm(self):
         # Only run.prm.record is a valid file for comparing two runs!
-        try:
-            fp = Pathok(self.rundir.joinpath("run.prm.record"))
-        except FileNotFoundError as e:
+        fp = Path(self.rundir.joinpath("run.prm.record"))
+        if not fp.exists():
             logger.error(f"Not found: run.prm.record in {self.rundir}")
             raise e(f"Not found: run.prm.record in {self.rundir}")
 
@@ -57,33 +55,6 @@ class ENV:
                     else:
                         value = fields[0]
                 self.runprm[key] = value
-
-        return
-
-    def load_tpl(self, fname):
-        """Load a tpl file. From data.py."""
-
-        with open(self.rundir.joinpath(fname)) as fp:
-            lines = fp.readlines()
-        for line in lines:
-            line = line.split("#")[0]
-            fields = line.split(":")
-            if len(fields) != 2:
-                continue
-
-            key_string = fields[0].strip()
-            keys = key_string.split(",")
-            keys = [x.strip().strip("\"") for x in keys]
-            keys = [x for x in keys if x]
-            keys = tuple(keys)
-
-            value_string = fields[1].strip()
-            if keys[0] in float_values:
-                self.tpl[keys] = float(value_string)
-            elif keys[0] in int_values:
-                self.tpl[keys] = int(value_string)
-            else:
-                self.tpl[keys] = value_string
 
         return
 
@@ -171,7 +142,7 @@ def get_mcce_env_dir(bench_dir:str,
         # then bench_dir is the name of a reference dataset
         bench_dir = get_ref_set(bench_dir, subcmd=subcmd)
     else:
-        bench_dir = Pathok(bench_dir)
+        bench_dir = Path(bench_dir)
 
     pdbs_dir = bench_dir.joinpath(RUNS_DIR)
     for fp in pdbs_dir.iterdir():
@@ -186,12 +157,30 @@ def get_run_env(bench_dir:str,
                 subcmd:str = SUB1,
                 is_refset:bool = False)-> ENV:
 
-    bench_dir = Pathok(bench_dir)
+    bench_dir = Path(bench_dir)
     run_dir = get_mcce_env_dir(bench_dir,
                                subcmd=subcmd,
                                is_refset=is_refset)
     env = ENV(run_dir)
     return env
+
+
+def get_sumcrg_hdr(bench_dir:str) -> str:
+   """Used for colspecs -> df."""
+
+   hdr0 = "  pH           0     1     2     3     4     5     6     7     8     9    10    11    12    13    14"
+   def_flds = len(hdr0.strip().split())
+
+   run_dir = get_mcce_env_dir(bench_dir)
+   cmd = f"head -n1 {str(run_dir)}/sum_crg.out"
+   out = subprocess.run(cmd)
+   if isinstance(out, subprocess.CompletedProcess):
+       hdr = out.stdout.splitlines()[0]
+       flds = len(hdr.strip().split())
+       if flds != def_flds:
+           return hdr
+
+   return None
 
 
 def validate_envs(bench_dir1:str, bench_dir2:str,
@@ -212,4 +201,3 @@ def validate_envs(bench_dir1:str, bench_dir2:str,
     else:
         logger.error(result[1])
         raise ValueError(result[1])
-

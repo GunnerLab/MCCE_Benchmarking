@@ -151,7 +151,7 @@ def setup_expl_runs(bench_dir:str, n_pdbs:int) -> None:
         runs_dir.mkdir()
 
     valid, invalid = audit.list_all_valid_pdbs()
-    for i, v in enumerate(valid, start=1):
+    for i, v in enumerate(valid):
         if i == n_pdbs:
             break
 

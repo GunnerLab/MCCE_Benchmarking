@@ -2,12 +2,17 @@
 
 from mcce_benchmark import N_PDBS
 from collections import defaultdict
+import logging
 import matplotlib.pyplot as plt
 from matplotlib import ticker, gridspec
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import seaborn as sns
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
 
 
 def plot_conf_thrup(tput_df:pd.DataFrame, outfp:str=None) -> None:
@@ -47,8 +52,8 @@ def plot_pkas_fit(matched_df:pd.DataFrame, pks_stats:dict, outfp:str=None) -> No
     pks_stats = pkanalysis.matched_pkas_stats(matched_fp)
     """
 
-    X = matched_df.loc[:,1]
-    Y = matched_df.loc[:,2]
+    X = matched_df.iloc[:,1]
+    Y = matched_df.iloc[:,2]
 
     sns.set_style("whitegrid")
     ax = sns.scatterplot(x=X, y=Y, alpha=0.4);
@@ -58,6 +63,10 @@ def plot_pkas_fit(matched_df:pd.DataFrame, pks_stats:dict, outfp:str=None) -> No
 
     cm = plt.get_cmap('tab20')
     a = 0.7
+    if pks_stats["fit"] == "Failed LLS fit":
+        logger.error("Data could not be fitted")
+        return
+
     m, b = pks_stats["fit"]
     plt.plot(X, b + m * X,
              label=f"{m:.2f}.X + {b:.2f}",
@@ -86,6 +95,8 @@ def plot_res_analysis(matched_pKas:list, outfp:str=None) -> None:
     matched_pKas = pkanalysis.match_pkas(expl_d, jobpk_d)
     """
 
+    np.seterr(all='raise')
+
     matched_pKas = sorted(matched_pKas, key=lambda x: x[0][5:8])
 
     residues_stat = defaultdict(list)
@@ -95,7 +106,6 @@ def plot_res_analysis(matched_pKas:list, outfp:str=None) -> None:
 
     residues_stat = dict(residues_stat)
     N_ioniz = len(residues_stat.keys())
-    N_ioniz
     n_cells = int(N_ioniz**(1/2))+1
 
     cm = plt.get_cmap('tab20')
@@ -105,10 +115,23 @@ def plot_res_analysis(matched_pKas:list, outfp:str=None) -> None:
         ax = fig.add_subplot(gs[i])
         x = np.array([p[0] for p in residues_stat[key]])
         y = np.array([p[1] for p in residues_stat[key]])
-        m, b = np.polyfit(x, y, 1)
         ax.plot(x, y, "o", color=cm(i+1))
-        ax.plot(x, m * x + b, ':', color="k")
-        ax.set_title(key, y=1.0, pad=-12)
+        converged = True
+        try:
+            m, b = np.polyfit(x, y, 1)
+        except Exception as e:
+            #(np.linalg.LinAlgError, RuntimeWarning, FloatingPointError, RankWarning) as e:
+            #RankWarning: Polyfit may be poorly conditioned
+            #RuntimeWarning: invalid value encountered in divide
+            #("SVD did not converge in Linear Least Squares")
+            converged = False
+            m, b = 0,0
+
+        if converged:
+            ax.plot(x, m * x + b, ':', color="k")
+            ax.set_title(key, y=1.0, pad=-12)
+        else:
+            ax.set_title(key + ": str(e)", y=1.0, pad=-12)
 
     if outfp is not None:
         plt.savefig(outfp)

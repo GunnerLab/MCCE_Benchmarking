@@ -22,12 +22,11 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as a
 # import class of files resources and constants:
 from mcce_benchmark import BENCH, LOG_HDR, ENTRY_POINTS, SUB1, SUB2, SUB3
 from mcce_benchmark import RUNS_DIR, N_BATCH, N_PDBS
-from mcce_benchmark.io_utils import Pathok, subprocess_run
+from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
 from mcce_benchmark import audit, job_setup, batch_submit, scheduling, custom_sh
 from IPython.core.formatters import format_display_data
 import logging
 from pathlib import Path
-import subprocess
 import sys
 from time import sleep
 from typing import Union

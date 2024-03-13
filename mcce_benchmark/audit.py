@@ -332,7 +332,7 @@ def update_proteins_multi(proteins_file:Path = BENCH.BENCH_PROTS):
 
 
 def rewrite_book_file(book_file:Path) -> None:
-    """Re-write BENCH.RUNS_DIR/book file with valid entries."""
+    """Re-write RUNS_DIR/book file with valid entries."""
 
     valid, invalid = list_all_valid_pdbs_dirs(book_file.parent)
     with open(book_file, "w") as book:

@@ -77,7 +77,6 @@ Notation remarks:
       (mce) >which bench_setup
       >>~/miniconda3/envs/mce/bin/bench_setup
    
-      The other ones are:
       (mce) >which bench_launchjob
       >>~/miniconda3/envs/mce/bin/bench_launchjob
 
@@ -94,19 +93,22 @@ Notation remarks:
 
 
 4. Use the setup command `bench_setup pkdb_pdbs` to create a set using the pdbs from pKaDBv1.
-   Note: bench_setup creates the run script with the command line options.
+   Note: bench_setup creates the run script with the command line options for the mcce steps; 
+         if none are given, the default run script is used.
    You can limit the number of curated proteins (folder) to setup using -n_pdbs.
    Give a low number for testing (max is 120, default):
 
    (mce) >bench_setup pkdb_pdbs -bench_dir <some/dir> -n_pdbs <2>
 
    * Job name:
-   If you pass one or more non-default mcce steps parameters, then you must have a job name:
+   The default job name is 'default_run'; you can change it using -job_name.
+   - If you use -job_name without amending any of the steps args, the default_run.sh file will be soft-linked as <job name>;
+   - If you pass one or more non-default mcce steps parameters, then you MUST have a job name (& not 'default_run'):
 
    (mce) >bench_setup pkdb_pdbs -bench_dir <some/dir> -n_pdbs <2> -d 8 -job_name <foo_e8>
 
    * Sentinel file:
-   The default sentinel_file is pK.out (means the run completed Step 4)). It is part of script setup
+   The default sentinel_file is pK.out (means the run completed Step 4). It is part of script setup
    to ensure it is deleted prior to launching. You need to include it if you are not running all
    4 steps. Example running only steps 1 & 2:
 

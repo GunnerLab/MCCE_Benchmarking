@@ -41,11 +41,11 @@ USER_PRFX, USER_ENV = get_user_env()
 CONDA_PATH = Path(shutil.which("conda")).parent
 
 ENTRY_POINTS = {"setup": "bench_setup",
-                "launch": "bench_launch", # used by crontab
+                "launch": "bench_launchjob", # used by crontab
                 "analyze": "bench_analyze",
                 "compare": "bench_compare"}
 
-#sub-commands
+# bench_setup sub-commands, also used throughout:
 SUB1 = "pkdb_pdbs"
 SUB2 = "user_pdbs"
 SUB3 = "launch"
@@ -53,21 +53,24 @@ SUB3 = "launch"
 # output file names => <benchmarks_dir>/analysis/:
 class OUT_FILES(Enum):
     ALL_PKAS = "all_pkas.out"
+    ALL_PKAS_TSV = "all_pkas.tsv"  # no oob pkas
     ALL_SUMCRG = "all_sumcrg.out"
     ALL_SUMCRG_DIFF = "all_smcrg_diff.tsv"
     ALL_PKAS_OOB = "all_pkas_oob.tsv"    # out of bounds pKas
-    JOB_PKAS = "job_pkas.json"                    # from dict
+    JOB_PKAS = "job_pkas.pickle"         # pickled dict
     CONF_COUNTS = "conf_counts.tsv"
     RES_COUNTS = "res_counts.tsv"
     RUN_TIMES = "run_times.tsv"
     CONFS_PER_RES = "confs_per_res.tsv"
     CONFS_THRUPUT = "confs_throughput.tsv"
     FIG_CONFS_TP = "confs_throughput.png"
-    # only with SUB1:
+
+    # only with SUB1: until equivalent are setup for comparison of 2 sets
     MATCHED_PKAS = "matched_pkas.csv"
-    MATCHED_PKAS_STATS = "matched_pkas_stats.json" # from dict
+    MATCHED_PKAS_STATS = "matched_pkas_stats.pickle" # pickled dict
     PKAS_STATS = "pkas_stats.csv"
     RES_OUTLIER = "outlier_residues.tsv"
+    RESID_OUTLIER = "outlier_resids.tsv"
     FIG_FIT_ALLPKS = "pkas_fit.png"
     FIG_FIT_PER_RES = "res_analysis.png"
 
@@ -219,6 +222,7 @@ Additionally, with with SUB1:
   MATCHED_PKAS: {OUT_FILES.MATCHED_PKAS.value}
   MATCHED_PKAS_STATS: {OUT_FILES.MATCHED_PKAS_STATS.value}
   RES_OUTLIER = {OUT_FILES.RES_OUTLIER.value}
+  RESID_OUTLIER = {OUT_FILES.RESID_OUTLIER.value}
   FIG_FIT_ALLPKS = {OUT_FILES.FIG_FIT_ALLPKS .value}
   FIG_FIT_PER_RES = {OUT_FILES.FIG_FIT_PER_RES.value}
 \n{'-'*70}
