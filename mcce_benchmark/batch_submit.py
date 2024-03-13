@@ -36,14 +36,15 @@ Q book status codes:
      "e": error - was running, disapeared from job queue and no sentinel_file
 """
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
-from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, ENTRY_POINTS
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
+from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, ENTRY_POINTS, N_BATCH, N_PDBS
 from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
 from mcce_benchmark.pkanalysis import pct_completed
 import logging
 import os
 from pathlib import Path
 import sys
+from typing import Union
 
 
 logger = logging.getLogger(__name__)
@@ -108,7 +109,7 @@ def get_running_jobs_dirs(job_name:str) -> list:
     return dirs
 
 
-def batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out") -> None:
+def batch_run(args:Union[dict, Namespace]) -> None:
     """
     Update Q_BOOK according to user's running jobs' statuses.
     Launch new jobs inside the RUNS subfolders until the number of
@@ -122,6 +123,22 @@ def batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out")
         When running all 4 MCCE steps (default), this file is 'pK.out', while
         when running only the first 2, this file is 'step2_out.pdb'.
     """
+
+    if isinstance(args, dict):
+        args = Namespace(**args)
+    
+    if "job_name" not in args:
+        job_name = BENCH.DEFAULT_JOB
+    else:
+        job_name = args.job_name
+    if "n_batch" not in args:
+        n_batch = N_BATCH
+    else:
+        n_batch = args.n_batch
+    if "sentinel_file" not in args:
+        sentinel_file = "pK.out"
+    else:
+        sentinel_file = args.sentinel_file
 
     job_script = f"{job_name}.sh"
     job_script_fp = Pathok(Path(job_script))
@@ -166,42 +183,31 @@ def batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out")
     return
 
 
-def launch_job(bench_dir:str,
-               job_name:str = BENCH.DEFAULT_JOB,
-               n_batch:int = N_BATCH,
-               sentinel_file:str = "pK.out") -> None:
+def launch_job(args:Namespace) -> None:
     """
     Go to bench_dir/RUNS directory & call batch_run.
 
     Args:
-    bench_dir (Path, None): Path of the folder containing the 'RUNS' folder.
-    job_name (str, None): Name of the job and script to use in 'RUNS' folder.
-    n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
-    sentinel_file (str, "pK.out"): File whose existence signals a completed step;
-        When running all 4 MCCE steps (default), this file is 'pK.out', while
-        when running only the first 2, this file is 'step2_out.pdb'.
+    Options from the command line:
+      [required] bench_dir (Path, None): Path of the folder containing the 'RUNS' folder.
+      job_name (str, None): Name of the job and script to use in 'RUNS' folder.
+      n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
+      sentinel_file (str, "pK.out"): File whose existence signals a completed step;
+          When running all 4 MCCE steps (default), this file is 'pK.out', while
+          when running only the first 2, this file is 'step2_out.pdb'.
     """
 
-    if bench_dir is None or not bench_dir:
-        logger.error("Argument not set: bench_dir.")
-        raise ValueError("Argument not set: bench_dir.")
-
-    if job_name is None or not job_name:
-        logger.error("Argument not set: job_name.")
-        raise ValueError("Argument not set: job_name.")
-
-    bench_dir = Path(bench_dir)
+    bench_dir = Path(args.bench_dir)
     if Path.cwd().name != bench_dir.name:
         os.chdir(bench_dir)
 
     os.chdir(RUNS_DIR)
 
-    batch_run(job_name, n_batch=n_batch, sentinel_file=sentinel_file)
+    batch_run(args)
 
     os.chdir("../")
 
     return
-
 
 
 def batch_parser():
@@ -222,10 +228,11 @@ def batch_parser():
 
     parser.add_argument(
         "-bench_dir",
+        required = True,
         type = arg_valid_dirpath,
         help = """The user's choice of directory for setting up the benchmarking run(s); this is where the
         RUNS folder reside. The directory is created if it does not exists unless this cli is
-        called within that directory; default: mcce_benchmarks.
+        called within that directory.
         """
     )
     parser.add_argument(
@@ -258,20 +265,14 @@ def batch_parser():
 
 def launch_cli(argv=None):
     """
-    Command line interface for MCCE benchmarking entry point 'mccebench_launchjob'.
+    Command line interface for MCCE benchmarking entry point 'bench_launchjob'.
+    Launch one batch of size args.n_batch.
     """
 
     launch_parser = batch_parser()
-    args = launch_parser.parse_args(argv)
 
-    if args is None:
-        logger.info("Using default args for launch_job")
-        launch_job()
-    else:
-        launch_job(args.bench_dir,
-                   args.job_name,
-                   args.n_batch,
-                   args.sentinel_file)
+    args = launch_parser.parse_args(argv)
+    launch_job(args)
 
     book_fp = Path(args.bench_dir).joinpath(RUNS_DIR, BENCH.Q_BOOK)
     pct = pct_completed(book_fp)

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
 
 
-def plot_conf_thrup(tput_df:pd.DataFrame, outfp:str=None) -> None:
+def plot_conf_thrup(tput_df:pd.DataFrame, n_complete:int, outfp:str=None) -> None:
     """
     Conformers throughput per mcce step.
     """
@@ -27,14 +27,14 @@ def plot_conf_thrup(tput_df:pd.DataFrame, outfp:str=None) -> None:
     ax.spines["right"].set_visible(False)
     ax.set_ylabel("# conformers/min")
     ax.get_yaxis().set_major_formatter(ticker.FuncFormatter(lambda y, p: format(int(y), ',')))
-    ax.set_title(f"Mean conformer throughput per minute\n(N={N_PDBS} pdbs)", y=.95)
+    ax.set_title(f"Mean conformer throughput per minute\n(N={n_complete} pdbs)", y=.95)
 
     markerline, stemlines, baseline = plt.stem(tput_df.index,
                                                tput_df.y,
                                                linefmt='grey',
                                                bottom=0)
     plt.setp(markerline,
-             ms=10, markerfacecolor="tab:blue",markeredgecolor="tab:blue")
+             ms=8, markerfacecolor="tab:blue",markeredgecolor="tab:blue")
     plt.setp(stemlines, linewidth=.5, color="tab:blue")
     plt.setp(baseline, linewidth=.5, color="k")
 
@@ -48,7 +48,7 @@ def plot_pkas_fit(matched_df:pd.DataFrame, pks_stats:dict, outfp:str=None) -> No
     """Plot the best fit line of calculated vs experimental pKas
     for the matched pkas in the benchmark.
     Args:
-    matched_df = pkanalysis.load_matched_pkas(matched_fp)
+    matched_df = pkanalysis.matched_pkas_to_df(matched_fp)
     pks_stats = pkanalysis.matched_pkas_stats(matched_fp)
     """
 

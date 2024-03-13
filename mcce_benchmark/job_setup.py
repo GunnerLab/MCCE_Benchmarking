@@ -38,7 +38,7 @@ Functions:
 """
 
 #...............................................................................
-from argparse import Namespace as argNamespace
+from argparse import Namespace
 from mcce_benchmark import BENCH, RUNS_DIR, MCCE_EPS, N_BATCH, N_PDBS
 from mcce_benchmark import audit
 from mcce_benchmark.io_utils import Pathok
@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def setup_user_runs(args:argNamespace) -> None:
+def setup_user_runs(args:Namespace) -> None:
     """
     - Create subfolders for the pdbs found in 'pdbs_list', which is a file or dir path,
       in <bench_dir>/RUNS;

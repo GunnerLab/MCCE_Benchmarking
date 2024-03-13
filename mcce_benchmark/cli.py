@@ -18,12 +18,12 @@ Then 3 sub-commands:
     Can be by-passed if 1. or 2. have the --launch flag
 """
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
 # import class of files resources and constants:
 from mcce_benchmark import BENCH, LOG_HDR, ENTRY_POINTS, SUB1, SUB2, SUB3
 from mcce_benchmark import RUNS_DIR, N_BATCH, N_PDBS
-from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
-from mcce_benchmark import audit, job_setup, batch_submit, scheduling, custom_sh
+from mcce_benchmark.io_utils import Pathok
+from mcce_benchmark import job_setup, scheduling, custom_sh
 from IPython.core.formatters import format_display_data
 import logging
 from pathlib import Path
@@ -40,7 +40,6 @@ if not info_fh.exists():
     with open(info_fh, "w") as fh:
         fh.writelines(LOG_HDR)
 #.......................................................................
-
 
 CLI_NAME = ENTRY_POINTS["setup"] # as per pyproject.toml entry point
 
@@ -108,7 +107,7 @@ Examples:
 """
 
 
-def args_to_str(args:argNamespace) -> str:
+def args_to_str(args:Namespace) -> str:
     """Return cli args to string.
     Note: Using format_display_data to obtain output
     as in a notebookk where the 'func' object ref is
@@ -118,29 +117,7 @@ def args_to_str(args:argNamespace) -> str:
     return f"{CLI_NAME} args:\n{format_display_data(vars(args))[0]['text/plain']}\n"
 
 
-def log_mcce_version(pdbs_dir:str) -> None:
-    """MCCE version(s) from run.log files."""
-
-    pdbs_fp = Pathok(pdbs_dir, raise_err=False)
-    if not pdbs_fp:
-        return None
-    pdbs = str(pdbs_fp)
-    cmd = (f"grep -m1 'Version' {pdbs}/*/run.log | awk -F: '/Version/ "
-           + "{print $2 $3}' | sort -u")
-    out = subprocess_run(cmd)
-    if out is subprocess.CalledProcessError:
-        logger.error("Error fetching Version.")
-        return
-
-    msg = f"MCCE Version(s) found in run.log files:\n"
-    for v in [o.strip() for o in out.stdout.splitlines()]:
-        msg = msg + f"\t{v}\n"
-    logger.info(msg)
-
-    return
-
-
-def bench_job_setup(args:argNamespace) -> None:
+def bench_job_setup(args:Namespace) -> None:
     """Benchmark cli function for sub-commands 1 and 2.
     Processing steps:
      - Create args.bench_dir/RUNS folders.
@@ -180,13 +157,10 @@ def bench_job_setup(args:argNamespace) -> None:
         logger.info("Doing scheduling as per --launch")
         scheduling.schedule_job(args)
 
-        # read run.log files for version(s):
-        log_mcce_version(args.bench_dir.joinpath(RUNS_DIR))
-
     return
 
 
-def bench_launch_batch(args:argNamespace) -> None:
+def bench_launch_batch(args:Namespace) -> None:
     """Benchmark cli function for 'launch' sub-command.
     PRE-REQS:
     args.bench_dir & subfolders, and script for args.job_name exist
@@ -210,9 +184,6 @@ def bench_launch_batch(args:argNamespace) -> None:
 
     scheduling.schedule_job(args)
 
-    # finally, read run.log files for version(s):
-    log_mcce_version(args.bench_dir.joinpath(RUNS_DIR))
-
     return
 
 
@@ -224,6 +195,15 @@ def bench_parser():
         if not len(p):
             return None
         return Path(p).resolve()
+
+    def icase(s:str) -> str:
+        """Return the correctly cased value for known strings."""
+        if s.lower() == "pk.out":
+            return "pK.out"
+        elif s.lower() == "step2_out.pdb":
+            return "step2_out.pdb"
+        else:
+            return s
 
     def arg_valid_dir_or_file(p: str) -> Union[None, Path]:
         """Check if resolved path points to a dir or file."""
@@ -278,7 +258,7 @@ def bench_parser():
     # sentinel_file (e.g. pK.out) is part of script setup to ensure it is deleted prior to using launch sub-command.
     cp.add_argument(
         "-sentinel_file",
-        type = str,
+        type = icase,
         default = "pK.out",
         help = """File whose existence signals a completed step; When running all 4 MCCE steps (default),
         this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
@@ -409,7 +389,7 @@ def bench_parser():
         "--launch",
         default = False,
         help = "Schedule the job right away (no chance of inspecting <job_name>.sh!)",
-        action="store_true"
+        action = "store_true"
     )
 
     subparsers = p.add_subparsers(required = True,
@@ -516,7 +496,7 @@ def bench_parser():
 
 def bench_cli(argv=None):
     """
-    Command line interface for MCCE benchmarking entry point 'bench_expl_pkas'.
+    Command line interface for MCCE benchmarking entry point 'bench_setup'.
     """
 
     cli_parser = bench_parser()

@@ -6,18 +6,18 @@ Module: io_utils
 Module with generic (enough) functions related to loading and saving files.
 
 Functions:
-def Pathok(pathname:str, check_fn:str=None, raise_err=True) -> Union[Path, bool]
-def subprocess_run(cmd:str,
+ Pathok(pathname:str, check_fn:str=None, raise_err=True) -> Union[Path, bool]
+ subprocess_run(cmd:str,
                    capture_output=True,
                    check:bool=False,
                    text=True, shell=True) -> Union[subprocess.CompletedProcess, subprocess.CalledProcessError]
-def make_executable(sh_path:str) -> None:
-def load_tsv(fpath:str, index_col:str=None) -> Union[pd.DataFrame, None]
-def pk_to_float(value) -> float
-def get_col_specs(collated:bool=False, titr_type:str='ph') -> tuple(specs, cols)
-def fout_df(pko_fp:str, collated:bool=False, titr_type:str='ph') -> Union[pd.DataFrame, None]
-def json_to_dict(json_fp:str) -> dict:
-def dict_to_json(d:dict, json_fp:str) -> None:
+ make_executable(sh_path:str) -> None:
+ tsv_to_df(fpath:str, index_col:str=None) -> Union[pd.DataFrame, None]
+ pk_to_float(value) -> float
+ get_col_specs(collated:bool=False, titr_type:str='ph') -> tuple(specs, cols)
+ fout_df(pko_fp:str, collated:bool=False, titr_type:str='ph') -> Union[pd.DataFrame, None]
+ to_pickle(obj:Any, fp:str) -> None:
+ from_pickle(fp:str) -> Any:
 """
 
 from mcce_benchmark import ENTRY_POINTS, OUT_FILES, ANALYZE_DIR
@@ -28,7 +28,7 @@ import pandas as pd
 from pathlib import Path
 import pickle
 import subprocess
-from typing import Union
+from typing import Union, Any #, Type, Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -40,12 +40,17 @@ def Pathok(pathname:str, check_fn:str=None, raise_err=True) -> Union[Path, bool]
     """Return path if check passed, else raise error.
     check_fn: one of 'exists', 'is_dir', 'is_file'.
     if raise_err=False, return False instead of err.
+
+    TODO: No resetting of pathname:
+          return: Union[Path, Type[Exception], Tuple[bool, path]], &
+          if raise_err=False, return a tuple: (False, pathname) instead of err.
     """
 
     pathname = Path(pathname)
     if check_fn not in ['exists', 'is_dir', 'is_file']:
         check_fn = 'exists'
 
+    # failure msg:
     if check_fn == 'exists':
         msg = f"Path not found: {pathname}"
     elif check_fn == 'is_dir':
@@ -95,7 +100,7 @@ def make_executable(sh_path:str) -> None:
     return
 
 
-def load_tsv(fpath:str, index_col:str=None) -> Union[pd.DataFrame, None]:
+def tsv_to_df(fpath:str, index_col:str=None) -> Union[pd.DataFrame, None]:
     """Read a tab-separated file into a pandas.DataFrame.
     Return None upon failure.
     """
@@ -304,10 +309,10 @@ def get_book_dirs_for_status(book_fpath:str, status:str="c") -> list:
     return book_dirs
 
 
-def to_pickle(obj, fp):
+def to_pickle(obj:Any, fp:str):
    pickle.dump(obj, open(fp, "wb"))
 
 
-def from_pickle(fp):
+def from_pickle(fp:str) -> Any:
    obj = pickle.load(open(fp, "rb"))
    return obj

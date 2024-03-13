@@ -11,14 +11,16 @@ Cli parser with 2 sub-commands with same options:
 2. user_pdbs (SUB2)
 """
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
 from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
 from mcce_benchmark.mcce_env import ENV, get_run_env
 from mcce_benchmark import plots
+from mcce_benchmark.cleanup import clear_folder
 from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
-from mcce_benchmark.io_utils import get_book_dirs_for_status, load_tsv, fout_df, pk_to_float
-from mcce_benchmark.io_utils import get_sumcrg_col_specs, get_sumcrg_hdr, to_pickle, from_pickle
+from mcce_benchmark.io_utils import get_book_dirs_for_status, tsv_to_df, fout_df, pk_to_float
+from mcce_benchmark.io_utils import get_sumcrg_hdr, to_pickle
+from mcce_benchmark.scheduling import clear_crontab
 import logging
 import numpy as np
 import pandas as pd
@@ -30,6 +32,31 @@ import sys
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
+def get_mcce_version(pdbs_dir:str) -> None:
+    """MCCE version(s) from run.log files ->VERSIONS file."""
+
+    pdbs_fp = Pathok(pdbs_dir, raise_err=False)
+    if not pdbs_fp:
+        return None
+    
+    pdbs_dir = Path(pdbs_dir)
+    pdbs = str(pdbs_dir)
+    cmd = (f"grep -m1 'Version' {pdbs}/*/run.log | awk -F: '/Version/ "
+           + "{print $2 $3}' | sort -u")
+    out = subprocess_run(cmd)
+    if out is subprocess.CalledProcessError:
+        logger.error("Error fetching Version.")
+        return
+
+    msg = [f"MCCE Version(s) found in run.log files:\n"]
+    for v in [o.strip() for o in out.stdout.splitlines()]:
+        msg.append(f"\t{v}\n")
+    ver_fp = pdbs_dir.parent.joinpath(ANALYZE_DIR, OUT_FILES.VERSIONS.value)
+    with open(ver_fp, "w") as f:
+        f.writelines(msg)
+
+    return
 
 # for multi-protein runs
 def collate_all_sumcrg(bench_dir:str, run_env:ENV, titr_type:str="ph") ->None:
@@ -155,7 +182,7 @@ def all_pkas_df(path:str, titr_type:str="ph", reduced_ok=True) -> Union[pd.DataF
         all_tsv = allfp.parent.joinpath(OUT_FILES.ALL_PKAS_TSV.value)
         if all_tsv.exists():
             logger.info("Loading OUT_FILES.ALL_PKAS_TSV")
-            return load_tsv(all_tsv, index_col=0) #collated=True, titr_type=titr)
+            return tsv_to_df(all_tsv, index_col=0) #collated=True, titr_type=titr)
 
     return fout_df(allfp, collated=True, titr_type=titr)
 
@@ -514,13 +541,17 @@ def matched_pkas_to_csv(fpath:str, matched_pkas:list, kind:str=SUB1) -> None:
     return
 
 
-def load_matched_pkas(matched_fp:str) -> pd.DataFrame:
+def matched_pkas_to_df(matched_fp:str) -> pd.DataFrame:
     """
     Load MATCHED_PKAS csv file into a pandas DataFrame.
     PRE: file MATCHED_PKAS csv file created via mcce_benchmark.pkanalysis.
     """
 
     fh = Path(matched_fp)
+    if fh.name != OUT_FILES.MATCHED_PKAS.value:
+        logger.error(f"Only {OUT_FILES.MATCHED_PKAS.value} is a valid file name.")
+        raise ValueError(f"Only {OUT_FILES.MATCHED_PKAS.value} is a valid file name.")
+
     if not fh.exists():
         logger.error(f"Not found: {fh}; run pkanalysis to create.")
         raise FileNotFoundError(f"Not found: {fh}; run pkanalysis to create.")
@@ -627,7 +658,7 @@ def res_outlier_count(matched_fp:str,
         logger.error(f"grp_by not in ['res','resid']: {grp_by}")
         raise ValueError(f"grp_by not in ['res','resid']: {grp_by}")
 
-    matched_df = load_matched_pkas(matched_fp)
+    matched_df = matched_pkas_to_df(matched_fp)
     N = matched_df.shape[0]
 
     if grp_by == "res":
@@ -692,6 +723,10 @@ def analyze_runs(bench_dir:Path, subcmd:str):
     analyze = bench.joinpath(ANALYZE_DIR)
     if not analyze.exists():
         analyze.mkdir()
+    else:
+        clear_folder(analyze)
+
+    get_mcce_version(pdbs)
 
     logger.info(f"Collating pK.out and sum_crg.out files.")
     collate_all_sumcrg(bench, env, titr_type=titr )
@@ -731,7 +766,7 @@ def analyze_runs(bench_dir:Path, subcmd:str):
         _ = res_outlier_count(matched_fp)
 
         # matched_df: used by matched_pkas_stats and plots.plot_pkas_fit
-        matched_df = load_matched_pkas(matched_fp)
+        matched_df = matched_pkas_to_df(matched_fp)
         d_stats = matched_pkas_stats(matched_df)
         logger.info(d_stats["report"])
         pkl_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
@@ -740,9 +775,10 @@ def analyze_runs(bench_dir:Path, subcmd:str):
     # plots
     logger.info(f"Plotting conformers throughput per step -> pic.")
     tsv = analyze.joinpath(OUT_FILES.CONFS_THRUPUT.value)
-    thruput_df = load_tsv(tsv, index_col="step")
-    save_to = analyze.parent.joinpath(OUT_FILES.FIG_CONFS_TP.value)
-    plots.plot_conf_thrup(thruput_df, save_to)
+    thruput_df = tsv_to_df(tsv, index_col="step")
+    save_to = analyze.joinpath(OUT_FILES.FIG_CONFS_TP.value)
+    n_complete = len(get_book_dirs_for_status(book_fp))
+    plots.plot_conf_thrup(thruput_df, n_complete, save_to)
 
     if subcmd == SUB1:
         logger.info(f"Plotting residues analysis -> pic.")
@@ -761,14 +797,14 @@ def analyze_runs(bench_dir:Path, subcmd:str):
 
 
 #................................................................................
-def pkdb_pdbs_analysis(args:argNamespace):
+def pkdb_pdbs_analysis(args:Namespace):
     """Processing tied to sub-command 1: pkdb_pdbs."""
 
     analyze_runs(args.bench_dir, SUB1)
     return
 
 
-def user_pdbs_analysis(args:argNamespace):
+def user_pdbs_analysis(args:Namespace):
     """Processing tied to sub-command 2: user_pdbs."""
 
     analyze_runs(args.bench_dir, SUB2)
@@ -900,7 +936,9 @@ def analyze_cli(argv=None):
     if pct < 1.:
         logger.info(f"Runs not 100% complete, try again later; completed = {pct:.2f}")
         return
-
+    
+    clear_crontab()
+    
     args.func(args)
 
     return

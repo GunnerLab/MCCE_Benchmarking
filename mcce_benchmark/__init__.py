@@ -64,7 +64,7 @@ class OUT_FILES(Enum):
     CONFS_PER_RES = "confs_per_res.tsv"
     CONFS_THRUPUT = "confs_throughput.tsv"
     FIG_CONFS_TP = "confs_throughput.png"
-
+    VERSIONS = "versions.txt"
     # only with SUB1: until equivalent are setup for comparison of 2 sets
     MATCHED_PKAS = "matched_pkas.csv"
     MATCHED_PKAS_STATS = "matched_pkas_stats.pickle" # pickled dict
@@ -129,11 +129,11 @@ class Bench_Resources():
         return self._BENCH_DB
 
     @property
-    def BENCH_REFS(self):
+    def BENCH_PH_REFS(self):
         return self._BENCH_PH_REFS
 
     @property
-    def BENCH_PARSE_E4(self):
+    def BENCH_PARSE_PHE4(self):
         return self._BENCH_PARSE_PHE4
 
     @property
@@ -218,6 +218,7 @@ Default analysis output file names (fixed):
   CONFS_PER_RES: {OUT_FILES.CONFS_PER_RES.value}
   CONFS_THRUPUT: {OUT_FILES.CONFS_THRUPUT.value}
   FIG_CONFS_TP: {OUT_FILES.FIG_CONFS_TP.value}
+  VERSIONS: {OUT_FILES.VERSIONS.value}
 Additionally, with with SUB1:
   MATCHED_PKAS: {OUT_FILES.MATCHED_PKAS.value}
   MATCHED_PKAS_STATS: {OUT_FILES.MATCHED_PKAS_STATS.value}

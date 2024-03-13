@@ -6,11 +6,12 @@ Module: scheduling.py
 For automating the crontab creation for scheduling batch_submit every minute.
 """
 
-from argparse import Namespace as argNamespace
-from mcce_benchmark import ENTRY_POINTS, USER_MCCE, CONDA_PATH, USER_ENV
+from argparse import Namespace
+from mcce_benchmark import BENCH, ENTRY_POINTS
+from mcce_benchmark import USER_MCCE, CONDA_PATH, USER_ENV, N_BATCH
+from mcce_benchmark.io_utils import subprocess_run, subprocess
 import logging
 from pathlib import Path
-import subprocess
 from typing import Union
 
 
@@ -20,32 +21,48 @@ logger.setLevel(logging.INFO)
 
 EP = ENTRY_POINTS["launch"]
 
-def create_single_crontab(bench_dir:Path,
-                          job_name:str,
-                          n_batch:int,
-                          sentinel_file:str,
+
+def clear_crontab():
+    """Remove existing crontab."""
+
+    out = subprocess_run("crontab -r", check=False)
+    return
+
+
+def create_single_crontab(args: Namespace,
                           debug:bool=False) -> Union[None,str]:
     """
     Create a crontab entry without external 'cron.sh script'.
+    The user env detected in __init__ is used: the conda env
+    is activated in crontab.
     If debug: return crontab_text w/o creating the crontab.
     """
 
     SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
-* * * * * {}/conda activate {}; {} -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
+* * * * * {}/conda activate {}; {} -bench_dir {}"""
 
-    bdir = str(bench_dir)
+    # Minimal input:
+    bdir = str(args.bench_dir)
     ct_text = SINGLE_CRONTAB_fstr.format(CONDA_PATH,
                                          USER_MCCE,
                                          CONDA_PATH,
                                          USER_ENV,
                                          EP,
                                          bdir,
-                                         job_name,
-                                         n_batch,
-                                         sentinel_file,
                                          )
 
-    crontab_txt = f"{ct_text} > {bdir}/cron_{job_name}.log 2>&1\n"
+    if "job_name" in args:
+        job_name = args.job_name
+        if job_name != BENCH.DEFAULT_JOB:
+            ct_text = ct_text + f" -job_name {job_name}"
+    if "n_batch" in args:
+        if args.n_batch != N_BATCH:
+            ct_text = ct_text + f" -n_batch {args.n_batch}"
+    if "sentinel_file" in args:
+        if args.sentinel_file != "pK.out":
+            ct_text = ct_text + f" -sentinel_file {args.sentinel_file}"
+
+    crontab_txt = ct_text + "\n"
     logger.info(f"Crontab text:\n```\n{crontab_txt}```")
 
     if not debug:
@@ -59,20 +76,12 @@ def create_single_crontab(bench_dir:Path,
     return crontab_txt
 
 
-def schedule_job(launch_args:argNamespace) -> None:
+def schedule_job(launch_args:Namespace) -> None:
     """Create a contab entry for batch_submit.py with `launch_args`
     sub-command.
     """
-    # TODO: change launch_args (from SUB1 or SUB2) to dict so that
-    #       --launch in cli.py can be used: if --launch then
-    #       dict["n_batch"] = default; dict["sentinel_file"] = default
-    
-    # case with conda run -n env in ctab
-    create_single_crontab(launch_args.bench_dir,
-                          launch_args.job_name,
-                          launch_args.n_batch,
-                          launch_args.sentinel_file
-                          )
+
+    create_single_crontab(launch_args)
     logger.info("Scheduled batch submission with crontab every minute.")
 
     return

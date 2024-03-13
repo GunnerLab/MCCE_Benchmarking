@@ -19,7 +19,7 @@ sleep 10
 => recovers the flexibility of each step<n>.py cli.
 """
 
-from argparse import Namespace as argNamespace
+from argparse import Namespace
 from mcce_benchmark import BENCH, RUNS_DIR
 from mcce_benchmark.io_utils import make_executable
 from enum import Enum
@@ -84,7 +84,7 @@ cli_to_mcce_opt = {"wet":"dry",
                    "s4_norun":"norun",
                   }
 
-# cli defaults per step:
+# cli defaults per step; convenience dict to see where opts go:
 defaults_per_step = {
 "s1": {"wet":False, "noter":False, "d":4.0, "s1_norun":False, "u":""},
 "s2": {"conf_making_level":1, "d":4.0, "s2_norun":False, "u":""},
@@ -99,10 +99,10 @@ for S in defaults_per_step:
     all_default_opts.update(((k, v) for k, v in defaults_per_step[S].items()))
 
 
-def cli_args_to_dict(sh_args:argNamespace) -> dict:
+def cli_args_to_dict(sh_args:Namespace) -> dict:
     """Only return mcce steps args."""
 
-    excluded_keys = ["subparser_name", "bench_dir", "n_pdbs",
+    excluded_keys = ["subparser_name", "bench_dir", "n_pdbs", "pdbs_list",
                      "sentinel_file", "job_name", "launch",
                      "func", "help",
                     ]
@@ -110,7 +110,7 @@ def cli_args_to_dict(sh_args:argNamespace) -> dict:
     return d_args
 
 
-def all_opts_are_defaults(sh_args:argNamespace) -> bool:
+def all_opts_are_defaults(sh_args:Namespace) -> bool:
     """Return True if sh_args are default in all the steps,
     else return False.
     Purpose: determine whether to write a custom script or
@@ -130,7 +130,7 @@ def all_opts_are_defaults(sh_args:argNamespace) -> bool:
     return True
 
 
-def populate_custom_template(job_args:argNamespace) -> str:
+def populate_custom_template(job_args:Namespace) -> str:
     """Return the custom template string filled with appropriate values."""
 
     d_args = cli_args_to_dict(job_args)
@@ -165,7 +165,7 @@ def populate_custom_template(job_args:argNamespace) -> str:
 def write_run_script_from_template(bench_dir:str,
                                    job_name:str,
                                    script_template:ScriptChoices = ScriptChoices.CUSTOM,
-                                   job_args:argNamespace = None) -> None:
+                                   job_args:Namespace = None) -> None:
     """
     Write a custom shell script in <bench_dir>/RUNS/ to submit steps 1-4 when
     script_template is CUSTOM, or perform tests otherwise. job_args can be None for

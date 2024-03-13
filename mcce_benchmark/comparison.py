@@ -11,19 +11,20 @@ Cli parser with options:
                in each of the sets if analysis folder not found.
                Thus, this switch enables the by-passing of the
                bench_analyze <sub-command> step.
-  --dir2_is_refset: Flag presence indicate dir2 holds the NAME of a reference dataset, 
+  --dir2_is_refset: Flag presence indicate dir2 holds the NAME of a reference dataset,
                currently 'parse.e4' for pH titrations.
 """
 
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace as argNamespace
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
 from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
 from mcce_benchmark import pkanalysis, diff_mc, mcce_env, plots
 
 from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
-from mcce_benchmark.io_utils import get_book_dirs_for_status, load_tsv, fout_df, pk_to_float
+from mcce_benchmark.io_utils import get_book_dirs_for_status, tsv_to_df, fout_df, pk_to_float
 from mcce_benchmark.io_utils import get_sumcrg_col_specs, get_sumcrg_hdr, to_pickle, from_pickle
+from mcce_benchmark.scheduling import clear_crontab
 import logging
 import numpy as np
 import pandas as pd
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 #................................................................................
-def compare_runs(args:argNamespace):
+def compare_runs(args:Namespace):
 
     kind = SUB1 if args.pkdb_pdbs else SUB2
 
@@ -49,6 +50,8 @@ def compare_runs(args:argNamespace):
         pkanalysis.analyze_runs(args.dir2, kind)
 
     out_dir = Path(args.o)
+    if not out_dir.exists():
+        out_dir.mkdir()
 
     logger.info(f"Validate")
     mcce_env.validate_envs(args.dir1, args.dir2, subcmd=kind,
@@ -62,8 +65,8 @@ def compare_runs(args:argNamespace):
 
 
     # 2. get pkas to dict from all_pkas1, all_pkas2 & match pkas:
-    d1 = json_to_dict(analyze1.joinpath(OUT_FILES.JOB_PKAS.value))
-    d2 = json_to_dict(analyze2.joinpath(OUT_FILES.JOB_PKAS.value))
+    d1 = from_pickle(analyze1.joinpath(OUT_FILES.JOB_PKAS.value))
+    d2 = from_pickle(analyze2.joinpath(OUT_FILES.JOB_PKAS.value))
 
     matched_pkas = pkanalysis.match_pkas(d1, d2)
 
@@ -79,7 +82,7 @@ def compare_runs(args:argNamespace):
     _ = pkanalysis.res_outlier_count(matched_fp, save_to=outlier_fp)
 
     # matched_df: for matched_pkas_stats and plots.plot_pkas_fit
-    matched_df = pkanalysis.load_matched_pkas(matched_fp)
+    matched_df = pkanalysis.matched_pkas_to_df(matched_fp)
     d_stats = pkanalysis.matched_pkas_stats(matched_df, subcmd=kind)
     logger.info(d_stats["report"])
     pickle_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
@@ -208,6 +211,7 @@ def compare_cli(argv=None):
             logger.info(f"Runs not 100% complete in {d}, try again later; completed = {pct:.2f}")
             return
 
+    clear_crontab()
     compare_runs(args)
 
     return
