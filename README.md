@@ -54,19 +54,27 @@ The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'p
 #### Description:
 ```
 Description:
-Launch a MCCE benchmarking job using curated structures from the pKa Database v1.
+Launch a MCCE benchmarking job using either the curated structures from the pKaDBv1
+or the user's pdbs list.
 
 Entry points available at the command line:
  1. `bench_setup` along with one of 3 sub-commands:
   - Sub-command 1: 'pkdb_pdbs': setup data folders using the pdbs from pkadbv1 & the run script to run mcce steps 1 through 4;
   - Sub-command 2: 'user_pdbs': setup data folders using the pdbs provided via -pdbs_list option
   - Sub-command 3: 'launch': launch all the jobs via automated scheduling (crontab);
- 2. `bench_launchjob` used to launch a batch of size n_batch
+
+ 2. `bench_launchjob` used to launch one batch of size n_batch
     Note: This is a convenience entry point that is used in the crontab (scheduler);
+
  3. `bench_analyze` along with one of 2 sub-commands:
   - Sub-command 1: 'pkdb_pdbs': analyze conformers and residues in user's 'benchmarks_dir'; get stats viz experiemntal pKas;
   - Sub-command 2: 'user_pdbs': analyze conformers and residues in user's 'benchmarks_dir';
+
  4. `bench_compare`: compare two sets of runs
+    Options: -dir1, -dir2, -o, and two flags: --user_pdbs (absence means 'pkdb_pdbs'), --dir2_is_refset (to compare
+             a set of runs with a packaged reference dataset, currently "parse.e4".
+
+  (mce) >bench_compare -dir1 < d1> dir2 parse.e4 --dir2_is_refset -o ./output/dir/path	
 
 ```
 
@@ -74,7 +82,6 @@ Entry points available at the command line:
 ```
 Examples for bench_setup: <+ 1 sub-command: pkdb_pdbs or user_pdbs or launch > <related args>\n
 
-Examples:
 1. pkdb_pdbs: Data & script setup using pkDBv1 pdbs:
    - Minimal input: value for -bench_dir option:
      >bench_setup pkdb_pdbs -bench_dir <folder path>
@@ -89,16 +96,28 @@ Examples:
    - Using non-default option(s) (then job_name is required! ):
      >bench_setup user_pdbs -bench_dir <folder path> -pdb_list <path> -d 8 -job_name <job_e8>
 
-3. {launch}: Launch runs:
-   - Minimal input: value for -bench_dir option: IFF no non-default job_name & sentinel_file were passed in {pkdb_pdbs}
+Sub-commands 1 & 2 have a flag: --launch, whose presence means the job launch is done right away.
+Do not use if you want to inspect/amend the run script.
+
+3. launch: Launch runs:
+   - Minimal input: value for -bench_dir option: IFF no non-default job_name & sentinel_file were passed in 
+     bench_setup [pkdb_pdbs, user_pdbs]
      >bench_setup launch -bench_dir <folder path>
 
    - Using non-default option(s):
      >bench_setup launch -bench_dir <folder path> -n_batch <jobs to maintain>
-    Note: if changing the default sentinel_file="pk.out" to, e.g. step2_out.pdb,
-        then the 'norun' script parameters for step 3 & 4 must be set accordingly:
-        >bench_setup launch -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun
 
+     Note: if changing the default sentinel_file="pk.out" to, e.g. step2_out.pdb,
+           then the 'norun' script parameters for step 3 & 4 must be set accordingly:
+          >bench_setup launch -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun
+
+Examples for bench_compare:
+
+1. Compare a set of pkdb pabds with reference set:
+  >bench_compare -dir1 <d1> dir2 parse.e4 --dir2_is_refset -o ./output/dir/path
+
+2. Compare two sets of runs on user's pdbs:
+  >bench_compare -dir1 <d1> dir2 parse.e4 --dir2_is_refset -o ./output/dir/path
 ```
 
 

@@ -160,10 +160,10 @@ Notation remarks:
 7. Compare two sets of runs, i.e. A/B testing (convention: B is reference):
    To compare two (completed) sets of runs, use `bench_compare`:
    Options: -di1, -dir2 -o (output folder), and two flags:
-            --pkdb_pdbs      # absence means 'user_pdbs'
-            --dir2_is_refset # if used, --pkdb_pdbs must also be present
+            --user_db_pdbs      # absence means 'pkdb_pdbs'
+            --dir2_is_refset    # if used, --user_pdbs must NOT be present, e.g.:
 
-   (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset -o <d1/comp>
+   (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --dir2_is_refset -o <d1/comp>
 
 
 Please, open an issue with any problem installing or using the app at:

@@ -165,24 +165,6 @@ def get_run_env(bench_dir:str,
     return env
 
 
-def get_sumcrg_hdr(bench_dir:str) -> str:
-   """Used for colspecs -> df."""
-
-   hdr0 = "  pH           0     1     2     3     4     5     6     7     8     9    10    11    12    13    14"
-   def_flds = len(hdr0.strip().split())
-
-   run_dir = get_mcce_env_dir(bench_dir)
-   cmd = f"head -n1 {str(run_dir)}/sum_crg.out"
-   out = subprocess.run(cmd)
-   if isinstance(out, subprocess.CompletedProcess):
-       hdr = out.stdout.splitlines()[0]
-       flds = len(hdr.strip().split())
-       if flds != def_flds:
-           return hdr
-
-   return None
-
-
 def validate_envs(bench_dir1:str, bench_dir2:str,
                   subcmd:str = SUB1,
                   dir2_is_refset:bool = False) -> Union[True, ValueError]:
@@ -201,3 +183,22 @@ def validate_envs(bench_dir1:str, bench_dir2:str,
     else:
         logger.error(result[1])
         raise ValueError(result[1])
+
+
+def get_sumcrg_hdr(bench_dir:str) -> str:
+   """Used for colspecs -> df.
+   Return header if not default."""
+
+   hdr0 = "  pH           0     1     2     3     4     5     6     7     8     9    10    11    12    13    14"
+   def_flds = len(hdr0.strip().split())
+
+   run_dir = get_mcce_env_dir(bench_dir)
+   cmd = f"head -n1 {str(run_dir)}/sum_crg.out"
+   out = subprocess.run(cmd)
+   if isinstance(out, subprocess.CompletedProcess):
+       hdr = out.stdout.splitlines()[0]
+       flds = len(hdr.strip().split())
+       if flds != def_flds:
+           return hdr
+
+   return None

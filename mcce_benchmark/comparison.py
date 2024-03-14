@@ -7,12 +7,14 @@ Cli parser with options:
   -dir1: path to run set 1
   -dir2: path to run set 2
   -o: path of output folder
-  --pkdb_pdbs: Flag enabling the creation of the analysis output files
+  --user_pdbs: Absence means 'pkdb_pdbs'
+               Flag enabling the creation of the analysis output files
                in each of the sets if analysis folder not found.
-               Thus, this switch enables the by-passing of the
-               bench_analyze <sub-command> step.
+               Thus, this switch enables by-passing the 'intra set'
+               analysis files generation using `bench_analyze <sub-command>`.
   --dir2_is_refset: Flag presence indicate dir2 holds the NAME of a reference dataset,
                currently 'parse.e4' for pH titrations.
+  The flags are mutually exclusive.               
 """
 
 
@@ -39,7 +41,7 @@ logger.setLevel(logging.INFO)
 #................................................................................
 def compare_runs(args:Namespace):
 
-    kind = SUB1 if args.pkdb_pdbs else SUB2
+    kind = SUB2 if args.user_pdbs else SUB1
 
     analyze1 = args.dir1.joinpath(ANALYZE_DIR)
     if not analyze1.exists():
@@ -101,21 +103,22 @@ CLI_NAME = ENTRY_POINTS["compare"] # as per pyproject.toml entry point
 DESC = f"""
 Description:
 Compare two sets of runs, ~ A/B testing
-(convention: B is 'reference', whether it actually is a reference set or not, i.e.: A - B):
+(convention: B is 'reference', i.e.: A - B):
 
 Options:
   -dir1: path to run set 1
   -dir2: path to run set 2
-  --pkdb_pdbs: Absence means 'user_pdbs'
+  -o:    path to output dir
+  --user_pdbs: Absence means 'pkdb_pdbs'
                Flag enabling the creation of the analysis output files
                in each of the sets if analysis folder not found.
-               Thus, this switch enables the by-passing of the
-               bench_analyze <sub-command> step.
+               Thus, this switch enables by-passing the 'intra set'
+               analysis files generation using `bench_analyze <sub-command>`.
 
   --dir2_is_refset: Flag presence indicates that dir2 value is a refset name;
-                    If used, --pkdb_pdbs must also be present.
+               If used, --user_pdbs must NOT be present.
 
-  (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset
+  (mce) >bench_compare -dir1 <d1> dir2 parse.e4 --dir2_is_refset -o ./output/dir/path
 
 
 Post an issue for all errors and feature requests at:
@@ -152,6 +155,11 @@ def compare_parser():
         formatter_class = RawDescriptionHelpFormatter,
     )
 
+    # cannot have --user_pdbs & --dir2_is_refset together:
+    mutex = p.add_mutually_exclusive_group()
+    mutex.add_argument("--user_pdbs", action='store_true')
+    mutex.add_argument("--dir2_is_refset", action='store_true')
+
     p.add_argument(
         "-dir1",
         required=True,
@@ -169,10 +177,10 @@ def compare_parser():
         meta = "output",
         required=True,
         type = arg_valid_dirpath,
-        help = """Path to comparison results."""
+        help = """Path to comparison results folder."""
     )
     p.add_argument(
-        "--pkdb_pdbs",
+        "--user_pdbs",
         default = False,
         action = "store_true",
         help = """
