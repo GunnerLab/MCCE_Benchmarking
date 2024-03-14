@@ -126,7 +126,7 @@ def batch_run(args:Union[dict, Namespace]) -> None:
 
     if isinstance(args, dict):
         args = Namespace(**args)
-    
+
     if "job_name" not in args:
         job_name = BENCH.DEFAULT_JOB
     else:

@@ -31,7 +31,6 @@ def proteins_to_tsv(prot_file:str) -> list:
 # import class of files resources and associated constants:
 from mcce_benchmark import BENCH, RUNS_DIR
 from mcce_benchmark.io_utils import Pathok
-from functools import cache
 import logging
 import numpy as np
 import pandas as pd
@@ -151,7 +150,6 @@ def valid_pdb(pdb_dir:str, return_name:bool = False) -> Union[bool, Path, None]:
         return valid
 
 
-@cache
 def list_all_valid_pdbs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Return a list ["PDB/pdb[_*].pdb", ..] of valid pdb.
     Return a 2-tuple of lists: (valid_folders, invalid_folders), with
@@ -179,7 +177,6 @@ def list_all_valid_pdbs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     return valid, invalid
 
 
-@cache
 def list_all_valid_pdbs_dirs(pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Check that all subfolders of RUNS_DIR contain a pdb file with
     the same name.

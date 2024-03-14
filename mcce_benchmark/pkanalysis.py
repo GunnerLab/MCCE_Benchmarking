@@ -39,7 +39,7 @@ def get_mcce_version(pdbs_dir:str) -> None:
     pdbs_fp = Pathok(pdbs_dir, raise_err=False)
     if not pdbs_fp:
         return None
-    
+
     pdbs_dir = Path(pdbs_dir)
     pdbs = str(pdbs_dir)
     cmd = (f"grep -m1 'Version' {pdbs}/*/run.log | awk -F: '/Version/ "
@@ -580,8 +580,11 @@ def matched_pkas_stats(matched_df:pd.DataFrame,
                 "report":pkas_stats}.
     """
 
+    np.seterr(all='raise')
+    
     N = matched_df.shape[0]
     converged = True
+    err_msg = ""
     try:
         m, b = np.polyfit(matched_df.mcce, matched_df.expl, 1)
     except Exception as e:
@@ -590,9 +593,13 @@ def matched_pkas_stats(matched_df:pd.DataFrame,
         #RuntimeWarning: invalid value encountered in divide
         #("SVD did not converge in Linear Least Squares")
         converged = False
+        err_msg = str(e)
         m, b = 0,0
 
-    delta = abs(matched_df.mcce - matched_df.expl)
+    # col1:A: calc - col2:B: ref (calc or expl)
+    A = matched_df.iloc[:,1]
+    B = matched_df.iloc[:,2]
+    delta = abs(A - B)
     mean_delta = delta.mean(axis=None)
     rmsd = np.sqrt(np.mean(delta**2))
 
@@ -604,7 +611,7 @@ Number of pKas matched with those in pKDB: {N:,}"""
 Fit line: y = {m:.{prec}f}.x + {b:.{prec}f}"""
         else:
             txt = txt + f"""
-Fit line: None ({str(e)})"""
+Fit line: None ({err_msg})"""
         txt = txt + f"""
 Mean delta pKa: {mean_delta:.{prec}f}
 RMSD, calculated vs experimental: {rmsd:.{prec}f}
@@ -627,7 +634,7 @@ RMSD, set 1 vs set 2: {rmsd:.{prec}f}
     for b in comp_bounds:
         txt = txt + f"Proportion within {b} titr units: {delta[delta.le(b)].count()/N:.{prec}%}\n"
 
-    d_out = {"fit":(m, b) if converged else f"None: {str(e)}",
+    d_out = {"fit":(m, b) if converged else f"None ({err_msg})",
              "N":N,
              "mean_delta": mean_delta,
              "rmsd":rmsd,
@@ -639,13 +646,12 @@ RMSD, set 1 vs set 2: {rmsd:.{prec}f}
 
 def res_outlier_count(matched_fp:str,
                       grp_by:str="res",
-                      save_to:str=None,
                       replace:bool=False,
                       bounds:tuple=(0,14)) -> pd.DataFrame:
     """Return counts per residue type for diff(col1-col2) > 3,
     and pKa values beyond titration bounds in a df.
-    Save df to "outlier_residues.tsv" (OUT_FILES.RES_OUTLIER) in the parent folder
-    of matched_fp.
+    Save df to OUT_FILES.RES_OUTLIER or OUT_FILES.RESID_OUTLIER in the
+    parent folder of matched_fp.
     Args:
     matched_fp (str): file path of matched pkas file;
     grp_by (str, "res"): one of ["res", "resid"];
@@ -660,11 +666,12 @@ def res_outlier_count(matched_fp:str,
 
     matched_df = matched_pkas_to_df(matched_fp)
     N = matched_df.shape[0]
-
+    
     if grp_by == "res":
+        cols_pks = matched_df.columns.to_list()[-2:] 
         matched_df[["res", "resi"]] = matched_df.resid.str.split("[-|+]", expand=True)
         matched_df.drop(columns=["resi", "resid"], inplace=True)
-        matched_df = matched_df[["res","mcce","expl"]]
+        matched_df = matched_df[["res"]+cols_pks]
 
     set1 = matched_df.iloc[:,1]
     set2 = matched_df.iloc[:,2]
@@ -689,13 +696,6 @@ def res_outlier_count(matched_fp:str,
     out_df.index.name = idx_name
     pcts = [f"{s/N:.0%}" for s in out_df.sum()]
     out_df.loc["pct"] = pcts
-
-    # needed? if matched_fp < matching set1, set2, then it resides in -o folder
-    #if save_to is None:
-    #    # when analyzing over a single set:
-    #    outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RES_OUTLIER.value)
-    #else:
-    #    outlier_fp = Path(save_to)
 
     if grp_by == "res":
         outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RES_OUTLIER.value)
@@ -775,7 +775,7 @@ def analyze_runs(bench_dir:Path, subcmd:str):
     # plots
     logger.info(f"Plotting conformers throughput per step -> pic.")
     tsv = analyze.joinpath(OUT_FILES.CONFS_THRUPUT.value)
-    thruput_df = tsv_to_df(tsv, index_col="step")
+    thruput_df = tsv_to_df(tsv)
     save_to = analyze.joinpath(OUT_FILES.FIG_CONFS_TP.value)
     n_complete = len(get_book_dirs_for_status(book_fp))
     plots.plot_conf_thrup(thruput_df, n_complete, save_to)
@@ -797,16 +797,20 @@ def analyze_runs(bench_dir:Path, subcmd:str):
 
 
 #................................................................................
-def pkdb_pdbs_analysis(args:Namespace):
+def pkdb_pdbs_analysis(args:Union[dict,Namespace]) -> None:
     """Processing tied to sub-command 1: pkdb_pdbs."""
 
+    if isinstance(args, dict):
+        args = Namespace(**args)
     analyze_runs(args.bench_dir, SUB1)
     return
 
 
-def user_pdbs_analysis(args:Namespace):
+def user_pdbs_analysis(args:Union[dict,Namespace]) -> None:
     """Processing tied to sub-command 2: user_pdbs."""
 
+    if isinstance(args, dict):
+        args = Namespace(**args)
     analyze_runs(args.bench_dir, SUB2)
     return
 
@@ -936,9 +940,7 @@ def analyze_cli(argv=None):
     if pct < 1.:
         logger.info(f"Runs not 100% complete, try again later; completed = {pct:.2f}")
         return
-    
     clear_crontab()
-    
     args.func(args)
 
     return

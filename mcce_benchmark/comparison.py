@@ -14,19 +14,19 @@ Cli parser with options:
                analysis files generation using `bench_analyze <sub-command>`.
   --dir2_is_refset: Flag presence indicate dir2 holds the NAME of a reference dataset,
                currently 'parse.e4' for pH titrations.
-  The flags are mutually exclusive.               
+  The flags are mutually exclusive.
 """
 
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
 from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
-from mcce_benchmark import pkanalysis, diff_mc, mcce_env, plots
-
+from mcce_benchmark import mcce_env
+from mcce_benchmark.cleanup import clear_folder
+from mcce_benchmark import pkanalysis, diff_mc, plots
 from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
 from mcce_benchmark.io_utils import get_book_dirs_for_status, tsv_to_df, fout_df, pk_to_float
 from mcce_benchmark.io_utils import get_sumcrg_col_specs, get_sumcrg_hdr, to_pickle, from_pickle
-from mcce_benchmark.scheduling import clear_crontab
 import logging
 import numpy as np
 import pandas as pd
@@ -37,11 +37,25 @@ import sys
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
 #................................................................................
-def compare_runs(args:Namespace):
+
+def compare_runs(args:Union[dict, Namespace]):
+
+    if isinstance(args, dict):
+        args = Namespace(**args)
 
     kind = SUB2 if args.user_pdbs else SUB1
+
+    ok, msg = mcce_env.validate_envs(args.dir1,
+                                      args.dir2,
+                                      subcmd=kind,
+                                      dir2_is_refset=args.dir2_is_refset
+                                      )
+    if not ok:
+        logger.error(f"Runs failed validation:\n{msg}")
+        raise TypeError(f"Runs failed validation:\n{msg}")
+    if ok and msg != "OK":
+        logger.warning(f"Runs validation warning:\n{msg}")
 
     analyze1 = args.dir1.joinpath(ANALYZE_DIR)
     if not analyze1.exists():
@@ -54,45 +68,57 @@ def compare_runs(args:Namespace):
     out_dir = Path(args.o)
     if not out_dir.exists():
         out_dir.mkdir()
+    else:
+        clear_folder(out_dir)
+        logger.info(f"Cleared comparison output folder: {out_dir}")
 
-    logger.info(f"Validate")
-    mcce_env.validate_envs(args.dir1, args.dir2, subcmd=kind,
-                           dir2_is_refset=args.dir2_is_refset)
 
     # 1. get collated sum_crg.out diff:
+    logger.info(f"Calculating sum_crg diff file.")
+
     sc1 = analyze1.joinpath(OUT_FILES.ALL_SUMCRG.value)
     sc2 = analyze2.joinpath(OUT_FILES.ALL_SUMCRG.value)
     tsv_fp = out_dir.joinpath(OUT_FILES.ALL_SUMCRG_DIFF.value)
+
     diff_mc.get_diff(sc1, sc2, save_to_tsv=tsv_fp)
 
-
     # 2. get pkas to dict from all_pkas1, all_pkas2 & match pkas:
+    logger.info(f"Matching the pkas and saving list to csv file.")
+
     d1 = from_pickle(analyze1.joinpath(OUT_FILES.JOB_PKAS.value))
     d2 = from_pickle(analyze2.joinpath(OUT_FILES.JOB_PKAS.value))
 
     matched_pkas = pkanalysis.match_pkas(d1, d2)
-
-    logger.info(f"Plotting residues analysis -> pic.")
-    save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_PER_RES.value)
-    plots.plot_res_analysis(matched_pkas, save_to)
-
     matched_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS.value)
     pkanalysis.matched_pkas_to_csv(matched_fp, matched_pkas, kind=kind)
 
+    # 3. get figure for matched residues analysis:
+    logger.info(f"Plotting matched residues analysis -> pic.")
+
+    save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_PER_RES.value)
+    plots.plot_res_analysis(matched_pkas, save_to)
+
+    # 4. matched pkas stats
     logger.info(f"Calculating the matched pkas stats into dict.")
-    outlier_fp = out_dir.joinpath(OUT_FILES.RES_OUTLIER.value)
-    _ = pkanalysis.res_outlier_count(matched_fp, save_to=outlier_fp)
+
+    _ = pkanalysis.res_outlier_count(matched_fp, grp_by="res")
+    _ = pkanalysis.res_outlier_count(matched_fp, grp_by="resid")
 
     # matched_df: for matched_pkas_stats and plots.plot_pkas_fit
     matched_df = pkanalysis.matched_pkas_to_df(matched_fp)
+
     d_stats = pkanalysis.matched_pkas_stats(matched_df, subcmd=kind)
     logger.info(d_stats["report"])
+    # pickle the dict:
     pickle_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
     to_pickle(d_stats, pickle_fp)
 
-    logger.info(f"Plotting pkas fit -> pic.")
-    save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_ALLPKS.value)
-    plots.plot_pkas_fit(matched_df, d_stats, save_to)
+    if isinstance(d_stats["fit"], str):
+        logger.info("Data could not be fitted: no plot generated.")
+    else:
+        logger.info(f"Plotting pkas fit -> pic.")
+        save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_ALLPKS.value)
+        plots.plot_pkas_fit(matched_df, d_stats, save_to)
 
     return
 
@@ -155,11 +181,6 @@ def compare_parser():
         formatter_class = RawDescriptionHelpFormatter,
     )
 
-    # cannot have --user_pdbs & --dir2_is_refset together:
-    mutex = p.add_mutually_exclusive_group()
-    mutex.add_argument("--user_pdbs", action='store_true')
-    mutex.add_argument("--dir2_is_refset", action='store_true')
-
     p.add_argument(
         "-dir1",
         required=True,
@@ -172,14 +193,10 @@ def compare_parser():
         type = arg_valid_dirpath,
         help = """Path to run set 2."""
     )
-    p.add_argument(
-         "-o",
-        meta = "output",
-        required=True,
-        type = arg_valid_dirpath,
-        help = """Path to comparison results folder."""
-    )
-    p.add_argument(
+
+    # cannot have --user_pdbs & --dir2_is_refset together:
+    mutex = p.add_mutually_exclusive_group()
+    mutex.add_argument(
         "--user_pdbs",
         default = False,
         action = "store_true",
@@ -190,13 +207,19 @@ def compare_parser():
         bench_analyze <sub-command> step.
         """
     )
-    p.add_argument(
+    mutex.add_argument(
         "--dir2_is_refset",
         default = False,
         action = "store_true",
         help = """
         Flag presence indicate dir2 holds the NAME of a reference dataset, currently 'parse.e4'.
-        """
+        """)
+
+    p.add_argument(
+         "-o",
+        required=True,
+        type = arg_valid_dirpath,
+        help = """Path to comparison results folder."""
     )
 
     return p
@@ -219,7 +242,6 @@ def compare_cli(argv=None):
             logger.info(f"Runs not 100% complete in {d}, try again later; completed = {pct:.2f}")
             return
 
-    clear_crontab()
     compare_runs(args)
 
     return

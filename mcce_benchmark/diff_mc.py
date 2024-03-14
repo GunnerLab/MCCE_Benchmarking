@@ -27,10 +27,9 @@ class MCfile:
         hdr = lines.pop(0)
         fields = hdr.strip().split()
         self.type = fields[0]
-        if self.type.upper() == "PH":
-            self.pHs = ["%6.1f" % float(x) for x in fields[1:]]
-        else:
-            self.pHs = ["%6.f" % float(x) for x in fields[1:]]
+        prec = 0
+        if self.type.upper() == "PH": prec = 1
+        self.pHs = [f"{float(x.strip()):.{prec}f}" for x in fields[1:]]
 
         for line in lines:
             fields = line.strip().split()
@@ -42,9 +41,9 @@ class MCfile:
 
     def to_tsv(self, tsv_fp):
         with open(tsv_fp, "w") as fo:
-            fo.writelines("%-14s %s\n" % (self.type, "\t".join(self.pHs)))
+            fo.writelines("%s\t%s\n" % (self.type, "\t".join(self.pHs)))
             for name in self.names:
-                fo.writelines("%-14s %s\n" % (name, "\t".join(["%6s" % self.values[(name, ph)] for ph in self.pHs])))
+                fo.writelines("%s\t%s\n" % (name, "\t".join(["%s" % self.values[(name, ph)] for ph in self.pHs])))
 
 
     def __str__(self):
@@ -92,7 +91,8 @@ def diff(f1:MCfile, f2:MCfile) -> MCfile:
             elif key not in f1.values and key in f2.values:
                 values[key] = ">>>"
             else:  # must be in both
-                values[key] = "%6.2f" % (float(f1.values[key]) - float(f2.values[key]))
+                # f2 - f1 to get A - B??
+                values[key] = "%6.2f" % (float(f2.values[key]) - float(f1.values[key]))
 
     delta = MCfile()
     delta.type = f1.type
