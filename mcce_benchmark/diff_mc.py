@@ -8,24 +8,30 @@ The reports can be fort.38, sum_crg.out, or anything with matching columns.
 """
 
 from pathlib import Path
-
+from typing import Union
 
 class MCfile:
-    def __init__(self):
+    def __init__(self, fname:Union[str, None]=None):
+        self.fname = fname
         self.type = ""
         self.pHs = []
         self.names = []
         self.values = {}
 
-    def readfile(self, fname):
-        lines = open(fname).readlines()
-        line = lines.pop(0)
-        fields = line.strip().split()
+    def readfile(self):
+        if self.fname is None:
+            print("Class instanciated without fname.")
+            return
+
+        lines = open(self.fname).readlines()
+        hdr = lines.pop(0)
+        fields = hdr.strip().split()
         self.type = fields[0]
         if self.type.upper() == "PH":
             self.pHs = ["%6.1f" % float(x) for x in fields[1:]]
         else:
             self.pHs = ["%6.f" % float(x) for x in fields[1:]]
+
         for line in lines:
             fields = line.strip().split()
             if len(fields) > 1:
@@ -36,9 +42,9 @@ class MCfile:
 
     def to_tsv(self, tsv_fp):
         with open(tsv_fp, "w") as fo:
-            fo.writeline("%-14s %s\n" % (self.type, "\t".join(self.pHs)))
+            fo.writelines("%-14s %s\n" % (self.type, "\t".join(self.pHs)))
             for name in self.names:
-                fo.writeline("%-14s %s\n" % (name, "\t".join(["%6s" % self.values[(name, ph)] for ph in self.pHs])))
+                fo.writelines("%-14s %s\n" % (name, "\t".join(["%6s" % self.values[(name, ph)] for ph in self.pHs])))
 
 
     def __str__(self):
@@ -47,27 +53,27 @@ class MCfile:
             out = out + "%-14s %s" % (name, " ".join(["%6s" % self.values[(name, ph)] for ph in self.pHs]))
 
 
-def merge_lists(list1, list2):
+def merge_lists(list1:list, list2:list) -> list:
     "Return a merged list while preserving order."
 
     ipos = 0
     list_merged = []
-    for x in list1:
+    for x in list2:  #ref
         if x not in list_merged:
-            if x in list2:
-                xpos = list2.index(x)
-                list_merged += list2[ipos:xpos]
+            if x in list1:
+                xpos = list1.index(x)
+                list_merged += list1[ipos:xpos]
                 ipos = xpos + 1
             list_merged.append(x)
 
-    # list2 might have extra items
-    if len(list2) > ipos:
-        list_merged += list2[ipos:]
+    # list1 might have extra items
+    if len(list1) > ipos:
+        list_merged += list1[ipos:]
 
     return list_merged
 
 
-def diff(f1, f2):
+def diff(f1:MCfile, f2:MCfile) -> MCfile:
     if f1.type != f2.type:
         return None
 
@@ -97,15 +103,15 @@ def diff(f1, f2):
     return delta
 
 
-def get_diff(fp1, fp2, save_to_tsv:str=None):
+def get_diff(fp1:str, fp2:str, save_to_tsv:str=None) -> None:
 
-    f1 = MCfile()
-    f1.readfile(fp1)
+    mcf1 = MCfile(fp1)
+    mcf1.readfile()
 
-    f2 = MCfile()
-    f2.readfile(fp2)
+    mcf2 = MCfile(fp2)
+    mcf2.readfile()
 
-    delta = diff(f1, f2)
+    delta = diff(mcf1, mcf2)
     if save_to_tsv is not None:
         delta.to_tsv(save_to_tsv)
         return

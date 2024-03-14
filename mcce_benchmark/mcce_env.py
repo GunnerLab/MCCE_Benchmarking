@@ -25,10 +25,9 @@ logger.setLevel(logging.ERROR)
 class ENV:
     def __init__(self, rundir_path:str) -> dict:
         self.rundir = Path(rundir_path)
+        # run.prm parameters key:value
         self.runprm = {}
         self.sumcrg_hdr = ""
-        # run.prm parameters key:value
-        self.tpl = {}
 
         self.load_runprm()
 
@@ -59,7 +58,7 @@ class ENV:
         return
 
     def __str__(self):
-        out = f"rundir: {self.rundir}\nrunprm_file: {self.runprm_file}\nrunprm dict:\n"
+        out = f"rundir: {self.rundir}\nrunprm dict:\n"
         for k in self.runprm:
             out = out + f"{k} : {self.runprm[k]}\n"
         return out
@@ -69,7 +68,7 @@ def valid_envs(env1:ENV, env2:ENV) -> tuple:
     """
     Return a 2-tuple:
         (bool, # True: valid,
-         error message if bool is False).
+         error/info message: includes differing keys).
     Step 6 params: excluded from diffing: run1 and run2 are still comparable if only one has run step 6
     """
 
@@ -82,41 +81,45 @@ def valid_envs(env1:ENV, env2:ENV) -> tuple:
               }
     # For warning:
     path_keys = {"DELPHI_EXE", "MCCE_HOME"}
-    delta = {}
     all_keys = set(env1.runprm).union(set(env2.runprm))
-    # not always there:
+    # not always there or nightmare to compare:
     all_keys.remove("EXTRA")
     all_keys.remove("RENAME_RULES")
 
     # populate diff dict:
+    delta = {}
+    msg = "OK"
+
     for k in all_keys:
         if not k in s6_keys:
             v1 = env1.runprm.get(k, None)
             v2 = env2.runprm.get(k, None)
             if v1 is None or v2 is None or v1 != v2:
                 delta[k] = [('env1', v1), ('env2', v2)]
-    if len(delta) == 0:
-        return True, None
 
-    if len(delta) > 1:
+    n_delta = len(delta)
+    if n_delta == 0:
+        return True, msg
+
+    if n_delta > 1:
         if set(delta.keys()) == path_keys:
             msg = "These path keys differ between the two run sets.\n"
             for k in delta:
                 msg += f"{k}\t:\t{delta[k]}\n"
             return True, msg
-        else:
-            msg = "A valid comparison requires only one differing parameter between the two run sets.\n"
-            msg = msg + f"{len(delta)} were found:\n"
-            for k in delta:
-                msg += f"{k}\t:\t{delta[k]}\n"
-            #msg = msg + d
+
+        msg = "A valid comparison requires only one differing parameter between the two run sets.\n"
+        msg = msg + f"{len(delta)} were found:\n"
+        for k in delta:
+            msg += f"{k}\t:\t{delta[k]}\n"
+
+    else: #len == 1: check value of TITR_TYPE
+        if delta.get("TITR_TYPE", None) is not None:
+            msg = "A valid comparison requires the two run sets to have the same TITR_TYPE.\n"
+            msg = msg + f"TITR_TYPE found: {delta}\n."
             return False, msg
 
-    # len == 1: check value of TITR_TYPE
-    if delta.get("TITR_TYPE", None) is not None:
-        msg = "A valid comparison requires the two run sets to have the same TITR_TYPE.\n"
-        msg = msg + f"TITR_TYPE found: {delta}\n."
-        return False, msg, delta
+    return True, msg
 
 
 def get_ref_set(refset_name:str, subcmd:str = SUB1) -> Path:
@@ -125,14 +128,14 @@ def get_ref_set(refset_name:str, subcmd:str = SUB1) -> Path:
         logger.error(msg)
         raise ValueError(msg)
 
-    fp = Pathok(BENCH.BENCH_PH_REFS.joinpath(refset_name))
+    fp = Path(BENCH.BENCH_PH_REFS.joinpath(refset_name))
 
     return fp
 
 
 def get_mcce_env_dir(bench_dir:str,
                      subcmd:str = SUB1,
-                     is_refset:bool = False) -> Path:
+                     is_refset:bool = False) -> Union[Path, None]:
     """Return a path where to get run.prm.record."""
 
     if is_refset and subcmd != SUB1:
@@ -140,17 +143,16 @@ def get_mcce_env_dir(bench_dir:str,
 
     if is_refset:
         # then bench_dir is the name of a reference dataset
-        bench_dir = get_ref_set(bench_dir, subcmd=subcmd)
+        bdir = get_ref_set(bench_dir, subcmd=subcmd)
     else:
-        bench_dir = Path(bench_dir)
+        bdir = Path(bench_dir)
 
-    pdbs_dir = bench_dir.joinpath(RUNS_DIR)
-    for fp in pdbs_dir.iterdir():
+    runs_dir = Path(bdir.joinpath(RUNS_DIR))
+    for fp in runs_dir.iterdir():
         if fp.is_dir and fp.name.isupper():
-            run_dir = fp
-            break
+            return fp
 
-    return run_dir
+    return
 
 
 def get_run_env(bench_dir:str,
@@ -167,22 +169,17 @@ def get_run_env(bench_dir:str,
 
 def validate_envs(bench_dir1:str, bench_dir2:str,
                   subcmd:str = SUB1,
-                  dir2_is_refset:bool = False) -> Union[True, ValueError]:
-    """Wrapper for fetching a run dir, instanciating the envs, and validating them."""
+                  dir2_is_refset:bool = False) -> tuple:
+    """Wrapper for fetching a run dir, instanciating the envs, and validating them.
+       Return the 2-tuple from valid_envs: bool, msg.
+    """
 
-    env_dir1 = get_mcce_env_dir(bench_dir1, subcmd=subcmd)
-    env1 = get_run_env(env_dir1)
-    env_dir2 = get_mcce_env_dir(bench_dir2,
-                                subcmd=subcmd,
-                                is_refset=dir2_is_refset)
-    env2 = get_run_env(env_dir2)
+    env1 = get_run_env(bench_dir1, subcmd=subcmd)
+    env2 = get_run_env(bench_dir2,
+                       subcmd=subcmd,
+                       is_refset=dir2_is_refset)
 
-    result = valid_envs(env1, env2)
-    if result[0]:
-        return True
-    else:
-        logger.error(result[1])
-        raise ValueError(result[1])
+    return valid_envs(env1, env2)
 
 
 def get_sumcrg_hdr(bench_dir:str) -> str:
