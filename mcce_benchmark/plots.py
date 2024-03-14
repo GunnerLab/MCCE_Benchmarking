@@ -5,6 +5,7 @@ from collections import defaultdict
 import logging
 import matplotlib.pyplot as plt
 from matplotlib import ticker, gridspec
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -26,18 +27,42 @@ def plot_conf_thrup(tput_df:pd.DataFrame, n_complete:int, outfp:str=None) -> Non
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.set_ylabel("# conformers/min")
-    ax.get_yaxis().set_major_formatter(ticker.FuncFormatter(lambda y, p: format(int(y), ',')))
+    ax.set_xlabel("mcce step")
+    ax.get_yaxis().set_major_formatter(ticker.FuncFormatter(lambda y, p: format(f"{int(y/1000)}K")))
+    ax.get_xaxis().set_major_locator(MaxNLocator(integer=True))
     ax.set_title(f"Mean conformer throughput per minute\n(N={n_complete} pdbs)", y=.95)
 
-    markerline, stemlines, baseline = plt.stem(tput_df.index,
+    mx = tput_df.max()
+    ofs = 1 # offset to start at 1
+    istep = tput_df[tput_df.step == mx.step].index[0] + ofs
+
+    markerline, stemlines, baseline = plt.stem(tput_df.index+ofs,
                                                tput_df.y,
                                                linefmt='grey',
                                                bottom=0)
+
+    msize = 4
     plt.setp(markerline,
-             ms=8, markerfacecolor="tab:blue",markeredgecolor="tab:blue")
+             ms=msize,
+             markerfacecolor="tab:blue",
+             markeredgecolor="tab:blue")
+
     plt.setp(stemlines, linewidth=.5, color="tab:blue")
     plt.setp(baseline, linewidth=.5, color="k")
+    plt.plot(istep, mx.y, "o",
+             label=f"{mx.y:.0f}\nconfs/min",
+             ms=msize+ofs,
+             markerfacecolor="tab:red",
+             markeredgecolor="tab:red")
 
+    plt.grid(visible=True, which='major', axis='y', alpha=0.25)
+
+    leg = ax.legend(title=f"Best: {mx.step.title()}",
+               loc="upper center",
+               bbox_to_anchor=(0.5, 0.9),
+               borderaxespad = 0.,
+               facecolor="tab:cyan",
+               framealpha=0.1)
     if outfp is not None:
         plt.savefig(outfp)
 
