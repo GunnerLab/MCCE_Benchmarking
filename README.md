@@ -229,5 +229,5 @@ Examples for bench_compare:
 
 ## Installation:
 
-See [Install_and_Test](./Install_and_Test.txt) for ad-hoc installation until app is published.
+See [Install & Test](./Installation.md) for details.
 
