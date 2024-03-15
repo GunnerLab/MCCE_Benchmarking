@@ -127,19 +127,7 @@ def batch_run(args:Union[dict, Namespace]) -> None:
     if isinstance(args, dict):
         args = Namespace(**args)
 
-    if "job_name" not in args:
-        job_name = BENCH.DEFAULT_JOB
-    else:
-        job_name = args.job_name
-    if "n_batch" not in args:
-        n_batch = N_BATCH
-    else:
-        n_batch = args.n_batch
-    if "sentinel_file" not in args:
-        sentinel_file = "pK.out"
-    else:
-        sentinel_file = args.sentinel_file
-
+    job_name = args.job_name
     job_script = f"{job_name}.sh"
 
     # list of entry instances from Q_BOOK:
@@ -154,7 +142,7 @@ def batch_run(args:Union[dict, Namespace]) -> None:
     for entry in entries:
         if entry.state == " ":  # unsubmitted
             n_jobs += 1
-            if n_jobs <= n_batch:
+            if n_jobs <= args.n_batch:
                 os.chdir(entry.name)
                 subprocess.Popen(f"../{job_script}",
                                  shell=True,
@@ -168,7 +156,7 @@ def batch_run(args:Union[dict, Namespace]) -> None:
             if entry.name not in running_jobs:   # was running => completed or error
                 entry.state = "e"
                 # for debugging:
-                sentin_fp = Path(entry.name).joinpath(sentinel_file)
+                sentin_fp = Path(entry.name).joinpath(args.sentinel_file)
                 if sentin_fp.exists():
                     entry.state = "c"
                 logger.info(f"Changed {entry.name}: 'r' -> {entry.state!r}")

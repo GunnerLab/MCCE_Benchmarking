@@ -39,30 +39,22 @@ def create_single_crontab(args: Namespace,
     """
 
     SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
-* * * * * {}/conda activate {}; {} -bench_dir {}"""
+* * * * * {}/conda activate {}; {} -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
 
-    # Minimal input:
     bdir = str(args.bench_dir)
+ 
     ct_text = SINGLE_CRONTAB_fstr.format(CONDA_PATH,
                                          USER_MCCE,
                                          CONDA_PATH,
                                          USER_ENV,
                                          EP,
                                          bdir,
+                                         args.job_name,
+                                         args.n_batch,
+                                         args.sentinel_file,
                                          )
 
-    if "job_name" in args:
-        job_name = args.job_name
-        if job_name != BENCH.DEFAULT_JOB:
-            ct_text = ct_text + f" -job_name {job_name}"
-    if "n_batch" in args:
-        if args.n_batch != N_BATCH:
-            ct_text = ct_text + f" -n_batch {args.n_batch}"
-    if "sentinel_file" in args:
-        if args.sentinel_file != "pK.out":
-            ct_text = ct_text + f" -sentinel_file {args.sentinel_file}"
-
-    crontab_txt = ct_text + "\n"
+    crontab_txt = f"{ct_text} > {bdir}/cron_{args.job_name}.log 2>{bdir}/err.log\n"
     logger.info(f"Crontab text:\n```\n{crontab_txt}```")
 
     if not debug:
