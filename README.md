@@ -9,7 +9,10 @@ _beta version_
 ### 3. Analyze one set of runs
 ### 4. Compare two sets of runs
 
-#### All these correspond to command line "entry points", EPs. The flowcharts below provide an overview. To learn about the options available for each EP/subcommands [see Details](#Details)
+#### All these correspond to command line "entry points", EPs, which the flowcharts below overview.
+#### To learn about:
+  * The options available for each EP/subcommands, see [Details](#Details)
+  * The installation steps, see [Installation](#Installation)
 
 ---
 
