@@ -3,7 +3,7 @@ _beta version_
 
 # USER ROADMAP - 03-14-2024
 
-## Four choices in MCCE_Benchmarking, `mcce_benchmark` (a.k.a. "the app"):
+## Four choices in MCCE_Benchmarking, `mcce_benchmark`:
 ### 1. Create a new benchmarking set (with a "launch right away" option)
 ### 2. Launch the automated runs for the set
 ### 3. Analyze one set of runs
