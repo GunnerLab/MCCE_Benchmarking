@@ -141,7 +141,6 @@ def batch_run(args:Union[dict, Namespace]) -> None:
         sentinel_file = args.sentinel_file
 
     job_script = f"{job_name}.sh"
-    job_script_fp = Pathok(Path(job_script))
 
     # list of entry instances from Q_BOOK:
     entries = read_book_entries()
@@ -211,7 +210,7 @@ def launch_job(args:Namespace) -> None:
 
 
 def batch_parser():
-    """Command line arguments parser with for batch_submit.launch_job.
+    """Command line arguments parser for batch_submit.launch_job.
     """
 
     def arg_valid_dirpath(p: str):
@@ -222,7 +221,7 @@ def batch_parser():
 
     parser = ArgumentParser(
         prog = f"{CLI_NAME} ",
-        description = "Same arguments as for mccebench launch_batch.",
+        description = "Cli for launching one batch of runs.",
         formatter_class = RawDescriptionHelpFormatter,
     )
 
