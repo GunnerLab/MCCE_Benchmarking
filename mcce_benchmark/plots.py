@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from mcce_benchmark import N_PDBS
 from collections import defaultdict
 import logging
 import matplotlib.pyplot as plt
@@ -8,7 +7,6 @@ from matplotlib import ticker, gridspec
 from matplotlib.ticker import MaxNLocator
 import numpy as np
 import pandas as pd
-from pathlib import Path
 import seaborn as sns
 
 
@@ -79,7 +77,7 @@ def plot_pkas_fit(matched_df:pd.DataFrame, pks_stats:dict, outfp:str=None) -> No
     pks_stats from pkanalysis.matched_pkas_stats(matched_fp)
     """
 
-    # col1: calc - col2 ref or expl
+    # col1: calc - col2: ref or expl
     Y = matched_df.iloc[:,1]
     X = matched_df.iloc[:,2]
 

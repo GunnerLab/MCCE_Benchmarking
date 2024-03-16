@@ -20,7 +20,7 @@ sleep 10
 """
 
 from argparse import Namespace
-from mcce_benchmark import BENCH, RUNS_DIR
+from mcce_benchmark import RUNS_DIR
 from mcce_benchmark.io_utils import make_executable
 from enum import Enum
 import logging

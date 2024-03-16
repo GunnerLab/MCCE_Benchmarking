@@ -24,12 +24,8 @@ from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
 from mcce_benchmark import mcce_env
 from mcce_benchmark.cleanup import clear_folder
 from mcce_benchmark import pkanalysis, diff_mc, plots
-from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
-from mcce_benchmark.io_utils import get_book_dirs_for_status, tsv_to_df, fout_df, pk_to_float
-from mcce_benchmark.io_utils import get_sumcrg_col_specs, get_sumcrg_hdr, to_pickle, from_pickle
+from mcce_benchmark.io_utils import Pathok, to_pickle, from_pickle
 import logging
-import numpy as np
-import pandas as pd
 from pathlib import Path
 from typing import Union
 import sys
@@ -239,7 +235,7 @@ def compare_cli(argv=None):
         book_fp = bench.joinpath(RUNS_DIR, BENCH.Q_BOOK)
         pct = pkanalysis.pct_completed(book_fp)
         if pct < 1.:
-            logger.info(f"Runs not 100% complete in {d}, try again later; completed = {pct:.2f}")
+            logger.info(f"Runs not 100% completed or failed in {d}, try again later; completed = {pct:.2f}")
             return
 
     compare_runs(args)

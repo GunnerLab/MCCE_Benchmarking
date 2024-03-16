@@ -7,11 +7,9 @@ For automating the crontab creation for scheduling batch_submit every minute.
 """
 
 from argparse import Namespace
-from mcce_benchmark import BENCH, ENTRY_POINTS
-from mcce_benchmark import USER_MCCE, CONDA_PATH, USER_ENV, N_BATCH
+from mcce_benchmark import USER_MCCE, CONDA_PATH, USER, USER_ENV
 from mcce_benchmark.io_utils import subprocess_run, subprocess
 import logging
-from pathlib import Path
 from typing import Union
 
 
@@ -19,13 +17,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 #.......................................................................
 
-EP = ENTRY_POINTS["launch"]
-
 
 def clear_crontab():
     """Remove existing crontab."""
 
-    out = subprocess_run("crontab -r", check=False)
+    out = subprocess_run(f"crontab -u {USER} -r", check=False)
     return
 
 
@@ -39,7 +35,7 @@ def create_single_crontab(args: Namespace,
     """
 
     SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
-* * * * * {}/conda activate {}; {} -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
+* * * * * {}/conda activate {}; bench_launchjob -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
 
     bdir = str(args.bench_dir)
  
@@ -47,14 +43,15 @@ def create_single_crontab(args: Namespace,
                                          USER_MCCE,
                                          CONDA_PATH,
                                          USER_ENV,
-                                         EP,
                                          bdir,
                                          args.job_name,
                                          args.n_batch,
                                          args.sentinel_file,
                                          )
 
-    crontab_txt = f"{ct_text} > {bdir}/cron_{args.job_name}.log 2>{bdir}/err.log\n"
+    # err.log has threading msg from mcce and with cron err if any; other log empty: keep?
+    # err.log wiped out when all runs are complete with 2>, persists with 2>>
+    crontab_txt = f"{ct_text} > {bdir}/cron_{args.job_name}.log 2>> {bdir}/err.log\n"
     logger.info(f"Crontab text:\n```\n{crontab_txt}```")
 
     if not debug:
@@ -73,6 +70,7 @@ def schedule_job(launch_args:Namespace) -> None:
     sub-command.
     """
 
+    clear_crontab()
     create_single_crontab(launch_args)
     logger.info("Scheduled batch submission with crontab every minute.")
 

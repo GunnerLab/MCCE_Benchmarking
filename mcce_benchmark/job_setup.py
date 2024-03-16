@@ -39,14 +39,13 @@ Functions:
 
 #...............................................................................
 from argparse import Namespace
-from mcce_benchmark import BENCH, RUNS_DIR, MCCE_EPS, N_BATCH, N_PDBS
+from mcce_benchmark import BENCH, RUNS_DIR
 from mcce_benchmark import audit
 from mcce_benchmark.io_utils import Pathok
 import logging
 import os
 from pathlib import Path
 import shutil
-from typing import Union
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -191,9 +190,7 @@ def setup_expl_runs(bench_dir:str, n_pdbs:int) -> None:
 
 
 def delete_sentinel(bench_dir:str, sentinel_file:str) -> None:
-    """Part of the job preparation for each new script.
-    Delete sentinel_file from 'bench_dir'/RUNS subfolders.
-    """
+    """Delete sentinel_file from 'bench_dir'/RUNS subfolders."""
 
     bench_dir = Path(bench_dir)
     fl = list(bench_dir.joinpath(RUNS_DIR).glob("./*/"+sentinel_file))

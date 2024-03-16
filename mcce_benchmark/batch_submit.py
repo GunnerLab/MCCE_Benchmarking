@@ -37,9 +37,10 @@ Q book status codes:
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
-from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, ENTRY_POINTS, N_BATCH, N_PDBS
-from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
+from mcce_benchmark import BENCH, RUNS_DIR, N_BATCH, USER, ENTRY_POINTS, N_BATCH
+from mcce_benchmark.io_utils import subprocess_run, subprocess
 from mcce_benchmark.pkanalysis import pct_completed
+from mcce_benchmark.scheduling import clear_crontab
 import logging
 import os
 from pathlib import Path
@@ -111,17 +112,17 @@ def get_running_jobs_dirs(job_name:str) -> list:
 
 def batch_run(args:Union[dict, Namespace]) -> None:
     """
-    Update Q_BOOK according to user's running jobs' statuses.
+    Update Q_BOOK according to user's running jobs' states.
     Launch new jobs inside the RUNS subfolders until the number of
     job equals n_batch.
     To be run in /RUNS folder, which is where Q_BOOK resides.
 
     Args:
-    job_name (str): Name of the job and script to use in /RUNS folder.
-    n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
-    sentinel_file (str, "pK.out"): File whose existence signals a completed job;
-        When running all 4 MCCE steps (default), this file is 'pK.out', while
-        when running only the first 2, this file is 'step2_out.pdb'.
+    args.job_name (str): Name of the job and script to use in /RUNS folder.
+    args.n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
+    args.sentinel_file (str, "pK.out"): File whose existence signals a completed job;
+      When running all 4 MCCE steps (default), this file is 'pK.out', while
+      when running only the first 2, this file is 'step2_out.pdb'.
     """
 
     if isinstance(args, dict):
@@ -138,7 +139,7 @@ def batch_run(args:Union[dict, Namespace]) -> None:
     logger.info(f"Running jobs: {n_jobs}")
 
     new_entries = []
-    #logger.info("Launching script for unsubmitted entries")
+    logger.info("Launching script for unsubmitted entries")
     for entry in entries:
         if entry.state == " ":  # unsubmitted
             n_jobs += 1
@@ -262,8 +263,13 @@ def launch_cli(argv=None):
     launch_job(args)
 
     book_fp = Path(args.bench_dir).joinpath(RUNS_DIR, BENCH.Q_BOOK)
-    pct = pct_completed(book_fp)
+    pct = pct_completed(book_fp) # : c or e state :: finished
     logger.info(f"Percentage of jobs completed: {pct:.1%}")
+
+    # maybe clear crontab?
+    if round(pct,1) == 1.0:
+        logger.info("Clearing crontab")
+        clear_crontab()
 
     return
 

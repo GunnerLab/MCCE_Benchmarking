@@ -10,6 +10,7 @@ The reports can be fort.38, sum_crg.out, or anything with matching columns.
 from pathlib import Path
 from typing import Union
 
+
 class MCfile:
     def __init__(self, fname:Union[str, None]=None):
         self.fname = fname

@@ -18,8 +18,8 @@ from mcce_benchmark.mcce_env import ENV, get_run_env
 from mcce_benchmark import plots
 from mcce_benchmark.cleanup import clear_folder
 from mcce_benchmark.io_utils import Pathok, subprocess_run, subprocess
-from mcce_benchmark.io_utils import get_book_dirs_for_status, tsv_to_df, fout_df, pk_to_float
-from mcce_benchmark.io_utils import get_sumcrg_hdr, to_pickle
+from mcce_benchmark.io_utils import get_book_dirs_for_status, get_sumcrg_hdr, pk_to_float
+from mcce_benchmark.io_utils import fout_df, to_pickle, tsv_to_df
 from mcce_benchmark.scheduling import clear_crontab
 import logging
 import numpy as np
@@ -398,11 +398,11 @@ def confs_throughput_to_tsv(pdbs_dir:str, overwrite:bool=False) -> pd.DataFrame:
 
 
 def pct_completed(book_fpath:str) -> float:
-    """Return the pct of runs that are completed."""
+    """Return the pct of runs that are completed or finished with error."""
 
     book_fp = Pathok(book_fpath)
     # 2 cmds:
-    cmd = f"grep 'c$' {book_fp} |wc -l; cat {book_fp} |wc -l"
+    cmd = f"grep '[ce]$' {book_fp} |wc -l; cat {book_fp} |wc -l"
     data = subprocess_run(cmd)
     if isinstance(data, subprocess.SubprocessError):
         logger.error(f"Error fetching pct completed.")
@@ -938,7 +938,7 @@ def analyze_cli(argv=None):
     book_fp = bench.joinpath(RUNS_DIR, BENCH.Q_BOOK)
     pct = pct_completed(book_fp)
     if pct < 1.:
-        logger.info(f"Runs not 100% complete, try again later; completed = {pct:.2f}")
+        logger.info(f"Runs not 100% completed or failed, try again later; completed = {pct:.2f}")
         return
     clear_crontab()
     args.func(args)

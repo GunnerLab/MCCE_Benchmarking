@@ -20,10 +20,8 @@ Functions:
  from_pickle(fp:str) -> Any:
 """
 
-from mcce_benchmark import ENTRY_POINTS, OUT_FILES, ANALYZE_DIR
-from mcce_benchmark.mcce_env import ENV, get_mcce_env_dir
+from mcce_benchmark.mcce_env import get_mcce_env_dir
 import logging
-import numpy as np
 import pandas as pd
 from pathlib import Path
 import pickle

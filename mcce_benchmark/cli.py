@@ -6,13 +6,15 @@ Module: cli.py
 Command line interface for MCCE benchmarking.
 Main entry point: "bench_setup"
 
-Then 3 sub-commands:
++ 3 sub-commands:
  1. "pkdb_pdbs"
     Sub-command for setting up <bench_dir>/RUNS folder
     using the pdbs in pKaDBv1 & job_name_run.sh script.
+
  2. "user_pdbs"
     Sub-command for setting up <bench_dir>/RUNS folder
-    using the user's pdbs & job_name_run.sh script. 
+    using the user's pdbs & job_name_run.sh script.
+
  3. "launch"
     Sub-command for launching a batch of jobs.
     Can be by-passed if 1. or 2. have the --launch flag
@@ -69,7 +71,7 @@ or the user's pdbs list.
 The main command is {CLI_NAME} along with one of 2 sub-commands:
 - Sub-command 1: {SUB1}: setup the dataset and run script to run mcce steps 1 through 4;
 - Sub-command 2: {SUB2}: setup the user dataset and run script to run mcce steps 1 through 4;
-- Sub-command 3: {SUB3}: launch the automated scheduling of runs in batchs ;
+- Sub-command 3: {SUB3}: delete any existing sentinel_file & launch the scheduled runs in batches;
 """
 
 EPI = f"""
@@ -123,7 +125,6 @@ def bench_job_setup(args:Namespace) -> None:
      - Create args.bench_dir/RUNS folders.
      - Write fresh book file
      - Write script for args.job_name
-     - Delete all previous sentinel files, if any
     """
 
     in_benchmarks = Path.cwd().name == args.bench_dir.name
@@ -149,13 +150,13 @@ def bench_job_setup(args:Namespace) -> None:
         custom_sh.write_run_script_from_template(args.bench_dir,
                                                  args.job_name,
                                                  job_args = args)
-
-    job_setup.delete_sentinel(args.bench_dir, args.sentinel_file)
     logger.info("Setup over.")
 
     if args.launch:
-        logger.info("Doing scheduling as per --launch")
-        scheduling.schedule_job(args)
+        logger.info("Launch flag on: Doing scheduling now.")
+        # need to add n_batch as if passed by cli:
+        setattr(args, 'n_batch', N_BATCH)
+        bench_launch_batch(args)
 
     return
 
@@ -173,6 +174,8 @@ def bench_launch_batch(args:Namespace) -> None:
 
     logger.info(args_to_str(args))
     args.bench_dir = Pathok(args.bench_dir)
+
+    job_setup.delete_sentinel(args.bench_dir, args.sentinel_file)
 
     #log script text again in case it was manualy modified.
     sh_name = f"{args.job_name}.sh"
@@ -243,7 +246,7 @@ def bench_parser():
         epilog = EPI,
     )
 
-    # common_parser: for pkdb_pdbs and user_pdbs subs
+    # COMMON parser: for SUB1:pkdb_pdbs and SUB2:user_pdbs subcmds
     cp = ArgumentParser(add_help=False)
 
     cp.add_argument(
@@ -388,7 +391,7 @@ def bench_parser():
     cp.add_argument(
         "--launch",
         default = False,
-        help = "Schedule the job right away (no chance of inspecting <job_name>.sh!)",
+        help = "Schedule the job right away with default n_batch (no chance of inspecting <job_name>.sh!)",
         action = "store_true"
     )
 
