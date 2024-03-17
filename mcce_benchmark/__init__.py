@@ -51,11 +51,6 @@ def get_conda_paths() -> tuple:
     return str(conda_path.parent.joinpath("bin")), conda
 
 
-# user envir:
-USER_ENV = get_user_env()
-#CONDA_PATH = Path(shutil.which("conda")).parent
-CONDA_PATHS = get_conda_paths() 
-
 ENTRY_POINTS = {"setup": "bench_setup",
                 "launch": "bench_launchjob", # used by crontab
                 "analyze": "bench_analyze",
@@ -65,6 +60,13 @@ ENTRY_POINTS = {"setup": "bench_setup",
 SUB1 = "pkdb_pdbs"
 SUB2 = "user_pdbs"
 SUB3 = "launch"
+
+# user envir:
+USER_ENV = get_user_env()
+#CONDA_PATH = Path(shutil.which("conda")).parent
+CONDA_PATHS = get_conda_paths() 
+# full path of the launch_job command:
+LAUNCHJOB = shutil.which(ENTRY_POINTS["launch"])
 
 # output file names => <benchmarks_dir>/analysis/:
 class OUT_FILES(Enum):
