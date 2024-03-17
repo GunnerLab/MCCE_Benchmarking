@@ -7,7 +7,7 @@ For automating the crontab creation for scheduling batch_submit every minute.
 """
 
 from argparse import Namespace
-from mcce_benchmark import USER_MCCE, CONDA_PATH, USER, USER_ENV
+from mcce_benchmark import USER_MCCE, CONDA_PATHS, USER, USER_ENV
 from mcce_benchmark.io_utils import subprocess_run, subprocess
 import logging
 from typing import Union
@@ -34,20 +34,29 @@ def create_single_crontab(args: Namespace,
     If debug: return crontab_text w/o creating the crontab.
     """
 
-    SINGLE_CRONTAB_fstr = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
-* * * * * {}/conda activate {}; bench_launchjob -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
+    # fails on server:
+    #SINGLE_CRONTAB = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
+#* * * * * {}/conda activate {}; bench_launchjob -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
+
+    PATH_1 = "PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\n"
+    PATH_2 = "PATH={}:{}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\n"
+    SCHED = "* * * * * source {}/activate {}; bench_launchjob -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"
+
+    if len(CONDA_PATHS) == 1:
+        conda = CONDA_PATHS[0]
+        ct_text = PATH_1.format(conda, USER_MCCE)
+    else:
+        conda, conda_env = CONDA_PATHS
+        ct_text = PATH_2.format(conda, conda_env, USER_MCCE)
 
     bdir = str(args.bench_dir)
- 
-    ct_text = SINGLE_CRONTAB_fstr.format(CONDA_PATH,
-                                         USER_MCCE,
-                                         CONDA_PATH,
-                                         USER_ENV,
-                                         bdir,
-                                         args.job_name,
-                                         args.n_batch,
-                                         args.sentinel_file,
-                                         )
+    ct_text = ct_text + SCHED.format(conda,  # for activate
+                                     USER_ENV,
+                                     bdir,
+                                     args.job_name,
+                                     args.n_batch,
+                                     args.sentinel_file,
+                                     )
 
     # err.log has threading msg from mcce and with cron err if any; other log empty: keep?
     # err.log wiped out when all runs are complete with 2>, persists with 2>>

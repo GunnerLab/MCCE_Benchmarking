@@ -21,8 +21,8 @@ if USER_MCCE is None:
 USER_MCCE = Path(USER_MCCE).parent
 
 
-def get_user_env() -> tuple:
-    """Return the sys.prefix, env name."""
+def get_user_env() -> str:
+    """Return the env name from sys.prefix."""
 
     user_prefix = sys.prefix
     env = Path(user_prefix).name
@@ -33,12 +33,28 @@ def get_user_env() -> tuple:
         else:
             env = 'base'
     else:
-         return user_prefix, env
+         return env
+
+
+def get_conda_paths() -> tuple:
+    """Return the path to conda that is not in an env,
+    which is what cron 'sees', presumably.
+    Needed to build cmd 'source <conda_path>/activate <env>' in crontab.
+    Try: need both bin and condabin to put in path?"""
+
+    conda_path = Path(shutil.which("conda")).parent
+    conda = str(conda_path)
+    if conda_path.name == "bin":
+        # done
+        return conda, 
+    # else, assume "condabin", reset:
+    return str(conda_path.parent.joinpath("bin")), conda
 
 
 # user envir:
-USER_PRFX, USER_ENV = get_user_env()
-CONDA_PATH = Path(shutil.which("conda")).parent
+USER_ENV = get_user_env()
+#CONDA_PATH = Path(shutil.which("conda")).parent
+CONDA_PATHS = get_conda_paths() 
 
 ENTRY_POINTS = {"setup": "bench_setup",
                 "launch": "bench_launchjob", # used by crontab
