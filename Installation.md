@@ -153,15 +153,30 @@ Note: `bench_setup` creates the run script with the command line options for the
   to ensure it is deleted prior to launching. You need to include it if you are not running all 4 steps. Example running only steps 1 & 2:
   ```sh
 
-  (mce) >bench_setup [pkdb_pdbs or user_pdbs] -bench_dir <some/dir> --s3_norun  --s4_norun -job_name <up_to_s2> -sentinel_file step2_out.pdb
+  (mce) >bench_setup pkdb_pdbs -bench_dir <some/dir> --s3_norun  --s4_norun -job_name <up_to_s2> -sentinel_file step2_out.pdb
+
+  # OR
+  (mce) >bench_setup user_pdbs -bench_dir <some/dir> -pdbs_list ./pdbs --s3_norun  --s4_norun -job_name <up_to_s2> -sentinel_file step2_out.pdb
 
   ```
 
-  * `--launch` option (flag):
-  Launching a job with `bench_setup` is possible with the `--launch` flag:
+### DO NOT USE `--launch` or `bench_setup launch`: the scheduling cannot run due to issues in `Stable-MCCE` packaging.
+Instead, launch a batch of 10 runs every time this command is used:
+
+```sh
+
+(mce) >bench_batch -bench_dir <some/dir> -job_name <foo_e8> [-n_batch if not 10]   # 10 is the default batch size
+
+```
+
+  * `--launch` option (flag) means "create a crontab entry to scheduling the processing of all pdbs in the set".
+  Launching the scheduled processing of the set with `bench_setup` is possible with the `--launch` flag:
   ```sh
 
-  (mce) >bench_setup [pkdb_pdbs or user_pdbs] -bench_dir <some/dir> -d 8 -job_name <foo_e8> --launch
+  (mce) >bench_setup pkdb_pdbs -bench_dir <some/dir> -d 8 -job_name <foo_e8> --launch
+
+  # OR
+  (mce) >bench_setup user_pdbs -bench_dir <some/dir> -pdbs_list ./pdbs -d 8 -job_name <foo_e8> --launch
 
   ```
 
