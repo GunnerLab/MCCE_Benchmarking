@@ -13,7 +13,7 @@ Cli parser with 2 sub-commands with same options:
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
-from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
+from mcce_benchmark import FILES, ANALYZE_DIR, RUNS_DIR
 from mcce_benchmark.mcce_env import ENV, get_run_env
 from mcce_benchmark import plots
 from mcce_benchmark.cleanup import clear_folder
@@ -52,7 +52,7 @@ def get_mcce_version(pdbs_dir:str) -> None:
     msg = [f"MCCE Version(s) found in run.log files:\n"]
     for v in [o.strip() for o in out.stdout.splitlines()]:
         msg.append(f"\t{v}\n")
-    ver_fp = pdbs_dir.parent.joinpath(ANALYZE_DIR, OUT_FILES.VERSIONS.value)
+    ver_fp = pdbs_dir.parent.joinpath(ANALYZE_DIR, FILES.VERSIONS.value)
     with open(ver_fp, "w") as f:
         f.writelines(msg)
 
@@ -70,7 +70,7 @@ def collate_all_sumcrg(bench_dir:str, run_env:ENV, titr_type:str="ph") ->None:
     if not analyze.exists():
         analyze.mkdir()
     # out file
-    all_out = analyze.joinpath(OUT_FILES.ALL_SUMCRG.value)
+    all_out = analyze.joinpath(FILES.ALL_SUMCRG.value)
     all_out_s = str(all_out)
 
     hdr = get_sumcrg_hdr(bench)
@@ -111,7 +111,7 @@ def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
     if not analyze.exists():
         analyze.mkdir()
     # out file
-    all_out = analyze.joinpath(OUT_FILES.ALL_PKAS.value)
+    all_out = analyze.joinpath(FILES.ALL_PKAS.value)
     all_out_s = str(all_out)
 
     titr = titr_type.lower()
@@ -163,11 +163,11 @@ def all_pkas_df(path:str, titr_type:str="ph", reduced_ok=True) -> Union[pd.DataF
         logger.error(f"Not found: {p}")
         return None
 
-    if p.is_file(): # and p.name == OUT_FILES.ALL_PKAS.value:
+    if p.is_file(): # and p.name == FILES.ALL_PKAS.value:
         allfp = p
     else:
         # bench_dir
-        allfp = p.joinpath(ANALYZE_DIR, OUT_FILES.ALL_PKAS.value)
+        allfp = p.joinpath(ANALYZE_DIR, FILES.ALL_PKAS.value)
 
     if not allfp.exists():
         logger.error(f"Not found: {allfp}; this file is created via pkanalysis.collate_all_pkas(bench_dir).")
@@ -179,9 +179,9 @@ def all_pkas_df(path:str, titr_type:str="ph", reduced_ok=True) -> Union[pd.DataF
 
     if reduced_ok:
         # load tsv file if found (created by extract_oob_pkas):
-        all_tsv = allfp.parent.joinpath(OUT_FILES.ALL_PKAS_TSV.value)
+        all_tsv = allfp.parent.joinpath(FILES.ALL_PKAS_TSV.value)
         if all_tsv.exists():
-            logger.info("Loading OUT_FILES.ALL_PKAS_TSV")
+            logger.info("Loading FILES.ALL_PKAS_TSV")
             return tsv_to_df(all_tsv, index_col=0) #collated=True, titr_type=titr)
 
     return fout_df(allfp, collated=True, titr_type=titr)
@@ -205,15 +205,15 @@ def extract_oob_pkas(bench_dir:str):
     if oob_df.shape[0]:
         analyze = bench.joinpath(ANALYZE_DIR)
 
-        oob_fp = analyze.joinpath(OUT_FILES.ALL_PKAS_OOB.value)
+        oob_fp = analyze.joinpath(FILES.ALL_PKAS_OOB.value)
         oob_df.to_csv(oob_fp, sep="\t")
 
         # Reset all_pkas.out
         allout_df = allout_df[~msk]
-        all_fp = analyze.joinpath(OUT_FILES.ALL_PKAS_TSV.value)
+        all_fp = analyze.joinpath(FILES.ALL_PKAS_TSV.value)
         allout_df.to_csv(all_fp, sep="\t")
     else:
-        logger.info(f"No out of bound pKa values in {OUT_FILES.ALL_PKAS.value}")
+        logger.info(f"No out of bound pKa values in {FILES.ALL_PKAS.value}")
 
     return
 
@@ -234,7 +234,7 @@ def all_run_times_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
         logger.error("Error fetching run times.")
         return
 
-    fp = analyze.joinpath(OUT_FILES.RUN_TIMES.value)
+    fp = analyze.joinpath(FILES.RUN_TIMES.value)
     if fp.exists():
         if overwrite:
             fp.unlink()
@@ -289,9 +289,9 @@ def all_counts_to_tsv(pdbs_dir:str, kind:str, overwrite:bool=False) -> None:
     if not analyze.exists():
         analyze.mkdir()
 
-    fname = OUT_FILES.CONF_COUNTS.value
+    fname = FILES.CONF_COUNTS.value
     if kind == "res":
-        fname = OUT_FILES.RES_COUNTS.value
+        fname = FILES.RES_COUNTS.value
 
     fp = analyze.joinpath(fname)
     if fp.exists():
@@ -324,10 +324,10 @@ def confs_per_res_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
 
     # confs file:
     all_counts_to_tsv(pdbs, kind="confs", overwrite=overwrite)
-    tsv_count = analyze.joinpath(OUT_FILES.CONF_COUNTS.value)
+    tsv_count = analyze.joinpath(FILES.CONF_COUNTS.value)
     # res file:
     all_counts_to_tsv(pdbs, kind="res", overwrite=overwrite)
-    tsv_res = analyze.joinpath(OUT_FILES.RES_COUNTS.value)
+    tsv_res = analyze.joinpath(FILES.RES_COUNTS.value)
 
     df_res = pd.read_csv(tsv_res, sep="\t")
     df_res.set_index("PDB", inplace=True)
@@ -341,7 +341,7 @@ def confs_per_res_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
     df["confs_per_res"] = round(df.confs/df.res,2)
 
     #final output:
-    tsv_fin = analyze.joinpath(OUT_FILES.CONFS_PER_RES.value)
+    tsv_fin = analyze.joinpath(FILES.CONFS_PER_RES.value)
     if tsv_fin.exists() and overwrite:
         tsv_fin.unlink()
 
@@ -353,7 +353,7 @@ def confs_per_res_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
 def confs_throughput_to_tsv(pdbs_dir:str, overwrite:bool=False) -> pd.DataFrame:
     """
     Obtain and save the average time & conformer throughput per step in a tab
-    separated file, OUT_FILES.CONFS_THRUPUT.
+    separated file, FILES.CONFS_THRUPUT.
     """
 
     pdbs = Pathok(pdbs_dir)
@@ -363,7 +363,7 @@ def confs_throughput_to_tsv(pdbs_dir:str, overwrite:bool=False) -> pd.DataFrame:
         analyze.mkdir()
 
     # times file:
-    tsv_time = analyze.joinpath(OUT_FILES.RUN_TIMES.value)
+    tsv_time = analyze.joinpath(FILES.RUN_TIMES.value)
     if tsv_time.exists() and overwrite:
         tsv_time.unlink()
         all_run_times_to_tsv(pdbs, overwrite=overwrite)
@@ -373,7 +373,7 @@ def confs_throughput_to_tsv(pdbs_dir:str, overwrite:bool=False) -> pd.DataFrame:
     df_time.sort_index(inplace=True)
 
     # confs file:
-    tsv_count = analyze.joinpath(OUT_FILES.CONF_COUNTS.value)
+    tsv_count = analyze.joinpath(FILES.CONF_COUNTS.value)
     if tsv_count.exists() and overwrite:
         tsv_count.unlink()
     all_counts_to_tsv(pdbs, kind="confs", overwrite=overwrite)
@@ -387,7 +387,7 @@ def confs_throughput_to_tsv(pdbs_dir:str, overwrite:bool=False) -> pd.DataFrame:
     df["per_min_thrup"] = round(df.confs_per_sec * 60,2)
 
     #final output:
-    tsv_fin = analyze.joinpath(OUT_FILES.CONFS_THRUPUT.value)
+    tsv_fin = analyze.joinpath(FILES.CONFS_THRUPUT.value)
     if tsv_fin.exists() and overwrite:
         tsv_fin.unlink()
 
@@ -432,7 +432,7 @@ def job_pkas_to_dict(book_fpath:str) -> dict:
     completed_dirs = get_book_dirs_for_status(book_fp) # default 'c'
 
     calc_pkas = {}
-    all_out_fp = book_fp.parent.parent.joinpath(ANALYZE_DIR, OUT_FILES.ALL_PKAS.value)
+    all_out_fp = book_fp.parent.parent.joinpath(ANALYZE_DIR, FILES.ALL_PKAS.value)
 
     # all pkas df: all 'in bounds' pk values if tsv version exists; floats
     allout_df = all_pkas_df(all_out_fp)
@@ -548,9 +548,9 @@ def matched_pkas_to_df(matched_fp:str) -> pd.DataFrame:
     """
 
     fh = Path(matched_fp)
-    if fh.name != OUT_FILES.MATCHED_PKAS.value:
-        logger.error(f"Only {OUT_FILES.MATCHED_PKAS.value} is a valid file name.")
-        raise ValueError(f"Only {OUT_FILES.MATCHED_PKAS.value} is a valid file name.")
+    if fh.name != FILES.MATCHED_PKAS.value:
+        logger.error(f"Only {FILES.MATCHED_PKAS.value} is a valid file name.")
+        raise ValueError(f"Only {FILES.MATCHED_PKAS.value} is a valid file name.")
 
     if not fh.exists():
         logger.error(f"Not found: {fh}; run pkanalysis to create.")
@@ -650,7 +650,7 @@ def res_outlier_count(matched_fp:str,
                       bounds:tuple=(0,14)) -> pd.DataFrame:
     """Return counts per residue type for diff(col1-col2) > 3,
     and pKa values beyond titration bounds in a df.
-    Save df to OUT_FILES.RES_OUTLIER or OUT_FILES.RESID_OUTLIER in the
+    Save df to FILES.RES_OUTLIER or FILES.RESID_OUTLIER in the
     parent folder of matched_fp.
     Args:
     matched_fp (str): file path of matched pkas file;
@@ -698,9 +698,9 @@ def res_outlier_count(matched_fp:str,
     out_df.loc["pct"] = pcts
 
     if grp_by == "res":
-        outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RES_OUTLIER.value)
+        outlier_fp = Path(matched_fp).parent.joinpath(FILES.RES_OUTLIER.value)
     else:
-        outlier_fp = Path(matched_fp).parent.joinpath(OUT_FILES.RESID_OUTLIER.value)
+        outlier_fp = Path(matched_fp).parent.joinpath(FILES.RESID_OUTLIER.value)
 
     if outlier_fp.exists() and replace:
         outlier_fp.unlink()
@@ -748,7 +748,7 @@ def analyze_runs(bench_dir:Path, subcmd:str):
     # effective calculated pkas for all completed runs:
     calc_pkas = job_pkas_to_dict(book_fp)
 
-    calcpk_fp = analyze.joinpath(OUT_FILES.JOB_PKAS.value)
+    calcpk_fp = analyze.joinpath(FILES.JOB_PKAS.value)
     to_pickle(calc_pkas, calcpk_fp)
 
     if subcmd == SUB1:
@@ -758,7 +758,7 @@ def analyze_runs(bench_dir:Path, subcmd:str):
 
         logger.info(f"Matching the pkas and saving list to csv file.")
         matched_pkas = match_pkas(calc_pkas, expl_pkas)
-        matched_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS.value)
+        matched_fp = analyze.joinpath(FILES.MATCHED_PKAS.value)
         matched_pkas_to_csv(matched_fp, matched_pkas)
 
         logger.info(f"Calculating the matched pkas stats into dict.")
@@ -769,20 +769,20 @@ def analyze_runs(bench_dir:Path, subcmd:str):
         matched_df = matched_pkas_to_df(matched_fp)
         d_stats = matched_pkas_stats(matched_df)
         logger.info(d_stats["report"])
-        pkl_fp = analyze.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
+        pkl_fp = analyze.joinpath(FILES.MATCHED_PKAS_STATS.value)
         to_pickle(d_stats, pkl_fp)
 
     # plots
     logger.info(f"Plotting conformers throughput per step -> pic.")
-    tsv = analyze.joinpath(OUT_FILES.CONFS_THRUPUT.value)
+    tsv = analyze.joinpath(FILES.CONFS_THRUPUT.value)
     thruput_df = tsv_to_df(tsv)
-    save_to = analyze.joinpath(OUT_FILES.FIG_CONFS_TP.value)
+    save_to = analyze.joinpath(FILES.FIG_CONFS_TP.value)
     n_complete = len(get_book_dirs_for_status(book_fp))
     plots.plot_conf_thrup(thruput_df, n_complete, save_to)
 
     if subcmd == SUB1:
         logger.info(f"Plotting residues analysis -> pic.")
-        save_to = matched_fp.parent.joinpath(OUT_FILES.FIG_FIT_PER_RES.value)
+        save_to = matched_fp.parent.joinpath(FILES.FIG_FIT_PER_RES.value)
         plots.plot_res_analysis(matched_pkas, save_to)
 
         if isinstance(d_stats["fit"], str):
@@ -790,7 +790,7 @@ def analyze_runs(bench_dir:Path, subcmd:str):
         return
 
         logger.info(f"Plotting pkas fit -> pic.")
-        save_to = matched_fp.parent.joinpath(OUT_FILES.FIG_FIT_ALLPKS.value)
+        save_to = matched_fp.parent.joinpath(FILES.FIG_FIT_ALLPKS.value)
         plots.plot_pkas_fit(matched_df, d_stats, save_to)
 
     return

@@ -20,7 +20,7 @@ Cli parser with options:
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, Namespace
 from mcce_benchmark import BENCH, ENTRY_POINTS, SUB1, SUB2
-from mcce_benchmark import OUT_FILES, ANALYZE_DIR, RUNS_DIR
+from mcce_benchmark import FILES, ANALYZE_DIR, RUNS_DIR
 from mcce_benchmark import mcce_env
 from mcce_benchmark.cleanup import clear_folder
 from mcce_benchmark import pkanalysis, diff_mc, plots
@@ -72,26 +72,26 @@ def compare_runs(args:Union[dict, Namespace]):
     # 1. get collated sum_crg.out diff:
     logger.info(f"Calculating sum_crg diff file.")
 
-    sc1 = analyze1.joinpath(OUT_FILES.ALL_SUMCRG.value)
-    sc2 = analyze2.joinpath(OUT_FILES.ALL_SUMCRG.value)
-    tsv_fp = out_dir.joinpath(OUT_FILES.ALL_SUMCRG_DIFF.value)
+    sc1 = analyze1.joinpath(FILES.ALL_SUMCRG.value)
+    sc2 = analyze2.joinpath(FILES.ALL_SUMCRG.value)
+    tsv_fp = out_dir.joinpath(FILES.ALL_SUMCRG_DIFF.value)
 
     diff_mc.get_diff(sc1, sc2, save_to_tsv=tsv_fp)
 
     # 2. get pkas to dict from all_pkas1, all_pkas2 & match pkas:
     logger.info(f"Matching the pkas and saving list to csv file.")
 
-    d1 = from_pickle(analyze1.joinpath(OUT_FILES.JOB_PKAS.value))
-    d2 = from_pickle(analyze2.joinpath(OUT_FILES.JOB_PKAS.value))
+    d1 = from_pickle(analyze1.joinpath(FILES.JOB_PKAS.value))
+    d2 = from_pickle(analyze2.joinpath(FILES.JOB_PKAS.value))
 
     matched_pkas = pkanalysis.match_pkas(d1, d2)
-    matched_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS.value)
+    matched_fp = out_dir.joinpath(FILES.MATCHED_PKAS.value)
     pkanalysis.matched_pkas_to_csv(matched_fp, matched_pkas, kind=kind)
 
     # 3. get figure for matched residues analysis:
     logger.info(f"Plotting matched residues analysis -> pic.")
 
-    save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_PER_RES.value)
+    save_to = out_dir.joinpath(FILES.FIG_FIT_PER_RES.value)
     plots.plot_res_analysis(matched_pkas, save_to)
 
     # 4. matched pkas stats
@@ -106,14 +106,14 @@ def compare_runs(args:Union[dict, Namespace]):
     d_stats = pkanalysis.matched_pkas_stats(matched_df, subcmd=kind)
     logger.info(d_stats["report"])
     # pickle the dict:
-    pickle_fp = out_dir.joinpath(OUT_FILES.MATCHED_PKAS_STATS.value)
+    pickle_fp = out_dir.joinpath(FILES.MATCHED_PKAS_STATS.value)
     to_pickle(d_stats, pickle_fp)
 
     if isinstance(d_stats["fit"], str):
         logger.info("Data could not be fitted: no plot generated.")
     else:
         logger.info(f"Plotting pkas fit -> pic.")
-        save_to = out_dir.joinpath(OUT_FILES.FIG_FIT_ALLPKS.value)
+        save_to = out_dir.joinpath(FILES.FIG_FIT_ALLPKS.value)
         plots.plot_pkas_fit(matched_df, d_stats, save_to)
 
     return
