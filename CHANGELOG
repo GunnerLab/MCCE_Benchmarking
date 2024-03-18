@@ -1,4 +1,4 @@
-Cat Chenal (62):
+Cat Chenal (94):
       Wed, 27 Dec 2023 13:42:07 -0500 - Initial commit
       Wed, 3 Jan 2024 13:25:33 -0500 - chore: Initital upload - no data
       Thu, 4 Jan 2024 17:55:39 -0500 - feat: Update audit functions and sentinel files
@@ -61,4 +61,36 @@ Cat Chenal (62):
       Mon, 4 Mar 2024 15:34:44 -0500 - Update Install_and_Test
       Mon, 4 Mar 2024 15:39:37 -0500 - Add scipy as req
       Tue, 5 Mar 2024 19:29:51 -0500 - fix: Automated scheduling via crontab creation; Change name n_active -> n_batch
+      Tue, 5 Mar 2024 19:37:56 -0500 - Update changelog
+      Wed, 6 Mar 2024 14:56:19 -0500 - refactor: Remove pct_complete from cli args. Add as 1st step in pkanalysis.analyze_cli.
+      Wed, 6 Mar 2024 19:20:04 -0500 - chore: Gather most io fns into io_utils
+      Sun, 10 Mar 2024 10:50:17 -0400 - Global update before new EPs.
+      Sun, 10 Mar 2024 22:48:57 -0400 - BREAKING CHANGE: New end points.
+      Sun, 10 Mar 2024 23:08:26 -0400 - feat: Add validation to comparison.compare_runs
+      Mon, 11 Mar 2024 12:11:50 -0400 - feat: Add comparison with refset; Update docs
+      Mon, 11 Mar 2024 12:21:48 -0400 - Remove references to deprecated DEFAULT_DIR
+      Mon, 11 Mar 2024 12:40:52 -0400 - Fix awk cmd with f-str
+      Mon, 11 Mar 2024 12:52:12 -0400 - Fix typos
+      Mon, 11 Mar 2024 14:03:22 -0400 - Add launch opt to excluded list in args_all_default fn.
+      Mon, 11 Mar 2024 14:16:04 -0400 - Fix syntax errors.
+      Mon, 11 Mar 2024 14:22:47 -0400 - Fix typo in import
+      Mon, 11 Mar 2024 14:52:12 -0400 - Fix: Add -o arg to cli.
+      Mon, 11 Mar 2024 16:50:52 -0400 - Update docs.
+      Tue, 12 Mar 2024 23:29:26 -0400 - Update post debugging round.
+      Wed, 13 Mar 2024 17:17:33 -0400 - fix: Update crontab creation and logging
+      Wed, 13 Mar 2024 20:57:58 -0400 - Add n_completed to TP plot.
+      Thu, 14 Mar 2024 11:57:56 -0400 - Add mutually exclusive group in comparison cli.
+      Thu, 14 Mar 2024 15:28:05 -0400 - Fix diff_mc.diff to return A - B
+      Thu, 14 Mar 2024 19:55:42 -0400 - fix: Comparison processing, ref set position in plots.
+      Thu, 14 Mar 2024 21:32:01 -0400 - docs: Added flowcharts to readme.
+      Thu, 14 Mar 2024 21:33:41 -0400 - fix: Typos in readme.
+      Thu, 14 Mar 2024 21:42:09 -0400 - docs: Tweak readme.
+      Fri, 15 Mar 2024 13:31:12 -0400 - fix: Convert previous install doc into Installation.md
+      Fri, 15 Mar 2024 14:24:16 -0400 - fix: Remove superfluous code in batch_submit
+      Fri, 15 Mar 2024 15:03:42 -0400 - fix: Revert crontab creation to using all args
+      Fri, 15 Mar 2024 16:07:35 -0400 - Add batch_submit.py as executable
+      Sat, 16 Mar 2024 17:51:37 -0400 - Remove unused imports
+      Sun, 17 Mar 2024 13:58:36 -0400 - fix: Add paths for base and env in crontab f-string.
+      Sun, 17 Mar 2024 15:53:01 -0400 - fix: Finalize crontab creation.
+      Mon, 18 Mar 2024 08:22:23 -0400 - chore: Rename OUT_FILES enum FILES.
 

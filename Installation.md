@@ -85,7 +85,10 @@
        ```
 
   ### 3. Install mcce_benchmark (right now from GitHub, not yet published on pypa):
-  `(mce) >pip install git+https://github.com/GunnerLab/MCCE_Benchmarking.git#egg=mcce_benchmark`
+  ```
+  (mce) >pip install git+https://github.com/GunnerLab/MCCE_Benchmarking.git#egg=mcce_benchmark
+
+  ```
 
   #### 3.1 Check that the installation created the 4 cli commands:
   (The commands will NOT be available outside your environment.)
