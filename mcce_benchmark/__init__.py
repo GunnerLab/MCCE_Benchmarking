@@ -46,35 +46,35 @@ def get_conda_paths() -> tuple:
     conda = str(conda_path)
     if conda_path.name == "bin":
         # done
-        return conda, 
+        return conda,
     # else, assume "condabin", reset:
     return str(conda_path.parent.joinpath("bin")), conda
 
 
 ENTRY_POINTS = {"setup": "bench_setup",
-                "launch": "bench_launchjob", # used by crontab
+                "launch": "bench_batch", # used by crontab :: launch 1 batch
                 "analyze": "bench_analyze",
                 "compare": "bench_compare"}
 
 # bench_setup sub-commands, also used throughout:
 SUB1 = "pkdb_pdbs"
 SUB2 = "user_pdbs"
-SUB3 = "launch"
+SUB3 = "launch"   # :: schedule via crontab
 
 # user envir:
 USER_ENV = get_user_env()
 #CONDA_PATH = Path(shutil.which("conda")).parent
-CONDA_PATHS = get_conda_paths() 
-# full path of the launch_job command:
+CONDA_PATHS = get_conda_paths()
+# full path of the launch EP:
 LAUNCHJOB = shutil.which(ENTRY_POINTS["launch"])
 
 # output file names => <benchmarks_dir>/analysis/:
 class FILES(Enum):
     ALL_PKAS = "all_pkas.out"
-    ALL_PKAS_TSV = "all_pkas.tsv"  # no oob pkas
+    ALL_PKAS_TSV = "all_pkas.tsv"        # contains no oob pkas if ALL_PKAS_OOB exists
+    ALL_PKAS_OOB = "all_pkas_oob.tsv"    # out of bounds pKas
     ALL_SUMCRG = "all_sumcrg.out"
     ALL_SUMCRG_DIFF = "all_smcrg_diff.tsv"
-    ALL_PKAS_OOB = "all_pkas_oob.tsv"    # out of bounds pKas
     JOB_PKAS = "job_pkas.pickle"         # pickled dict
     CONF_COUNTS = "conf_counts.tsv"
     RES_COUNTS = "res_counts.tsv"
@@ -83,7 +83,6 @@ class FILES(Enum):
     CONFS_THRUPUT = "confs_throughput.tsv"
     FIG_CONFS_TP = "confs_throughput.png"
     VERSIONS = "versions.txt"
-    # only with SUB1: until equivalent are setup for comparison of 2 sets
     MATCHED_PKAS = "matched_pkas.csv"
     MATCHED_PKAS_STATS = "matched_pkas_stats.pickle" # pickled dict
     PKAS_STATS = "pkas_stats.csv"

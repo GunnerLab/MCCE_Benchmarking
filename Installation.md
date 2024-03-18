@@ -97,8 +97,8 @@
   (mce) >which bench_setup
   >>~/miniconda3/envs/mce/bin/bench_setup
 
-  (mce) >which bench_launchjob
-  >>~/miniconda3/envs/mce/bin/bench_launchjob
+  (mce) >which bench_batch
+  >>~/miniconda3/envs/mce/bin/bench_batch
 
   (mce) >which bench_analyze
   >>~/miniconda3/envs/mce/bin/bench_analyze

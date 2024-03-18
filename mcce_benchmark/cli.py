@@ -16,7 +16,7 @@ Main entry point: "bench_setup"
     using the user's pdbs & job_name_run.sh script.
 
  3. "launch"
-    Sub-command for launching a batch of jobs.
+    Sub-command for scheduling the processing of the set.
     Can be by-passed if 1. or 2. have the --launch flag
 """
 
@@ -58,9 +58,9 @@ Sub-command for setting up <bench_dir>/RUNS folder using user's pdb_list
 >{CLI_NAME} {SUB2} -bench_dir <folder name>
 """
 
-HELP_3 = f"""Sub-command for launching the automated scheduling of runs in batches; e.g.:
+HELP_3 = f"""Sub-command for scheduling the processing of the set in batches; e.g.:
 >{CLI_NAME} {SUB3} -bench_dir <folder name> -n_batch 15
-Note: if provided, the value for the -job_name option must match the one used in `setup_job`.
+Note: if provided, the value for the -job_name option must match the one used in `bench_setup [pkdb_pdbs, user_pdbs]`.
 """
 
 DESC = f"""
@@ -71,7 +71,7 @@ or the user's pdbs list.
 The main command is {CLI_NAME} along with one of 2 sub-commands:
 - Sub-command 1: {SUB1}: setup the dataset and run script to run mcce steps 1 through 4;
 - Sub-command 2: {SUB2}: setup the user dataset and run script to run mcce steps 1 through 4;
-- Sub-command 3: {SUB3}: delete any existing sentinel_file & launch the scheduled runs in batches;
+- Sub-command 3: {SUB3}: delete any existing sentinel_file & launch the cron-scheduled batch runs;
 """
 
 EPI = f"""
@@ -96,7 +96,7 @@ Examples:
    - Using non-default option(s) (then job_name is required! ):
      >{CLI_NAME} {SUB2} -bench_dir <folder path> -pdb_list <path> -d 8 -job_name <job_e8>
 
-3. {SUB3}: Launch runs:
+3. {SUB3}: Launch the scheduled processing:
    - Minimal input: value for -bench_dir option: IFF no non-default job_name & sentinel_file were passed in {SUB1}
      >{CLI_NAME} {SUB3} -bench_dir <folder path>
 

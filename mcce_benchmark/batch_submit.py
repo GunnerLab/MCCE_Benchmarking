@@ -253,7 +253,7 @@ def batch_parser():
 
 def launch_cli(argv=None):
     """
-    Command line interface for MCCE benchmarking entry point 'bench_launchjob'.
+    Command line interface for MCCE benchmarking entry point 'bench_batch'.
     Launch one batch of size args.n_batch.
     """
 

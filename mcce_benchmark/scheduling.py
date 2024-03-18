@@ -34,10 +34,6 @@ def create_single_crontab(args: Namespace,
     If debug: return crontab_text w/o creating the crontab.
     """
 
-    # fails on server:
-    #SINGLE_CRONTAB = """PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:
-#* * * * * {}/conda activate {}; bench_launchjob -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"""
-
     PATH_1 = "PATH={}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\n"
     PATH_2 = "PATH={}:{}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\n"
     SCHED = "* * * * * source {}/activate {}; {} -bench_dir {} -job_name {} -n_batch {} -sentinel_file {}"

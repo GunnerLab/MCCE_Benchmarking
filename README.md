@@ -103,6 +103,26 @@ flowchart LR
 ```
   * Note: The flag `--dir2_is_refset` indicates that 'dir2' is the _name_ of a packaged reference dataset, currently 'parse.e4' (pH titrations using the pKaDBv1 pdbs.); without it, dir2 is a path.
 
+
+### Notes on processing:
+
+In the flowcharts above, 'launch' means starting the batch-processing of the entire set (via creation of a crontab entry). 
+In case there is a problem with the automated scheduling, the processing can still be done 'batch by batch' at the command  
+line using the entry point for batching (which is what the crontab uses):
+```
+# After activating the conda env where MCCE_Benchmarking is installed:
+#  Provide -job_name if your script setup was not default
+#  The batch size can be changed every time the cli is called:
+
+(env) >bench_batch -bench_dir ./A -n_batch 15
+
+
+# Monitor the state of processing via the 'bookkeeping' file:
+
+(env) >cat ./A/RUNS/book.txt
+
+# Repeat until the entire set is processed.
+```
 ---
 
 # Details
@@ -169,7 +189,7 @@ Entry points available at the command line:
   - Sub-command 2: 'user_pdbs': setup data folders using the pdbs provided via -pdbs_list option
   - Sub-command 3: 'launch': launch all the jobs via automated scheduling (crontab);
 
- 2. `bench_launchjob` used to launch one batch of size n_batch
+ 2. `bench_batch` used to launch one batch of size n_batch
     Note: This is a convenience entry point that is used in the crontab (scheduler);
 
  3. `bench_analyze` along with one of 2 sub-commands:
