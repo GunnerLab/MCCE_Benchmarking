@@ -59,7 +59,7 @@ ENTRY_POINTS = {"setup": "bench_setup",
 # bench_setup sub-commands, also used throughout:
 SUB1 = "pkdb_pdbs"
 SUB2 = "user_pdbs"
-SUB3 = "launch"   # :: schedule via crontab
+SUB3 = "launch"   # :: crontab job scheduler step of setup.
 
 # user envir:
 USER_ENV = get_user_env()

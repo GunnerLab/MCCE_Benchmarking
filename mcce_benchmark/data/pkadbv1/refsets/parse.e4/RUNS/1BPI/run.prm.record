@@ -1,4 +1,4 @@
-#STEP1: 2024/0201, 10:39:26
+#STEP1: 2024/0318, 11:59:00
 step0_out.pdb           (INPDB)
 t                       (DO_PREMCCE)
 /home/mcce/Stable-MCCE    (MCCE_HOME)
@@ -9,7 +9,7 @@ t                       (TERMINALS)
 t                       (IGNORE_INPUT_H)
 /home/mcce/Stable-MCCE/name.txt    (RENAME_RULES)
 4.0                     (EPSILON_PROT)
-#STEP2: 2024/0201, 10:39:26
+#STEP2: 2024/0318, 11:59:01
 t                       (DO_ROTAMERS)
 t                       (MS_GOLD_OUT)
 /home/mcce/Stable-MCCE    (MCCE_HOME)
@@ -52,7 +52,7 @@ f                       (PACK)
 2.0                     (PRUNE_RMSD)
 2.0                     (PRUNE_ELE)
 2.0                     (PRUNE_VDW)
-#STEP3: 2024/0201, 10:39:30
+#STEP3: 2024/0318, 11:59:04
 /home/mcce/Stable-MCCE    (MCCE_HOME)
 t                       (DO_ENERGY)
 delphi                  (PBE_SOLVER)
@@ -69,7 +69,7 @@ t                       (DELPHI_CLEAN)
 /tmp                    (PBE_FOLDER)
 1                       (PBE_START)
 99999                   (PBE_END)
-#STEP4: 2024/0215, 13:32:36
+#STEP4: 2024/0318, 12:01:12
 /home/mcce/Stable-MCCE    (MCCE_HOME)
 t                       (DO_MONTE)
 /home/mcce/Stable-MCCE/extra.tpl    (EXTRA)

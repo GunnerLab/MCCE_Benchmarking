@@ -11,7 +11,7 @@ from pathlib import Path
 import shutil
 
 
-def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None) -> None:
+def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None, del_original_pdb:bool=True) -> None:
     """Delete all MCCE output files or folders from a MCCE run folder;
     Only keep files in files_to_keep if not None.
     Note: All subfolders within `mcce_dir` are automatically deleted.
@@ -34,15 +34,15 @@ def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None) -> None:
         else:
             if fp.name in check_list:
                 fp.unlink()
-            #else:
-            #    # delete original pdb file:
-            #    if fp.name == f"{folder.name.lower()}.pdb":
-            #        fp.unlink()
-
+            else:
+                if del_original_pdb:
+                    # delete original pdb file:
+                    if fp.name == f"{folder.name.lower()}.pdb" or fp.name == f"{folder.name.lower()}_A1.pdb":
+                        fp.unlink()
     return
 
 
-def prep_refset(bench_dir:str, keep_files:list=None) -> None:
+def prep_refset(bench_dir:str, keep_files:list=None, del_original_pdb:bool=True) -> None:
     """
     ASSUME 'standard' structure: <bench_dir>/RUNS_DIR
     Delete all MCCE output files that are not in the 'keep_files' list.
@@ -57,7 +57,7 @@ def prep_refset(bench_dir:str, keep_files:list=None) -> None:
 
     for fp in pdbs.iterdir():
         if fp.is_dir():
-            delete_mcce_outputs(fp, files_to_keep=keep_files)
+            delete_mcce_outputs(fp, files_to_keep=keep_files, del_original_pdb=del_original_pdb)
         else:
             print(f"{fp = }: remaining")
 
