@@ -163,8 +163,21 @@ def setup_expl_runs(bench_dir:str, n_pdbs:int) -> None:
         if not p.exists():
             shutil.copy(BENCH.BENCH_PDBS.joinpath(v), p)
 
+        ## also copy full if prot is multi:
+        #if p.name.startswith(f"{d.name.lower()}_"):
+        #    if not d.joinpath(f"{d.name.lower()}.pdb.full").exists():
+        #        try:
+        #            shutil.copy(BENCH.BENCH_PDBS.joinpath(f"{d.name}",
+        #                                                  f"{d.name.lower()}.pdb.full"),
+        #                        d)
+        #            logger.info(f"Copied .pdb.full for {d.name}")
+        #        except Exception as e:
+        #            logger.exception(f".pdb.full not found for {d.name}?", e)
+        #            raise
+
         # cd to avoid links with long names:
         os.chdir(d)
+
         prot = Path("prot.pdb")
         try:
             prot.symlink_to(p.name)
@@ -173,6 +186,7 @@ def setup_expl_runs(bench_dir:str, n_pdbs:int) -> None:
                 prot.unlink()
                 prot.symlink_to(p.name)
                 logger.info(f"Reset soft-linked pdb to prot.pdb for {d.name}")
+
         os.chdir("../") #d.parent)
 
     os.chdir(curr)

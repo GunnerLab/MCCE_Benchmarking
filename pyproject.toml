@@ -38,6 +38,7 @@ classifiers = [
 
 requires-python = ">=3.10"
 dependencies = [
+    "prompt_toolkit",
     "numpy",
     "scipy",
     "pandas",
@@ -57,6 +58,7 @@ find = {}
 "mcce_benchmark.data" = ["*.txt", "*.tsv", "*.csv", "*.pdb", "*.sh"]
 
 [project.scripts]
+ibench = "mcce_benchmark.interactive:main"
 bench_setup = "mcce_benchmark.cli:bench_cli"
 # bench_batch used in crontab, submits 1 batch of size n_batch:
 bench_batch = "mcce_benchmark.batch_submit:launch_cli"
