@@ -94,10 +94,10 @@ sleep 10
 ### Additional, required command line options
   1. `-job_name`
   2. `-sentinel_file`: it is "pK.out" if you are running step4, here it must be "step2_out.pdb"
-  3.  The "off switch" for steps 3 and 4: `-s3_norun True` and `-s4_norun True`
+  3.  The "off switch" for steps 3 and 4: `--s3_norun` and `--s4_norun`
   4. `-u`: Accepts all "not often used" parameters, e.g. to add a membrane
 
-The fullly specified command line for this task is the following (press Enter to run it):
+The fully specified command line for this task is the following (press Enter to run it):
 ```
 (mce) >bench_setup user_pdbs -bench_dir ./S12M -pdbs_list ./pdblist -job_name s12m -sentinel_file step2_out.pdb --s3_norun --s4_norun -u IPECE_ADD_ME=t,IPECE_MEM_THICKNESS=28
 
@@ -184,7 +184,7 @@ FRAME20   c
 
 ```
 
-If all the folders listed in the book file have a state of 'c' (complete) or 'e' (error): they all have bee processed.  
+If all the folders listed in the book file have a state of 'c' (complete) or 'e' (error): they all have been processed.  
 You can list one of them to verify that no mcce output file for step3 or step4 was created.
 
 
