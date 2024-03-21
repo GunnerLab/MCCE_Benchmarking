@@ -86,11 +86,11 @@ cli_to_mcce_opt = {"wet":"dry",
 
 # cli defaults per step; convenience dict to see where opts go:
 defaults_per_step = {
-"s1": {"wet":False, "noter":False, "d":4.0, "s1_norun":False, "u":""},
-"s2": {"conf_making_level":1, "d":4.0, "s2_norun":False, "u":""},
-"s3": {"c":[1, 99999], "x":"delphi", "f":"/tmp", "p":1, "r":False,
+"s1": {"e":"mcce", "wet":False, "noter":False, "d":4.0, "s1_norun":False, "u":""},
+"s2": {"e":"mcce", "conf_making_level":1, "d":4.0, "s2_norun":False, "u":""},
+"s3": {"e":"mcce", "c":[1, 99999], "x":"delphi", "f":"/tmp", "p":1, "r":False,
        "d":4.0, "s3_norun":False, "u":""},
-"s4": {"titr_type":"ph", "i":0.0, "interval":1.0, "n":15, "ms":False,
+"s4": {"e":"mcce", "titr_type":"ph", "i":0.0, "interval":1.0, "n":15, "ms":False,
        "s4_norun":False, "u":""},
 }
 # combined:
@@ -135,7 +135,7 @@ def populate_custom_template(job_args:Namespace) -> str:
 
     d_args = cli_args_to_dict(job_args)
     d_all = {}
-    # note: trailing spaces needed:
+    # note: trailing spaces needed
     # special cases:
     v = d_args.pop("wet")
     d_all["wet"] = "" if v else "--dry "

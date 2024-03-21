@@ -42,18 +42,20 @@ drwxrwxr-x  6 muddin muddin 4.0K Mar 19 01:44 frame60/
 (mce) >mkdir ./pdblist
 ```
 
-## 3. Soft-link the selected pdbs into ./pdblist (the pdbs in the frame folders all have the same names):
+## 3. Copy the selected pdbs into ./pdblist with a unique name:
 ```
-# example with frame0/:
+# examples:
 
-(mce) >ln -s frame0/pqrse.pdb ./pdblist/frame0.pdb
+(mce) >cp frame0/pqrs.pdb ./pdblist/frame0.pdb
+(mce) >cp frame10/pqrs.pdb ./pdblist/frame10.pdb
 
 ```
 
-## 4. Once your selection is complete, list the ./pdblist/ folder (using `ls -l` allows you the see the source of each soft-linked file):
+## 4. Once your selection is complete, list the ./pdblist/ folder for inspection:
 ```
 (mce) >ls -l ./pdblist/
-lrwxrwxrwx2 muddin muddin     25 Mar 20 16:53 frame0.pdb -> ../frame0/pqrse.pdb
+rwxrwxrwx2 muddin muddin     25 Mar 20 16:53 frame0.pdb
+rwxrwxrwx2 muddin muddin     25 Mar 20 16:53 frame10.pdb
 #[...]
 ```
 
@@ -139,7 +141,7 @@ sleep 10
 ```
 <br>
 
-**Dev TODO**: For `ibench`: Make `-u` step-specific
+**Dev TODO**: For `ibench`: Make `-u` step-specific => mapping of keys per step needed.
 
 
 ### Launch the mcce runs in batches using `bench_batch` (default batch size is 10):

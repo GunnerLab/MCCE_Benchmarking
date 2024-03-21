@@ -58,7 +58,6 @@ def setup_user_runs(args:Namespace) -> None:
     - Soft-link the relevant pdb as "prot.pdb";
     - Create a "queue book" and default script files in <bench_dir>/RUNS;
     """
-    # args: "-bench_dir", "-pdbs_list", "-job_name", + script args
 
     bench_dir = Path(args.bench_dir)
     curr = Path.cwd()
@@ -90,6 +89,10 @@ def setup_user_runs(args:Namespace) -> None:
         runs_dir.mkdir()
 
     for i, fp in enumerate(pdbs_lst):
+        if fp.is_symlink():
+            logger.error("Cannot use a linked file as pdb source.")
+            raise TypeError("Cannot use a linked file as pdb source.")
+        
         pname = fp.stem
         # create pdb dir:
         pd = runs_dir.joinpath(pname.upper())
@@ -98,7 +101,7 @@ def setup_user_runs(args:Namespace) -> None:
 
         fp_dest = pd.joinpath(fp.name)
         if not fp_dest.exists():
-            shutil.copy(fp, fp_dest)
+            shutil.copy(fp, fp_dest, follow_symlinks=False)
 
         # cd to avoid links with long names:
         os.chdir(pd)

@@ -43,7 +43,7 @@
           - pylint
           - flake8
         ```
-</details>
+    </details>
 
   ### 2. Create a dedicated environment for all things mcce:
     - e.g. 'mce'
@@ -129,7 +129,7 @@ Note: `bench_setup` creates the run script with the command line options for the
     (mce) >bench_setup pkdb_pdbs -bench_dir <some/dir>  # -bench_dir is a required arg
     
     ```
-    
+ 
     You can limit the number of curated proteins (folder) to setup using `-n_pdbs`.
     Give a low number for testing (max is 120, default):
     ```sh
