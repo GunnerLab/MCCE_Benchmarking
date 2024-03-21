@@ -90,10 +90,6 @@ step4.py --norun
 
 sleep 10
 ```
-<br>
-
-**Dev TODO**: The norun lines could be deleted.
-
 
 ### Additional, required command line options
   1. `-job_name`
@@ -103,13 +99,9 @@ sleep 10
 
 The fullly specified command line for this task is the following (press Enter to run it):
 ```
-(mce) >bench_setup user_pdbs -bench_dir ./S12M -pdbs_list ./pdblist -job_name s12m -sentinel_file step2_out.pdb -s3_norun True -s4_norun True -u IPECE_ADD_ME=t,IPECE_MEM_THICKNESS=28
+(mce) >bench_setup user_pdbs -bench_dir ./S12M -pdbs_list ./pdblist -job_name s12m -sentinel_file step2_out.pdb --s3_norun --s4_norun -u IPECE_ADD_ME=t,IPECE_MEM_THICKNESS=28
 
 ```
-<br>
-
-**Dev TODO**: Change the steps' norun option to true flag, e.g. `--s4_norun` (no value required, presence mean True).
-
 
 ### Inspect the setup folder `S12M`:
 ```
@@ -147,7 +139,7 @@ sleep 10
 ```
 <br>
 
-**Dev TODO**: Don't add `-u` with `--norun` (if norun lines are kept)
+**Dev TODO**: For `ibench`: Make `-u` step-specific
 
 
 ### Launch the mcce runs in batches using `bench_batch` (default batch size is 10):

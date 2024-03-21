@@ -38,9 +38,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 info_fh = Path("benchmark.info")
-if not info_fh.exists():
-    with open(info_fh, "w") as fh:
-        fh.writelines(LOG_HDR)
+if info_fh.exists():
+    info_fh.unlink()
+with open(info_fh, "w") as fh:
+    fh.writelines(LOG_HDR)
 #.......................................................................
 
 CLI_NAME = ENTRY_POINTS["setup"] # as per pyproject.toml entry point
@@ -290,27 +291,27 @@ def bench_parser():
     )
     # norun option for each steps:
     cp.add_argument(
-        "-s1_norun",
+        "--s1_norun",
         default = False,
-        type = bool,
+        action = "store_true",
         help = "Create run.prm without running step 1."
     )
     cp.add_argument(
-        "-s2_norun",
+        "--s2_norun",
         default = False,
-        type = bool,
+        action = "store_true",
         help = "Create run.prm without running step 2."
     )
     cp.add_argument(
-        "-s3_norun",
+        "--s3_norun",
         default = False,
-        type = bool,
+        action = "store_true",
         help = "Create run.prm without running step 3."
     )
     cp.add_argument(
-        "-s4_norun",
+        "--s4_norun",
         default = False,
-        type = bool,
+        action = "store_true",
         help = "Create run.prm without running step 4."
     )
     # steps 1-3:
@@ -353,8 +354,8 @@ def bench_parser():
     cp.add_argument(
         "-r",
         default = False,
-        help = "Refresh opp files and head3.lst without running Delphi",
-        action = "store_true"
+        action = "store_true",
+        help = "Refresh opp files and head3.lst without running Delphi"
     )
     #step4.py --xts {titr_type} {i} {interval} {n} {ms} {s4_norun} {u}
     cp.add_argument(
