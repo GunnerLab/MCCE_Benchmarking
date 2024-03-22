@@ -59,10 +59,10 @@ sleep 10
 # for custom script:
 SH_TEMPLATE = """#!/bin/bash
 
-step1.py prot.pdb {wet}{noter}{d}{s1_norun}{u}
-step2.py {conf_making_level}{d}{s2_norun}{u}
-step3.py {c}{x}{f}{p}{r}{d}{s3_norun}{u}
-step4.py --xts {titr_type}{i}{interval}{n}{ms}{s4_norun}{u}
+step1.py prot.pdb {wet}{noter}{d}{s1_norun}{e}{u}
+step2.py {conf_making_level}{d}{s2_norun}{e}{u}
+step3.py {c}{x}{f}{p}{r}{d}{s3_norun}{e}{u}
+step4.py --xts {titr_type}{i}{interval}{n}{ms}{s4_norun}{e}{u}
 
 sleep 10
 """

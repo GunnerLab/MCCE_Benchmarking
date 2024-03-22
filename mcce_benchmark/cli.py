@@ -107,6 +107,8 @@ Examples:
         then the 'norun' script parameters for step 3 & 4 must be set accordingly:
         >{CLI_NAME} {SUB3} -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun
 
+......................................................................................................
+
 """
 
 
@@ -242,7 +244,7 @@ def bench_parser():
     p = ArgumentParser(
         prog = f"{CLI_NAME} ",
         description = DESC,
-        usage = USAGE,
+        #usage = USAGE,
         formatter_class = RawDescriptionHelpFormatter,
         epilog = EPI,
     )
@@ -268,7 +270,13 @@ def bench_parser():
         this file is 'pK.out', while when running only the first 2 [future implementation], this file is 'step2_out.pdb'; default: %(default)s.
         """
     )
-    #step1.py prot.pdb {wet} {noter} {d} {s1_norun} {u}
+    cp.add_argument(
+        "-e",
+        metavar = "/path/to/mcce",
+        default = "mcce",
+        help = "mcce executable location; default: %(default)s."
+    )
+    #step1.py prot.pdb {wet} {noter} {d} {s1_norun} {u} {e}
     cp.add_argument(
         "-wet",
         type = bool,
@@ -321,13 +329,13 @@ def bench_parser():
         default = 4.0,
         help = "protein dielectric constant for delphi; %(default)s."
     )
-    #step2.py {conf_making_level} {d} {s2_norun} {u}
+    #step2.py {conf_making_level} {d} {s2_norun} {u} {e}
     cp.add_argument(
         "-conf_making_level",
         type = int,
         default = 1,
         help = "conformer level 1: quick, 2: medium, 3: comprehensive; default: %(default)s.")
-    #step3.py {c} {x} {f} {p} {r} {d} {s3_norun} {u}
+    #step3.py {c} {x} {f} {p} {r} {d} {s3_norun} {u} {e}
     cp.add_argument(
         "-c", metavar=('start','end'),
         type=int,
@@ -357,7 +365,7 @@ def bench_parser():
         action = "store_true",
         help = "Refresh opp files and head3.lst without running Delphi"
     )
-    #step4.py --xts {titr_type} {i} {interval} {n} {ms} {s4_norun} {u}
+    #step4.py --xts {titr_type} {i} {interval} {n} {ms} {s4_norun} {u} {e}
     cp.add_argument(
         "-titr_type", metavar="ph or eh",
         type = str,
@@ -504,6 +512,7 @@ def bench_cli(argv=None):
     """
 
     cli_parser = bench_parser()
+
     args = cli_parser.parse_args(argv)
     args.func(args)
 
