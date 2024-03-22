@@ -108,25 +108,21 @@ flowchart LR
 ### Notes on processing:
 
 In the flowcharts above, 'launch' means starting the batch-processing of the entire set (via creation of a crontab entry). 
-In case there is a problem with the automated scheduling, the processing can still be done 'batch by batch' at the command  
-line using the entry point for batching (which is what the crontab uses):
+In case there is a problem with the automated scheduling, the processing can still be done 'batch by batch' at the command line using the entry point for batching (which is what the crontab uses).  
+After activating the conda env where MCCE_Benchmarking is installed, provide -job_name if your script setup was not default:
 ```
-# After activating the conda env where MCCE_Benchmarking is installed:
-#  Provide -job_name if your script setup was not default
 #  The batch size can be changed every time the cli is called:
-```
-(env) >bench_batch -bench_dir ./A -n_batch 15
 
-```
+(env) >bench_batch -bench_dir ./A -n_batch 15
 
 # Monitor the state of processing via the 'bookkeeping' file:
 
-```
 (env) >cat ./A/RUNS/book.txt
 
 # Repeat until the entire set is processed.
 
 ```
+
 ---
 
 # Details
@@ -146,7 +142,6 @@ line using the entry point for batching (which is what the crontab uses):
   │           └── RUNS/
 
 ```
-
 
 ## Experimental pKas data source
 The original data comes from [Dr. Emil Axelov's pKa Database (1)](http://compbio.clemson.edu/lab/software/5/). The list for wild types and mutants alike was further curated by Dr. Junjun Mao at the Gunner Lab at CCNY to
@@ -183,7 +178,6 @@ The split files are kept (named 'modelnn.pdb'), but now the pdb to be used as 'p
 ## Command line interface (cli):
 #### Description:
 ```
-Description:
 Launch a MCCE benchmarking job using either the curated structures from the pKaDBv1
 or the user's pdbs list.
 
@@ -205,11 +199,10 @@ Entry points available at the command line:
              a set of runs with a packaged reference dataset, currently "parse.e4").
 
   (mce) >bench_compare -dir1 < d1> dir2 parse.e4 --dir2_is_refset -o ./output/dir/path	
-
 ```
 
 #### Usage:
-```
+
 Examples for `bench_setup`: <+ 1 sub-command: pkdb_pdbs or user_pdbs or launch > <related args>\n
 ```
 
@@ -224,7 +217,6 @@ usage: bench_setup user_pdbs [-h] -bench_dir BENCH_DIR [-pdbs_list PDBS_LIST] [-
                              [-conf_making_level CONF_MAKING_LEVEL] [-c start end] [-x /path/to/delphi] [-f tmp folder]
                              [-p processes] [-r] [-titr_type ph or eh] [-i initial ph/eh]
                              [-interval interval] [-n steps] [--ms] [-e /path/to/mcce] [-u Key=Value] [--launch]
- 
 ```
 
 1. pkdb_pdbs: Data & script setup using pkDBv1 pdbs:
@@ -242,7 +234,6 @@ usage: bench_setup user_pdbs [-h] -bench_dir BENCH_DIR [-pdbs_list PDBS_LIST] [-
      ```
      >bench_setup user_pdbs -bench_dir <folder path> -pdb_list <path to dir with pdb files OR file listing pdbs paths>
      ```
-
    - Using non-default option(s) (then job_name is required! ):
      ```
      >bench_setup user_pdbs -bench_dir <folder path> -pdb_list <path> -d 8 -job_name <job_e8>
@@ -261,47 +252,39 @@ usage: bench_setup launch [-h] -bench_dir BENCH_DIR [-job_name JOB_NAME] [-n_bat
     ```
     >bench_setup launch -bench_dir <folder path>
     ```
-
   - Using non-default option(s):
     ```
     >bench_setup launch -bench_dir <folder path> -n_batch <jobs to maintain>
-
     ```
     Note: if changing the default sentinel_file="pk.out" to, e.g. step2_out.pdb,
           then the 'norun' script parameters for step 3 & 4 must be set accordingly:
           `>bench_setup launch -bench_dir <folder path> -sentinel_file step2_out.pdb --s3_norun --s4_norun`
-
 
 4. Examples for `bench_analyze` (intra set analysis):
 ```
 usage: bench_analyze pkdb_pdbs [-h] -bench_dir BENCH_DIR
 
 usage: bench_analyze user_pdbs [-h] -bench_dir BENCH_DIR
-
 ```
 
 5. Examples for `bench_compare` (inter sets analysis):
 ```
 usage: bench_compare  [-h] -dir1 DIR1 -dir2 DIR2 [--user_pdbs | --dir2_is_refset] -o O
-
 ```
 
 1. Without flag `--pkdb_pdbs` means the 2 sets were created with `user_pdbs`
 ```
 >bench_compare -dir1 <path to set 1> -dir2 <path to set 2> -o <comp>
-
 ```
 
 2. With flag `--pkdb_pdbs` means the 2 sets were created with `pkdb_pdbs`:
 ```
 >bench_compare -dir1 <path to set 1> -dir2 <path to set 2> -o <comp>
-
 ```
 
 3. With flag `--dir2_is_refset`: indicates that dir2 is a refset name; If used, `--pkdb_pdbs` must also be present.
 ```
 >bench_compare -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset -o <comp>
-
 ```
 
 ---
