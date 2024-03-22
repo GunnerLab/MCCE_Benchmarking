@@ -843,19 +843,12 @@ Output files:
     ALL_SUMCRG = "all_sumcrg.out"
     ALL_PKAS_OOB = "all_pkas_oob.tsv"    # out of bounds pKas
     JOB_PKAS = "job_pkas.pickle"                    # from dict
-
-# needed?
-# Same outputs created with sub-command {SUB1}, but for
-# USER_ ? or same names but will reside in -o folder?
-
     CONF_COUNTS = "conf_counts.tsv"
     RES_COUNTS = "res_counts.tsv"
     RUN_TIMES = "run_times.tsv"
     CONFS_PER_RES = "confs_per_res.tsv"
     CONFS_THRUPUT = "confs_throughput.tsv"
     FIG_CONFS_TP = "confs_throughput.png"
-
-    Also created with sub-command {SUB1}:
     MATCHED_PKAS = "matched_pkas.csv"
     MATCHED_PKAS_STATS = "matched_pkas_stats.pickle" # from dict
     PKAS_STATS = "pkas_stats.csv"
@@ -885,7 +878,7 @@ def analyze_parser():
     p = ArgumentParser(
         prog = f"{CLI_NAME} ",
         description = DESC,
-        usage = USAGE,
+        #usage = USAGE,
         formatter_class = RawDescriptionHelpFormatter,
         epilog = EPI,
     )

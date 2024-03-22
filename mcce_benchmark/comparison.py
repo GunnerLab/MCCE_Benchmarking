@@ -146,17 +146,17 @@ Options:
 Post an issue for all errors and feature requests at:
 https://github.com/GunnerLab/MCCE_Benchmarking/issues
 """
-USAGE = f""" >{CLI_NAME} -dir1 <d1> -dir2 <d2> [+ 2 flags]
+USAGE = f""" >{CLI_NAME} -dir1 <d1> -dir2 <d2> -o <output dir> [+ 2 flags]
 
 1. Without flag --pkdb_pdbs means the 2 sets were created with user_pdbs
-   >{CLI_NAME} -dir1 <path to set 1> -dir2 <path to set 2>
+   >{CLI_NAME} -dir1 <path to set 1> -dir2 <path to set 2> -o <comp>
 
-2. With flag --pkdb_pdbs means the 2 sets were created with pkdb_pdbs_pdbs:
-   >{CLI_NAME} -dir1 <path to set 1> -dir2 <path to set 2>
+2. With flag --pkdb_pdbs means the 2 sets were created with pkdb_pdbs:
+   >{CLI_NAME} -dir1 <path to set 1> -dir2 <path to set 2> -o <comp>
 
 3. With flag --dir2_is_refset: indicates that dir2 is a refset name;
    If used, --pkdb_pdbs must also be present.
-   >{CLI_NAME} -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset
+   >{CLI_NAME} -dir1 <d1> dir2 parse.e4 --pkdb_pdbs --dir2_is_refset -o <comp>
 """
 
 
@@ -173,7 +173,7 @@ def compare_parser():
     p = ArgumentParser(
         prog = f"{CLI_NAME} ",
         description = DESC,
-        usage = USAGE,
+        #usage = USAGE,
         formatter_class = RawDescriptionHelpFormatter,
     )
 
