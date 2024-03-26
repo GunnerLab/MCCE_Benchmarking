@@ -77,7 +77,8 @@ def collate_all_sumcrg(bench_dir:str, run_env:ENV, titr_type:str="ph") ->None:
     titr = hdr.strip().split()[0]
 
     ofs = '":"'
-    cmd = "awk 'BEGIN{OFS=" + ofs + "}{out = substr(FILENAME, length(FILENAME)-15, 4); print out, $0}' "
+    RUNS = '"/' + RUNS_DIR + '/"'
+    cmd = "awk 'BEGIN{OFS=" + ofs + "}{idx = index(FILENAME," + RUNS + ")+6; out = substr(FILENAME, idx, length(FILENAME)-11-idx); print out, $0}' "
     cmd = cmd + f"{d}/*/sum_crg.out | sed -e '/----------/d' -e '/  {titr}/d' > {d}/all_out; "
     cmd = cmd + f"sed '1 i\{hdr}' {d}/all_out > {all_out_s};"  # add header back
     cmd = cmd + f" /bin/rm {d}/all_out"
@@ -122,8 +123,8 @@ def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
     pko_hdr = f"PDB  resid@{titr}         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
     # offset = len("pk.out") + 4 = 10
     ofs = '":"'
-    RUNS = '"' + RUNS_DIR + '"'
-    cmd = "awk 'BEGIN{OFS=" + ofs + "}{idx = index(FILENAME," + RUNS + ")+5; out = substr(FILENAME, length(FILENAME)-6-idx); print out, $0}' "
+    RUNS = '"/' + RUNS_DIR + '/"'
+    cmd = "awk 'BEGIN{OFS=" + ofs + "}{idx = index(FILENAME," + RUNS + ")+6; out = substr(FILENAME, idx, length(FILENAME)-6-idx); print out, $0}' "
     cmd = cmd + f"{dirpath}/*/pK.out | sed '/total$/d' > {dirpath}/all_pkas; "
     cmd = cmd + f"sed '1 i\{pko_hdr}' {dirpath}/all_pkas > {all_out_s};"  # add header back
     cmd = cmd + f" /bin/rm {dirpath}/all_pkas"
@@ -150,7 +151,7 @@ def get_oob_mask(df):
 def all_pkas_df(path:str, titr_type:str="ph", reduced_ok=True) -> Union[pd.DataFrame, None]:
     """Load <bench_dir>/analysis/all_pkas.out into a pandas DataFrame;
     Return  a pandas.DataFrame or None upon failure.
-    Version of 'pkanalysis.fout_df' with pre-set 'all_pkas.out' file.
+    Version of 'pkanalysis.fout_df' pre-set for 'all_pkas.out' file.
 
     Args:
     path (str): Can be bench_dir or a file path.
@@ -219,7 +220,7 @@ def extract_oob_pkas(bench_dir:str):
     return
 
 
-def all_run_times_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
+def all_run_times_to_tsv(pdbs_dir:str, overwrite:bool=True) -> None:
     """Return mcce step times from run.log saved to a tab-separated file."""
 
     pdbs = Pathok(pdbs_dir)
@@ -273,7 +274,7 @@ def get_step2_count(step2_out_path:str, kind:str) -> int:
     return int(data.stdout.strip())
 
 
-def all_counts_to_tsv(pdbs_dir:str, kind:str, overwrite:bool=False) -> None:
+def all_counts_to_tsv(pdbs_dir:str, kind:str, overwrite:bool=True) -> None:
     """Save the count of items given by `kind` from step2_out.pdb in all subfolders
     of pdbs_dir to a tab-separated file; format: DIR \t n.
     """
@@ -314,7 +315,7 @@ def all_counts_to_tsv(pdbs_dir:str, kind:str, overwrite:bool=False) -> None:
     return
 
 
-def confs_per_res_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
+def confs_per_res_to_tsv(pdbs_dir:str, overwrite:bool=True) -> None:
     """Save conf per res to tsv. """
 
     pdbs = Pathok(pdbs_dir)
@@ -351,7 +352,7 @@ def confs_per_res_to_tsv(pdbs_dir:str, overwrite:bool=False) -> None:
     return
 
 
-def confs_throughput_to_tsv(pdbs_dir:str, overwrite:bool=False) -> pd.DataFrame:
+def confs_throughput_to_tsv(pdbs_dir:str, overwrite:bool=True) -> pd.DataFrame:
     """
     Obtain and save the average time & conformer throughput per step in a tab
     separated file, FILES.CONFS_THRUPUT.
