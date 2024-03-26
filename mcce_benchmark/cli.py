@@ -8,11 +8,11 @@ Main entry point: "bench_setup"
 
 + 3 sub-commands:
  1. "pkdb_pdbs"
-    Sub-command for setting up <bench_dir>/RUNS folder
+    Sub-command for setting up <bench_dir>/runs folder
     using the pdbs in pKaDBv1 & job_name_run.sh script.
 
  2. "user_pdbs"
-    Sub-command for setting up <bench_dir>/RUNS folder
+    Sub-command for setting up <bench_dir>/runs folder
     using the user's pdbs & job_name_run.sh script.
 
  3. "launch"
@@ -49,12 +49,12 @@ CLI_NAME = ENTRY_POINTS["setup"] # as per pyproject.toml entry point
 bench_default_jobname = BENCH.DEFAULT_JOB
 
 HELP_1 = f"""
-Sub-command for setting up <bench_dir>/RUNS folder & job_name_run.sh script, e.g.:
+Sub-command for setting up <bench_dir>/runs folder & job_name_run.sh script, e.g.:
 >{CLI_NAME} {SUB1} -bench_dir <folder name>
 """
 
 HELP_2 = f"""
-Sub-command for setting up <bench_dir>/RUNS folder using user's pdb_list
+Sub-command for setting up <bench_dir>/runs folder using user's pdb_list
 & job_name_run.sh script, e.g.:
 >{CLI_NAME} {SUB2} -bench_dir <folder name>
 """
@@ -125,7 +125,7 @@ def args_to_str(args:Namespace) -> str:
 def bench_job_setup(args:Namespace) -> None:
     """Benchmark cli function for sub-commands 1 and 2.
     Processing steps:
-     - Create args.bench_dir/RUNS folders.
+     - Create args.bench_dir/runs/ subfolders.
      - Write fresh book file
      - Write script for args.job_name
     """
@@ -252,6 +252,15 @@ def bench_parser():
     # COMMON parser: for SUB1:pkdb_pdbs and SUB2:user_pdbs subcmds
     cp = ArgumentParser(add_help=False)
 
+    cp.add_argument(
+        "-bench_dir",
+        required = True,
+        type = arg_valid_dirpath,
+        help = """The user's choice of directory for setting up the benchmarking job(s);
+        this is where the /runs subfolder is setup. The directory is created if it does not exists
+        unless this cli is called within that directory.
+        """
+    )
     cp.add_argument(
         "-job_name",
         type = str,
@@ -422,15 +431,6 @@ def bench_parser():
                                  parents=[cp]
                                  )
     sub1.add_argument(
-        "-bench_dir",
-        required = True,
-        type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
-        RUNS folder reside. The directory is created if it does not exists unless this cli is
-        called within that directory.
-        """
-    )
-    sub1.add_argument(
         "-n_pdbs",
         default = 120,
         type = int,
@@ -445,15 +445,6 @@ def bench_parser():
                                  formatter_class = RawDescriptionHelpFormatter,
                                  parents=[cp]
                                  )
-    sub2.add_argument(
-        "-bench_dir",
-        required = True,
-        type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
-        RUNS folder reside. The directory is created if it does not exists unless this cli is
-        called within that directory.
-        """
-    )
     sub2.add_argument(
         "-pdbs_list",
         type = arg_valid_dir_or_file,
@@ -472,9 +463,9 @@ def bench_parser():
         "-bench_dir",
         required = True,
         type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking job(s); this is where the
-        RUNS folder reside. The directory is created if it does not exists unless this cli is
-        called within that directory.
+        help = """The user's choice of directory for setting up the benchmarking job(s);
+        this is where the runs/ folder reside. The directory is created if it does not exists
+        unless this cli is called within that directory.
         """
     )
     sub3.add_argument(

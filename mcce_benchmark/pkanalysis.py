@@ -93,7 +93,7 @@ def collate_all_sumcrg(bench_dir:str, run_env:ENV, titr_type:str="ph") ->None:
 
 
 def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
-    """Collate all pK.out files from 'bench_dir'/RUNS, into analysis/ALL_PKAS.
+    """Collate all pK.out files from 'bench_dir'/runs, into analysis/ALL_PKAS.
        Retain the same fixed-witdth format => extension = ".out".
        This file can be loaded using either one of these functions:
          - pkanalysis.all_pkas_df(bench_dir)
@@ -122,7 +122,8 @@ def collate_all_pkas(bench_dir:str, titr_type:str="ph") ->None:
     pko_hdr = f"PDB  resid@{titr}         pKa/Em  n(slope) 1000*chi2      vdw0    vdw1    tors    ebkb    dsol   offset  pHpK0   EhEm0    -TS   residues   total"
     # offset = len("pk.out") + 4 = 10
     ofs = '":"'
-    cmd = "awk 'BEGIN{OFS=" + ofs + "}{out = substr(FILENAME, length(FILENAME)-10, 4); print out, $0}' "
+    RUNS = '"' + RUNS_DIR + '"'
+    cmd = "awk 'BEGIN{OFS=" + ofs + "}{idx = index(FILENAME," + RUNS + ")+5; out = substr(FILENAME, length(FILENAME)-6-idx); print out, $0}' "
     cmd = cmd + f"{dirpath}/*/pK.out | sed '/total$/d' > {dirpath}/all_pkas; "
     cmd = cmd + f"sed '1 i\{pko_hdr}' {dirpath}/all_pkas > {all_out_s};"  # add header back
     cmd = cmd + f" /bin/rm {dirpath}/all_pkas"
@@ -154,7 +155,7 @@ def all_pkas_df(path:str, titr_type:str="ph", reduced_ok=True) -> Union[pd.DataF
     Args:
     path (str): Can be bench_dir or a file path.
     titr_type (str, 'ph'): titration type, needed for formating; one of ['ph', 'eh', 'ch']
-    reduced_ok (bool, True): Load ALL_PKAS_TSV (with oob pkas processed out) if found, else
+    reduced_ok (bool, True): Load ALL_PKAS_TSV (with oob pkas processed out if found), else
                          load all_pkas.out (complete file)
     """
 
@@ -424,7 +425,7 @@ def job_pkas_to_dict(book_fpath:str) -> dict:
     instead of iterating over subfolders (which may not be there.)
 
     Origin: pkanalysis.py/read_calculated_pkas
-    Canonical dir struc: book_fpath points to <benchmark_dir>/RUNS/book.txt
+    Canonical dir struc: book_fpath points to <benchmark_dir>/runs/book.txt
     Uses <bench_dir>/analysis/all_pkas.out
     """
 
@@ -655,7 +656,6 @@ def res_outlier_count(matched_fp:str,
     Args:
     matched_fp (str): file path of matched pkas file;
     grp_by (str, "res"): one of ["res", "resid"];
-    save_to (str, None): DEPRECATE?
     replace (bool, False): To overwrite existing file;
     bounds (tuple, (0,14)): Default titration bounds.
     """
@@ -729,7 +729,7 @@ def analyze_runs(bench_dir:Path, subcmd:str):
     get_mcce_version(pdbs)
 
     logger.info(f"Collating pK.out and sum_crg.out files.")
-    collate_all_sumcrg(bench, env, titr_type=titr )
+    collate_all_sumcrg(bench, env, titr_type=titr)
     collate_all_pkas(bench, titr_type=titr)
 
     logger.info(f"Saving out of bounds pK values to tsv, if any.")
@@ -818,7 +818,7 @@ def user_pdbs_analysis(args:Union[dict,Namespace]) -> None:
 CLI_NAME = ENTRY_POINTS["analyze"] # as per pyproject.toml entry point
 
 HELP_1 = """Sub-command for analyzing a benchmarking set against the pKaDBv1
-using the same dataset and structure: <bench_dir>/RUNS folder."
+using the same dataset and structure: <bench_dir>/runs folder."
 """
 
 HELP_2 = f"""
@@ -899,7 +899,7 @@ def analyze_parser():
         "-bench_dir",
         required = True,
         type = arg_valid_dirpath,
-        help = """The user's directory where the RUNS folder reside.
+        help = """The user's directory where the /runs subfolder is setup.
         """
     )
     sub1.set_defaults(func=pkdb_pdbs_analysis)
@@ -911,7 +911,7 @@ def analyze_parser():
         "-bench_dir",
         required = True,
         type = arg_valid_dirpath,
-        help = """The user's directory where the RUNS folder reside.
+        help = """The user's directory where the /runs subfolder is setup.
         """
     )
     sub2.set_defaults(func=user_pdbs_analysis)

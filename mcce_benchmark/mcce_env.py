@@ -149,7 +149,7 @@ def get_mcce_env_dir(bench_dir:str,
 
     runs_dir = Path(bdir.joinpath(RUNS_DIR))
     for fp in runs_dir.iterdir():
-        if fp.is_dir and fp.name.isupper():
+        if fp.is_dir:
             return fp
 
     return

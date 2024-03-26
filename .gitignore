@@ -1,4 +1,5 @@
 # local stuff
+./mcce_benchmark/_version.py
 mcce_benchmark/_version.py  # as per setuptools_scm
 mcce_benchmark/future/      # code for future implementation
 mcce_benchmark/tests/data/ready_to_run_dir/*

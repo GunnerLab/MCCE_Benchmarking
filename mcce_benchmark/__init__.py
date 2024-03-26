@@ -91,7 +91,7 @@ class FILES(Enum):
     FIG_FIT_ALLPKS = "pkas_fit.png"
     FIG_FIT_PER_RES = "res_analysis.png"
 
-RUNS_DIR = "RUNS"
+RUNS_DIR = "runs"
 ANALYZE_DIR = "analysis"
 MCCE_EPS = 4   # default dielectric constant (epsilon) in MCCE
 N_BATCH = 10   # number of jobs to maintain in the process queue

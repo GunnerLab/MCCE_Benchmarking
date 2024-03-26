@@ -109,11 +109,11 @@ The fully specified command line for this task is the following (press Enter to 
 ```
 
 (mce) >ls -l S12M
-drwxr-xr-x 5 muddin muddin 4.0K Mar 17 13:42 RUNS/
+drwxr-xr-x 5 muddin muddin 4.0K Mar 17 13:42 runs/
 
 
-(mce) >ls -l S12M/RUNS
-drwxr-xr-x 5 muddin muddin 4.0K Mar 17 13:42 RUNS/
+(mce) >ls -l S12M/runs
+drwxr-xr-x 5 muddin muddin 4.0K Mar 17 13:42 runs/
 -rwxr-xr-x 5 muddin muddin   90 Mar  3 10:34 default_run.sh*
 -rwxr-xr-x 5 muddin muddin   87 Mar 17 13:42 s12m.sh*
 drwxr-xr-x 5 muddin muddin 4.0K Mar 17 13:51 FRAME0/
@@ -128,7 +128,7 @@ drwxr-xr-x 5 muddin muddin 4.0K Mar 17 13:55 FRAME20/
 (You could also modify it.)  
 ```
 
-(mce) >cat S12M/RUNS/s12m.sh
+(mce) >cat S12M/runs/s12m.sh
 #!/bin/bash
 
 step1.py prot.pdb --dry -u IPECE_ADD_ME=t,IPECE_MEM_THICKNESS=28
@@ -152,7 +152,7 @@ sleep 10
 (mce) >bench_batch -bench_dir ./S12M -job_name s12m -sentinel_file step2_out.pdb
 
 # monitor the bookkeeping file; a state of 'r' (running), means mcce has been launched in that folder:
-(mce) >cat S12M/RUNS/book.txt
+(mce) >cat S12M/runs/book.txt
 FRAME0    r
 FRAME10   r
 FRAME20   r
@@ -165,7 +165,7 @@ Wait a few minutes...
 (mce) >bench_batch -bench_dir ./S12M -job_name s12m -sentinel_file step2_out.pdb
 
 # book file, some runs show a completed state ('c'):
-(mce) >cat small/RUNS/book.txt
+(mce) >cat small/runs/book.txt
 FRAME0    c
 FRAME10   r
 FRAME20   c
@@ -178,7 +178,7 @@ Wait a few minutes...
 (mce) >bench_batch -bench_dir ./S12M -job_name s12m -sentinel_file step2_out.pdb
 
 # book file:
-(mce) >cat small/RUNS/book.txt
+(mce) >cat small/runs/book.txt
 FRAME0    c
 FRAME10   c
 FRAME20   c

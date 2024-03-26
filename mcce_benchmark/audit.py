@@ -30,7 +30,7 @@ def proteins_to_tsv(prot_file:str) -> list:
 
 # import class of files resources and associated constants:
 from mcce_benchmark import BENCH, RUNS_DIR
-from mcce_benchmark.io_utils import Pathok
+from mcce_benchmark.io_utils import Pathok, subprocess
 import logging
 import numpy as np
 import pandas as pd
@@ -362,7 +362,7 @@ def pdb_list_from_runs_folder(pdbs_dir:Path = BENCH.BENCH_PDBS) -> list:
 def prots_symdiff_runs(prot_tsv_file:Path=BENCH.BENCH_PROTS,
                        pdbs_dir:Path = BENCH.BENCH_PDBS) -> tuple:
     """Get the symmetric difference btw the list of usable proteins
-    and the RUNS/subfolders list.
+    and the runs/subfolders list.
     Return a tuple of lists: extra_dirs, missing_dirs.
     Package data management.
     """
@@ -394,7 +394,7 @@ def prots_symdiff_runs(prot_tsv_file:Path=BENCH.BENCH_PROTS,
 
 def update_data(prot_tsv_file:Path=BENCH.BENCH_PROTS,
                 pdbs_dir:Path = BENCH.BENCH_PDBS) -> None:
-    """Delete extra subfolders from RUNS when corresponding pdb is not
+    """Delete extra subfolders from runs/ when corresponding pdb is not
     in proteins.tsv.
     """
 
@@ -420,7 +420,7 @@ def update_data(prot_tsv_file:Path=BENCH.BENCH_PROTS,
 def same_pdbs_book_vs_runs() -> bool:
     """
     Compares the list of pdbs in the Q_BOOK with the list
-    obtained from the RUNS folder.
+    obtained from the runs/ folder.
     For managing packaged data.
     """
     book_pbs =  pdb_list_from_book()

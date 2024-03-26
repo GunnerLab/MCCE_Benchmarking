@@ -9,8 +9,8 @@ Functions:
 ----------
 * setup_pdbs_folder(bench_dir:str) -> None:
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `bench_dir`/RUNS,
-      or in user_pdbs_folder = `./RUNS` if called from within `bench_dir`;
+    - Create a copy of BENCH_PDBS (packaged data) in user_pdbs_folder = `bench_dir`/runs,
+      or in user_pdbs_folder = `./runs` if called from within `bench_dir`;
     - Soft-link the relevant pdb as "prot.pdb";
     - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH, respectively)
       in `user_pdbs_folder`;
@@ -18,7 +18,7 @@ Functions:
 
 * delete_sentinel(bench_dir:str, sentinel_file:str) -> None:
     Part of the job preparation for each new script.
-    Delete sentinel_file from 'bench_dir'/RUNS subfolders.
+    Delete sentinel_file from 'bench_dir'/runs subfolders.
 
 * write_run_script(job_name, steps_options_dict)
     Beta Phase : job_name = "default_run" (or soft link to 'default_run.sh' if different).
@@ -53,10 +53,10 @@ logger.setLevel(logging.INFO)
 
 def setup_user_runs(args:Namespace) -> None:
     """
-    - Create subfolders for the pdbs found in 'pdbs_list', which is a file or dir path,
-      in <bench_dir>/RUNS;
+    - Create subfolders for the pdbs found in args.pdbs_list, which is a file or dir path,
+      in <bench_dir>/runs;
     - Soft-link the relevant pdb as "prot.pdb";
-    - Create a "queue book" and default script files in <bench_dir>/RUNS;
+    - Create a "queue book" and default script files in <bench_dir>/runs;
     """
 
     bench_dir = Path(args.bench_dir)
@@ -132,11 +132,11 @@ def setup_user_runs(args:Namespace) -> None:
 def setup_expl_runs(bench_dir:str, n_pdbs:int) -> None:
     """
     Replicate current setup.
-    - Create a copy of BENCH_PDBS (packaged data) in <bench_dir>/RUNS, or a subset
+    - Create a copy of BENCH_PDBS (packaged data) in <bench_dir>/runs, or a subset
       of size (1, n_pdbs) if n_pdbs < 120.
     - Soft-link the relevant pdb as "prot.pdb";
     - Copy the "queue book" and default script files (BENCH.BENCH_Q_BOOK, BENCH.DEFAULT_JOB_SH)
-      in <bench_dir>/RUNS;
+      in <bench_dir>/runs;
     """
 
     bench_dir = Path(bench_dir)
@@ -207,7 +207,7 @@ def setup_expl_runs(bench_dir:str, n_pdbs:int) -> None:
 
 
 def delete_sentinel(bench_dir:str, sentinel_file:str) -> None:
-    """Delete sentinel_file from 'bench_dir'/RUNS subfolders."""
+    """Delete sentinel_file from 'bench_dir'/runs/ subfolders."""
 
     bench_dir = Path(bench_dir)
     fl = list(bench_dir.joinpath(RUNS_DIR).glob("./*/"+sentinel_file))

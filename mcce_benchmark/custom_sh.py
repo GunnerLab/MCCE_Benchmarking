@@ -16,7 +16,7 @@ step4.py --xts {titr_type}{i}{interval}{n}{ms}{s4_norun}{u}
 
 sleep 10
 ```
-=> recovers the flexibility of each step<n>.py cli.
+=> Same flexibility of each step<n>.py cli.
 """
 
 from argparse import Namespace
@@ -167,7 +167,7 @@ def write_run_script_from_template(bench_dir:str,
                                    script_template:ScriptChoices = ScriptChoices.CUSTOM,
                                    job_args:Namespace = None) -> None:
     """
-    Write a custom shell script in <bench_dir>/RUNS/ to submit steps 1-4 when
+    Write a custom shell script in <bench_dir>/runs/ to submit steps 1-4 when
     script_template is CUSTOM, or perform tests otherwise. job_args can be None for
     templates other than CUSTOM.
     Delete a pre-exisitng script with the same name.
@@ -179,7 +179,7 @@ def write_run_script_from_template(bench_dir:str,
     bench_dir = Path(bench_dir)
     user_pdbs = bench_dir.joinpath(RUNS_DIR)
     if not user_pdbs.exists():
-        msg = f"{bench_dir} does not have a RUNS subfolder: rerun `setup_pdbs_folder` maybe?"
+        msg = f"{bench_dir} does not have a 'runs' subfolder: rerun `setup_pdbs_folder` maybe?"
         logger.error(msg)
         raise FileNotFoundError(msg)
 

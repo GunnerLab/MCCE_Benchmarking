@@ -44,11 +44,10 @@ def delete_mcce_outputs(mcce_dir:str, files_to_keep:list=None, del_original_pdb:
 
 def prep_refset(bench_dir:str, keep_files:list=None, del_original_pdb:bool=True) -> None:
     """
-    ASSUME 'standard' structure: <bench_dir>/RUNS_DIR
+    ASSUME 'standard' structure: <bench_dir>/RUNS_DIR, which is a folder of folders
+    named after the pdb id they contain, i.e. <bench_dir>/runs/.
     Delete all MCCE output files that are not in the 'keep_files' list.
-    Delete all mcce subfolders,
-    which is a folder of folders named after the pdb id they contain, i.e. like RUNS/.
-    ~ clean_job_folder()
+    Delete all mcce subfolders.
     """
 
     pdbs = Path(bench_dir)/RUNS_DIR
@@ -66,7 +65,7 @@ def prep_refset(bench_dir:str, keep_files:list=None, del_original_pdb:bool=True)
 
 def clean_job_folder(job_dir:str) -> None:
     """Delete all MCCE output files and folders from a directory `job_dir`,
-    which is a folder of folders named after the pdb id they contain, i.e. like RUNS/.
+    which is a folder of folders named after the pdb id they contain, i.e. like runs/.
     """
 
     pdbs_dir = Path(job_dir)

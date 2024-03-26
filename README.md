@@ -61,7 +61,7 @@ flowchart LR
     orig -->|N| nogo2["`__Not possible__
     Expected structure:
     .'bench_dir'
-    |--RUNS/
+    |--runs/
       |--PDB1/
          |--run.prm.record
       [...]
@@ -90,7 +90,7 @@ flowchart LR
     orig -->|N| nogo2["`__Not possible__
     Expected structure:
     .'bench_dir'
-    |--RUNS/
+    |--runs/
       |--PDB1/
          |--run.prm.record
       [...]
@@ -117,7 +117,7 @@ After activating the conda env where MCCE_Benchmarking is installed, provide -jo
 
 # Monitor the state of processing via the 'bookkeeping' file:
 
-(env) >cat ./A/RUNS/book.txt
+(env) >cat ./A/runs/book.txt
 
 # Repeat until the entire set is processed.
 
@@ -135,11 +135,11 @@ After activating the conda env where MCCE_Benchmarking is installed, provide -jo
   │   ├── WT_pkas.csv
   │   ├── metadata.md
   │   ├── proteins.tsv
-  │   ├── RUNS/
+  │   ├── runs/
   │   └── refsets/
   │       └── parse.e4/
   │           ├── analysis/
-  │           └── RUNS/
+  │           └── runs/
 
 ```
 
@@ -157,10 +157,10 @@ Comments out the excluded pdbs and gives the reason. Column 'Model' identifies s
 ### File `metadata.md`:
 Experimental data source details; to be kept in data folder.
 
-### Folder `RUNS`:
+### Folder `runs`:
 Holds the prepared pdb files, which reside inside a folder with the same pdbid in upper case.
 ```
-	data/pkadbv1/RUNS/
+	data/pkadbv1/runs/
 	├── book.txt		# Q_BOOK in the code
 	├── default_run.sh
 	├── 135L

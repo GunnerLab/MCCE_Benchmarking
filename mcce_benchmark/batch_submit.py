@@ -11,19 +11,19 @@ Main functions:
 
 * get_running_jobs_dirs(job_name:str) -> list:
     Query shell for user's processes with job_name.
-    Return a list of RUNS/ sub-directories where the jobs are running.
+    Return a list of runs/ sub-directories where the jobs are running.
 
 * batch_run(job_name:str, n_batch:int = N_BATCH, sentinel_file:str = "pK.out") -> None:
     Update Q_BOOK according to user's running jobs' statuses.
-    Launch new jobs inside RUNS subfolders until the number of
+    Launch new jobs inside runs subfolders until the number of
     job equals n_batch.
-    To be run in /RUNS subfolder, which is where Q_BOOK resides.
+    To be run in /runs subfolder, which is where Q_BOOK resides.
 
 * launch_job(bench_dir:str),
              job_name:str = None,
              n_batch:int = N_BATCH,
              sentinel_file:str = "pK.out") -> None:
-    Go to bench_dir/RUNS directory & call batch_run.
+    Go to bench_dir/runs directory & call batch_run.
 
 * launch_cli(argv=None)
     Entry point function.
@@ -87,7 +87,7 @@ def read_book_entries(book:str = BENCH.Q_BOOK) -> list:
 def get_running_jobs_dirs(job_name:str) -> list:
     """
     Query shell for user's processes with job_name.
-    Return a list of RUNS/ sub-directories where the jobs are running.
+    Return a list of runs/ sub-directories where the jobs are running.
     """
 
     # get the process IDs that match job_name from the user's running processes
@@ -113,12 +113,12 @@ def get_running_jobs_dirs(job_name:str) -> list:
 def batch_run(args:Union[dict, Namespace]) -> None:
     """
     Update Q_BOOK according to user's running jobs' states.
-    Launch new jobs inside the RUNS subfolders until the number of
+    Launch new jobs inside the runs subfolders until the number of
     job equals n_batch.
-    To be run in /RUNS folder, which is where Q_BOOK resides.
+    To be run in /runs folder, which is where Q_BOOK resides.
 
     Args:
-    args.job_name (str): Name of the job and script to use in /RUNS folder.
+    args.job_name (str): Name of the job and script to use in /runs folder.
     args.n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
     args.sentinel_file (str, "pK.out"): File whose existence signals a completed job;
       When running all 4 MCCE steps (default), this file is 'pK.out', while
@@ -173,12 +173,12 @@ def batch_run(args:Union[dict, Namespace]) -> None:
 
 def launch_job(args:Namespace) -> None:
     """
-    Go to bench_dir/RUNS directory & call batch_run.
+    Go to bench_dir/runs directory & call batch_run.
 
     Args:
     Options from the command line:
-      [required] bench_dir (Path, None): Path of the folder containing the 'RUNS' folder.
-      job_name (str, None): Name of the job and script to use in 'RUNS' folder.
+      [required] bench_dir (Path, None): Path of the folder containing the /runs folder.
+      job_name (str, None): Name of the job and script to use in /runs folder.
       n_batch (int, BENCH.N_BATCH=10): Number of jobs/processes to maintain.
       sentinel_file (str, "pK.out"): File whose existence signals a completed step;
           When running all 4 MCCE steps (default), this file is 'pK.out', while
@@ -218,8 +218,8 @@ def batch_parser():
         "-bench_dir",
         required = True,
         type = arg_valid_dirpath,
-        help = """The user's choice of directory for setting up the benchmarking run(s); this is where the
-        RUNS folder reside. The directory is created if it does not exists unless this cli is
+        help = """The user's choice of directory for setting up the benchmarking run(s); this is where
+        the /runs folder reside. The directory is created if it does not exists unless this cli is
         called within that directory.
         """
     )
@@ -229,7 +229,7 @@ def batch_parser():
         default = BENCH.DEFAULT_JOB,
         help = """The descriptive name, devoid of spaces, for the current job (don't make it too long!); required.
         This job_name is used to identify the shell script in 'bench_dir' that launches the MCCE simulation
-        in 'bench_dir/RUNS' subfolders; default: %(default)s.
+        in 'bench_dir/runs/' subfolders; default: %(default)s.
         """
     )
     parser.add_argument(
